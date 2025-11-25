@@ -1,0 +1,44 @@
+'use server'
+
+import { db } from "@/lib/db"
+import { users } from "@/lib/schema"
+import { eq } from "drizzle-orm"
+import { cookies } from "next/headers"
+import { redirect } from "next/navigation"
+
+export async function login(formData: FormData) {
+    const username = formData.get("username") as string
+    const password = formData.get("password") as string
+
+    if (!username || !password) {
+        return
+    }
+
+    const user = await db.select().from(users).where(eq(users.username, username)).get()
+
+    if (user && user.password === password) {
+        // Set session cookie
+        cookies().set("user_session", JSON.stringify({ id: user.id, role: user.role, name: user.name }), {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === "production",
+            maxAge: 60 * 60 * 24, // 1 day
+            path: "/",
+        })
+
+        if (user.role === "admin") {
+            redirect("/admin")
+        } else if (user.role === "teacher") {
+            redirect("/teacher")
+        } else {
+            redirect("/exam")
+        }
+    } else {
+        // Handle error (todo: return error state)
+        console.log("Invalid credentials")
+    }
+}
+
+export async function logout() {
+    cookies().delete("user_session")
+    redirect("/login")
+}
