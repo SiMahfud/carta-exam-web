@@ -5,7 +5,12 @@ import { answers, submissions, questions } from "@/lib/schema"
 import { eq, and } from "drizzle-orm"
 import { revalidatePath } from "next/cache"
 
-export async function submitAnswer(submissionId: string, questionId: string, answerValue: any) {
+export async function submitAnswer(
+    submissionId: string,
+    questionId: string,
+    answerValue: any,
+    isFlagged: boolean = false
+) {
     // Check if answer exists
     const existing = await db.select().from(answers).where(
         and(
@@ -15,14 +20,20 @@ export async function submitAnswer(submissionId: string, questionId: string, ans
     ).get()
 
     if (existing) {
-        await db.update(answers).set({ studentAnswer: answerValue }).where(eq(answers.id, existing.id))
+        await db.update(answers).set({
+            studentAnswer: answerValue,
+            isFlagged
+        }).where(eq(answers.id, existing.id))
     } else {
         await db.insert(answers).values({
             submissionId,
             questionId,
             studentAnswer: answerValue,
+            isFlagged,
         })
     }
+
+    return { success: true }
 }
 
 export async function finishExam(submissionId: string) {
@@ -60,4 +71,56 @@ export async function finishExam(submissionId: string) {
     }).where(eq(submissions.id, submissionId))
 
     revalidatePath("/exam")
+}
+
+export async function logViolation(
+    submissionId: string,
+    violationType: string,
+    details?: string
+) {
+    const submission = await db.select().from(submissions).where(eq(submissions.id, submissionId)).get()
+
+    if (!submission) return { success: false }
+
+    const currentLog = (submission.violationLog as any[]) || []
+    const newLog = [
+        ...currentLog,
+        {
+            type: violationType,
+            timestamp: Date.now(),
+            details
+        }
+    ]
+
+    const newCount = (submission.violationCount || 0) + 1
+
+    await db.update(submissions).set({
+        violationLog: newLog,
+        violationCount: newCount
+    }).where(eq(submissions.id, submissionId))
+
+    return { success: true, violationCount: newCount }
+}
+
+export async function flagQuestion(submissionId: string, questionId: string, flag: boolean) {
+    const existing = await db.select().from(answers).where(
+        and(
+            eq(answers.submissionId, submissionId),
+            eq(answers.questionId, questionId)
+        )
+    ).get()
+
+    if (existing) {
+        await db.update(answers).set({ isFlagged: flag }).where(eq(answers.id, existing.id))
+    } else {
+        // Create empty answer with flag
+        await db.insert(answers).values({
+            submissionId,
+            questionId,
+            studentAnswer: null,
+            isFlagged: flag,
+        })
+    }
+
+    return { success: true }
 }

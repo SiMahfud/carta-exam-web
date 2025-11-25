@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
@@ -8,14 +8,21 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
-import { submitAnswer, finishExam } from "@/actions/exam-session"
+import { submitAnswer, finishExam, logViolation, flagQuestion } from "@/actions/exam-session"
 import { useRouter } from "next/navigation"
+import { useLockdownMode, type ViolationEvent } from "@/lib/lockdown"
+import { ViolationWarning } from "@/components/violation-warning"
+import { Flag, AlertCircle } from "lucide-react"
 
-export default function ExamSession({ exam, questions, submission }: { exam: any, questions: any[], submission: any }) {
+export default function ExamSession({ exam, questions, submission, user }: { exam: any, questions: any[], submission: any, user: any }) {
     const [currentIndex, setCurrentIndex] = useState(0)
     const [answers, setAnswers] = useState<Record<string, any>>({})
+    const [flaggedQuestions, setFlaggedQuestions] = useState<Set<string>>(new Set())
     const [timeLeft, setTimeLeft] = useState(exam.durationMinutes * 60)
     const [isFinished, setIsFinished] = useState(false)
+    const [violationCount, setViolationCount] = useState(submission.violationCount || 0)
+    const [showViolationWarning, setShowViolationWarning] = useState(false)
+    const [currentViolation, setCurrentViolation] = useState<ViolationEvent | null>(null)
     const router = useRouter()
 
     // Initialize timer based on start time
@@ -41,12 +48,51 @@ export default function ExamSession({ exam, questions, submission }: { exam: any
 
     const currentQuestion = questions[currentIndex]
 
+    // Lockdown integration
+    const handleViolation = useCallback(async (event: ViolationEvent) => {
+        setCurrentViolation(event)
+        setShowViolationWarning(true)
+
+        const result = await logViolation(submission.id, event.type, event.details)
+        if (result.success && result.violationCount) {
+            setViolationCount(result.violationCount)
+
+            // Auto-terminate if max violations reached
+            if (result.violationCount >= (exam.maxViolations || 3)) {
+                setTimeout(() => handleFinish(), 2000)
+            }
+        }
+    }, [submission.id, exam.maxViolations])
+
+    // Enable lockdown if exam requires it
+    useLockdownMode(
+        user?.name || 'Siswa',
+        handleViolation,
+        exam.enableLockdown !== false
+    )
+
     // Handle answer change
     const handleAnswer = async (value: any) => {
         const newAnswers = { ...answers, [currentQuestion.id]: value }
         setAnswers(newAnswers)
-        // Auto-save to server
-        await submitAnswer(submission.id, currentQuestion.id, value)
+        // Auto-save to server with flag status
+        const isFlagged = flaggedQuestions.has(currentQuestion.id)
+        await submitAnswer(submission.id, currentQuestion.id, value, isFlagged)
+    }
+
+    // Handle question flagging
+    const handleToggleFlag = async () => {
+        const newFlagged = new Set(flaggedQuestions)
+        const isFlagged = newFlagged.has(currentQuestion.id)
+
+        if (isFlagged) {
+            newFlagged.delete(currentQuestion.id)
+        } else {
+            newFlagged.add(currentQuestion.id)
+        }
+
+        setFlaggedQuestions(newFlagged)
+        await flagQuestion(submission.id, currentQuestion.id, !isFlagged)
     }
 
     const handleFinish = async () => {
@@ -79,16 +125,50 @@ export default function ExamSession({ exam, questions, submission }: { exam: any
                     <div className="text-3xl font-mono text-blue-600">{formatTime(timeLeft)}</div>
                 </div>
                 <div className="grid grid-cols-5 gap-2">
-                    {questions.map((q, i) => (
-                        <Button
-                            key={q.id}
-                            variant={currentIndex === i ? "default" : (answers[q.id] ? "secondary" : "outline")}
-                            className="w-full h-10 p-0"
-                            onClick={() => setCurrentIndex(i)}
-                        >
-                            {i + 1}
-                        </Button>
-                    ))}
+                    {questions.map((q, i) => {
+                        const isAnswered = answers[q.id] !== undefined
+                        const isFlagged = flaggedQuestions.has(q.id)
+                        const isCurrent = currentIndex === i
+
+                        let bgColor = 'bg-white'
+                        let textColor = 'text-gray-700'
+
+                        if (isCurrent) {
+                            bgColor = 'bg-blue-600'
+                            textColor = 'text-white'
+                        } else if (isFlagged) {
+                            bgColor = 'bg-yellow-400'
+                            textColor = 'text-gray-900'
+                        } else if (isAnswered) {
+                            bgColor = 'bg-green-500'
+                            textColor = 'text-white'
+                        }
+
+                        return (
+                            <Button
+                                key={q.id}
+                                variant="outline"
+                                className={`w-full h-10 p-0 ${bgColor} ${textColor} hover:opacity-80`}
+                                onClick={() => setCurrentIndex(i)}
+                            >
+                                {i + 1}
+                            </Button>
+                        )
+                    })}
+                </div>
+                <div className="mt-4 text-xs space-y-1">
+                    <div className="flex items-center gap-2">
+                        <div className="w-4 h-4 bg-green-500 rounded"></div>
+                        <span>Sudah Dijawab</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                        <div className="w-4 h-4 bg-yellow-400 rounded"></div>
+                        <span>Ragu-Ragu</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                        <div className="w-4 h-4 bg-white border rounded"></div>
+                        <span>Belum Dijawab</span>
+                    </div>
                 </div>
                 <div className="mt-8">
                     {canFinish() && currentIndex === questions.length - 1 && (
@@ -174,13 +254,23 @@ export default function ExamSession({ exam, questions, submission }: { exam: any
 
                     </CardContent>
                     <CardFooter className="flex justify-between">
-                        <Button
-                            variant="outline"
-                            onClick={() => setCurrentIndex(Math.max(0, currentIndex - 1))}
-                            disabled={currentIndex === 0}
-                        >
-                            Sebelumnya
-                        </Button>
+                        <div className="flex gap-2">
+                            <Button
+                                variant="outline"
+                                onClick={() => setCurrentIndex(Math.max(0, currentIndex - 1))}
+                                disabled={currentIndex === 0}
+                            >
+                                Sebelumnya
+                            </Button>
+                            <Button
+                                variant={flaggedQuestions.has(currentQuestion.id) ? "default" : "outline"}
+                                onClick={handleToggleFlag}
+                                className={flaggedQuestions.has(currentQuestion.id) ? "bg-yellow-500 hover:bg-yellow-600" : ""}
+                            >
+                                <Flag className="w-4 h-4 mr-2" />
+                                {flaggedQuestions.has(currentQuestion.id) ? 'Ragu-Ragu' : 'Tandai Ragu'}
+                            </Button>
+                        </div>
                         <Button
                             onClick={() => setCurrentIndex(Math.min(questions.length - 1, currentIndex + 1))}
                             disabled={currentIndex === questions.length - 1}
@@ -190,6 +280,26 @@ export default function ExamSession({ exam, questions, submission }: { exam: any
                     </CardFooter>
                 </Card>
             </main>
+
+            {/* Violation Warning Modal */}
+            {currentViolation && (
+                <ViolationWarning
+                    open={showViolationWarning}
+                    violationType={currentViolation.type}
+                    violationCount={violationCount}
+                    maxViolations={exam.maxViolations || 3}
+                    onClose={() => setShowViolationWarning(false)}
+                    onTerminate={handleFinish}
+                />
+            )}
+
+            {/* Violation Counter Display */}
+            {exam.enableLockdown && violationCount > 0 && (
+                <div className="fixed bottom-4 right-4 bg-red-600 text-white px-4 py-2 rounded-lg shadow-lg flex items-center gap-2">
+                    <AlertCircle className="w-5 h-5" />
+                    <span className="font-semibold">Pelanggaran: {violationCount}/{exam.maxViolations || 3}</span>
+                </div>
+            )}
         </div>
     )
 }

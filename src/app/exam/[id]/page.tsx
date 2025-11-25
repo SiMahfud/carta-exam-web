@@ -63,6 +63,7 @@ export default async function ExamPage({ params }: { params: { id: string } }) {
             exam={exam}
             questions={questionList}
             submission={submission}
+            user={user}
         />
     )
 }
