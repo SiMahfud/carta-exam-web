@@ -124,6 +124,20 @@ export const examTemplates = sqliteTable("exam_templates", {
     randomizeAnswers: integer("randomize_answers", { mode: "boolean" }).default(false),
     essayAtEnd: integer("essay_at_end", { mode: "boolean" }).default(true),
 
+    // Advanced Randomization Rules
+    randomizationRules: text("randomization_rules", { mode: "json" })
+        .$type<{
+            mode: 'all' | 'by_type' | 'exclude_type' | 'specific_numbers';
+            types?: ('mc' | 'complex_mc' | 'matching' | 'short' | 'essay')[];
+            excludeTypes?: ('mc' | 'complex_mc' | 'matching' | 'short' | 'essay')[];
+            questionNumbers?: number[];
+        }>()
+        .default(sql`'{"mode":"all"}'`),
+
+    // Target Selection
+    targetType: text("target_type").$type<'all' | 'classes' | 'grades' | 'students'>().default('all'),
+    targetIds: text("target_ids", { mode: "json" }).$type<string[]>().default(sql`'[]'`),
+
     // Security & Rules
     enableLockdown: integer("enable_lockdown", { mode: "boolean" }).default(true),
     requireToken: integer("require_token", { mode: "boolean" }).default(false),

@@ -1,14 +1,17 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { examTemplates, bankQuestions, scoringTemplates } from "@/lib/schema";
-import { eq, inArray, and } from "drizzle-orm";
+import { examTemplates, bankQuestions } from "@/lib/schema";
+import { eq, inArray } from "drizzle-orm";
 
-// POST /api/exam-templates/[id]/preview - Preview exam configuration
+// POST /api/exam-templates/[id]/preview - Generate exam preview with actual questions
 export async function POST(
     request: Request,
     { params }: { params: { id: string } }
 ) {
     try {
+        const body = await request.json();
+        const seed = body.seed || Date.now().toString(); // For reproducible randomization
+
         // Get the template
         const template = await db.select()
             .from(examTemplates)
@@ -26,18 +29,9 @@ export async function POST(
 
         // Get all questions from selected banks
         const bankIds = t.bankIds as string[];
-        let questions = await db.select()
+        const allQuestions = await db.select()
             .from(bankQuestions)
             .where(inArray(bankQuestions.bankId, bankIds));
-
-        // Apply tag filters if any
-        const filterTags = t.filterTags as string[] || [];
-        if (filterTags.length > 0) {
-            questions = questions.filter(q => {
-                const qTags = (q.tags as string[]) || [];
-                return filterTags.some(tag => qTags.includes(tag));
-            });
-        }
 
         // Group by type
         const questionsByType: Record<string, any[]> = {
@@ -48,70 +42,142 @@ export async function POST(
             essay: [],
         };
 
-        questions.forEach(q => {
+        allQuestions.forEach(q => {
             if (questionsByType[q.type]) {
                 questionsByType[q.type].push(q);
             }
         });
 
-        // Get scoring weights
-        let weights = t.customWeights as any || {};
-        if (t.scoringTemplateId) {
-            const scoringTemplate = await db.select()
-                .from(scoringTemplates)
-                .where(eq(scoringTemplates.id, t.scoringTemplateId))
-                .limit(1);
+        // Select questions according to composition
+        const composition = t.questionComposition as any;
+        let selectedQuestions: any[] = [];
 
-            if (scoringTemplate.length > 0) {
-                const defaultWeights = scoringTemplate[0].defaultWeights as any;
-                weights = { ...defaultWeights, ...weights };
+        for (const [type, count] of Object.entries(composition)) {
+            const numCount = Number(count);
+            if (numCount && numCount > 0) {
+                const available = questionsByType[type as keyof typeof questionsByType] || [];
+                const selected = available.slice(0, numCount);
+                selectedQuestions.push(...selected.map((q, idx) => ({
+                    ...q,
+                    number: selectedQuestions.length + idx + 1,
+                    type,
+                })));
             }
         }
 
-        // Calculate total points
-        const composition = t.questionComposition as any;
-        let totalPoints = 0;
+        // Apply randomization rules
+        const randomizationRules = (t.randomizationRules as any) || { mode: 'all' };
+        const randomSeed = parseInt(seed);
 
-        Object.keys(composition).forEach(type => {
-            const count = composition[type] || 0;
-            const weight = weights[type] || 1;
-            totalPoints += count * weight;
-        });
+        selectedQuestions = applyRandomization(selectedQuestions, randomizationRules, randomSeed);
 
-        // Build preview
-        const preview = {
-            template: t,
-            availableQuestions: {
-                mc: questionsByType.mc.length,
-                complex_mc: questionsByType.complex_mc.length,
-                matching: questionsByType.matching.length,
-                short: questionsByType.short.length,
-                essay: questionsByType.essay.length,
+        // Apply essay at end rule if enabled (from base randomization settings)
+        if (t.essayAtEnd) {
+            const essays = selectedQuestions.filter(q => q.type === 'essay');
+            const others = selectedQuestions.filter(q => q.type !== 'essay');
+            selectedQuestions = [...others, ...essays];
+        }
+
+        // Renumber questions
+        selectedQuestions = selectedQuestions.map((q, idx) => ({
+            ...q,
+            number: idx + 1,
+        }));
+
+        return NextResponse.json({
+            examInfo: {
+                name: t.name,
+                durationMinutes: t.durationMinutes,
+                totalScore: t.totalScore || 100,
             },
-            requestedQuestions: composition,
-            scoringWeights: weights,
-            calculatedTotalPoints: totalPoints,
-            warnings: [] as string[],
-        };
+            questions: selectedQuestions.map(q => {
+                const content = (q.content as any) || {};
+                const answerKey = (q.answerKey as any) || {};
 
-        // Check if enough questions available
-        Object.keys(composition).forEach((type) => {
-            const requested = composition[type] || 0;
-            const available = questionsByType[type as keyof typeof questionsByType]?.length || 0;
-
-            if (requested > available) {
-                preview.warnings.push(
-                    `Not enough ${type} questions: requested ${requested}, available ${available}`
-                );
+                return {
+                    number: q.number,
+                    type: q.type,
+                    questionText: content.question || content.questionText || '',
+                    options: content.options || null,
+                    correctAnswer: answerKey.correct || answerKey.correctAnswer,
+                    points: q.defaultPoints,
+                    difficulty: q.difficulty,
+                    // Include additional data based on question type
+                    pairs: content.pairs || null, // for matching
+                    acceptableAnswers: content.acceptableAnswers || null, // for short answer
+                    rubric: content.rubric || null, // for essay
+                    guidelines: content.guidelines || content.maxWords || null, // for essay
+                };
+            }),
+            metadata: {
+                totalQuestions: selectedQuestions.length,
+                randomizationApplied: randomizationRules.mode !== 'none',
+                seed: seed,
             }
         });
-
-        return NextResponse.json(preview);
     } catch (error) {
-        console.error("Error previewing exam template:", error);
+        console.error("Error generating preview:", error);
         return NextResponse.json(
-            { error: "Failed to preview exam template" },
+            { error: "Failed to generate preview" },
             { status: 500 }
         );
     }
+}
+
+// Randomization helper function
+function applyRandomization(questions: any[], rules: any, seed: number) {
+    const seededRandom = createSeededRandom(seed);
+
+    switch (rules.mode) {
+        case 'all':
+            return shuffleArray(questions, seededRandom);
+
+        case 'by_type':
+            const typesToRandomize = rules.types || [];
+            const toRandomize = questions.filter(q => typesToRandomize.includes(q.type));
+            const notToRandomize = questions.filter(q => !typesToRandomize.includes(q.type));
+            return [...shuffleArray(toRandomize, seededRandom), ...notToRandomize];
+
+        case 'exclude_type':
+            const typesToExclude = rules.excludeTypes || [];
+            const toRandomizeExclude = questions.filter(q => !typesToExclude.includes(q.type));
+            const notToRandomizeExclude = questions.filter(q => typesToExclude.includes(q.type));
+            return [...shuffleArray(toRandomizeExclude, seededRandom), ...notToRandomizeExclude];
+
+        case 'specific_numbers':
+            const numbersToRandomize = rules.questionNumbers || [];
+            const result = [...questions];
+            const indicesToRandomize = numbersToRandomize.map((n: number) => n - 1).filter((i: number) => i >= 0 && i < result.length);
+
+            if (indicesToRandomize.length > 0) {
+                const itemsToShuffle = indicesToRandomize.map((i: number) => result[i]);
+                const shuffled = shuffleArray(itemsToShuffle, seededRandom);
+                indicesToRandomize.forEach((idx: number, i: number) => {
+                    result[idx] = shuffled[i];
+                });
+            }
+            return result;
+
+        default:
+            return questions;
+    }
+}
+
+// Seeded random number generator
+function createSeededRandom(seed: number) {
+    let currentSeed = seed;
+    return () => {
+        const x = Math.sin(currentSeed++) * 10000;
+        return x - Math.floor(x);
+    };
+}
+
+// Fisher-Yates shuffle with seeded random
+function shuffleArray(array: any[], random: () => number) {
+    const shuffled = [...array];
+    for (let i = shuffled.length - 1; i > 0; i--) {
+        const j = Math.floor(random() * (i + 1));
+        [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+    }
+    return shuffled;
 }
