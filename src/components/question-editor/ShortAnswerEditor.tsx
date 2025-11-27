@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import {
     Dialog,
@@ -30,6 +30,7 @@ interface QuestionEditorProps {
     bankId: string;
     onSuccess: () => void;
     availableTags: string[];
+    questionToEdit?: any;
 }
 
 export function ShortAnswerEditor({
@@ -38,6 +39,7 @@ export function ShortAnswerEditor({
     bankId,
     onSuccess,
     availableTags,
+    questionToEdit,
 }: QuestionEditorProps) {
     const [formData, setFormData] = useState({
         question: "",
@@ -49,6 +51,24 @@ export function ShortAnswerEditor({
         tags: [] as string[],
     });
     const [newTag, setNewTag] = useState("");
+
+    useEffect(() => {
+        if (open) {
+            if (questionToEdit) {
+                setFormData({
+                    question: questionToEdit.content.question,
+                    acceptedAnswers: questionToEdit.answerKey.acceptedAnswers,
+                    caseSensitive: questionToEdit.content.caseSensitive,
+                    exactMatch: questionToEdit.content.exactMatch,
+                    difficulty: questionToEdit.difficulty,
+                    defaultPoints: questionToEdit.defaultPoints,
+                    tags: questionToEdit.tags || [],
+                });
+            } else {
+                resetForm();
+            }
+        }
+    }, [open, questionToEdit]);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -69,8 +89,14 @@ export function ShortAnswerEditor({
         };
 
         try {
-            const response = await fetch(`/api/question-banks/${bankId}/questions`, {
-                method: "POST",
+            const url = questionToEdit
+                ? `/api/question-banks/${bankId}/questions/${questionToEdit.id}`
+                : `/api/question-banks/${bankId}/questions`;
+
+            const method = questionToEdit ? "PUT" : "POST";
+
+            const response = await fetch(url, {
+                method,
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
                     type: "short",
@@ -87,11 +113,11 @@ export function ShortAnswerEditor({
                 onSuccess();
                 onOpenChange(false);
             } else {
-                alert("Failed to create question");
+                alert("Failed to save question");
             }
         } catch (error) {
-            console.error("Error creating question:", error);
-            alert("Failed to create question");
+            console.error("Error saving question:", error);
+            alert("Failed to save question");
         }
     };
 
@@ -152,9 +178,11 @@ export function ShortAnswerEditor({
         <Dialog open={open} onOpenChange={onOpenChange}>
             <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
                 <DialogHeader>
-                    <DialogTitle>Tambah Soal Isian Singkat</DialogTitle>
+                    <DialogTitle>
+                        {questionToEdit ? "Edit Soal Isian Singkat" : "Tambah Soal Isian Singkat"}
+                    </DialogTitle>
                     <DialogDescription>
-                        Buat soal isian singkat dengan beberapa kemungkinan jawaban
+                        {questionToEdit ? "Edit detail soal isian singkat" : "Buat soal isian singkat dengan beberapa kemungkinan jawaban"}
                     </DialogDescription>
                 </DialogHeader>
                 <form onSubmit={handleSubmit}>
@@ -355,7 +383,7 @@ export function ShortAnswerEditor({
                         >
                             Batal
                         </Button>
-                        <Button type="submit">Simpan Soal</Button>
+                        <Button type="submit">{questionToEdit ? "Simpan Perubahan" : "Simpan Soal"}</Button>
                     </DialogFooter>
                 </form>
             </DialogContent>

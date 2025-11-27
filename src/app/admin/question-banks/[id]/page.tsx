@@ -67,7 +67,8 @@ export default function QuestionBankDetailPage() {
     const [availableTags, setAvailableTags] = useState<string[]>([]);
     const [loading, setLoading] = useState(true);
     const [typeDialogOpen, setTypeDialogOpen] = useState(false);
-    const [selectedType, setSelectedType] = useState<string>("mc");
+    const [selectedType, setSelectedType] = useState<string>("");
+    const [editingQuestion, setEditingQuestion] = useState<BankQuestion | null>(null);
 
     // Filters
     const [filterType, setFilterType] = useState<string>("all");
@@ -168,6 +169,11 @@ export default function QuestionBankDetailPage() {
         } catch (error) {
             console.error("Error deleting question:", error);
         }
+    };
+
+    const handleEdit = (question: BankQuestion) => {
+        setEditingQuestion(question);
+        setSelectedType(question.type);
     };
 
     const getTypeLabel = (type: string) => {
@@ -471,7 +477,11 @@ export default function QuestionBankDetailPage() {
                                         )}
                                     </div>
                                     <div className="flex gap-2">
-                                        <Button variant="ghost" size="icon">
+                                        <Button
+                                            variant="ghost"
+                                            size="icon"
+                                            onClick={() => handleEdit(question)}
+                                        >
                                             <Pencil className="h-4 w-4" />
                                         </Button>
                                         <Button
@@ -515,53 +525,83 @@ export default function QuestionBankDetailPage() {
             {/* All Question Editors */}
             <MultipleChoiceEditor
                 open={selectedType === "mc"}
-                onOpenChange={(open) => !open && setSelectedType("")}
+                onOpenChange={(open) => {
+                    if (!open) {
+                        setSelectedType("");
+                        setEditingQuestion(null);
+                    }
+                }}
                 bankId={bankId}
                 onSuccess={() => {
                     fetchQuestions();
                     fetchTags();
                 }}
                 availableTags={availableTags}
+                questionToEdit={editingQuestion || undefined}
             />
             <ComplexMCEditor
                 open={selectedType === "complex_mc"}
-                onOpenChange={(open) => !open && setSelectedType("")}
+                onOpenChange={(open) => {
+                    if (!open) {
+                        setSelectedType("");
+                        setEditingQuestion(null);
+                    }
+                }}
                 bankId={bankId}
                 onSuccess={() => {
                     fetchQuestions();
                     fetchTags();
                 }}
                 availableTags={availableTags}
+                questionToEdit={editingQuestion || undefined}
             />
             <ShortAnswerEditor
                 open={selectedType === "short"}
-                onOpenChange={(open) => !open && setSelectedType("")}
+                onOpenChange={(open) => {
+                    if (!open) {
+                        setSelectedType("");
+                        setEditingQuestion(null);
+                    }
+                }}
                 bankId={bankId}
                 onSuccess={() => {
                     fetchQuestions();
                     fetchTags();
                 }}
                 availableTags={availableTags}
+                questionToEdit={editingQuestion || undefined}
             />
             <MatchingEditor
                 open={selectedType === "matching"}
-                onOpenChange={(open) => !open && setSelectedType("")}
+                onOpenChange={(open) => {
+                    if (!open) {
+                        setSelectedType("");
+                        setEditingQuestion(null);
+                    }
+                }}
                 bankId={bankId}
                 onSuccess={() => {
                     fetchQuestions();
                     fetchTags();
                 }}
                 availableTags={availableTags}
+                questionToEdit={editingQuestion || undefined}
             />
             <EssayEditor
                 open={selectedType === "essay"}
-                onOpenChange={(open) => !open && setSelectedType("")}
+                onOpenChange={(open) => {
+                    if (!open) {
+                        setSelectedType("");
+                        setEditingQuestion(null);
+                    }
+                }}
                 bankId={bankId}
                 onSuccess={() => {
                     fetchQuestions();
                     fetchTags();
                 }}
                 availableTags={availableTags}
+                questionToEdit={editingQuestion || undefined}
             />
         </div>
     );

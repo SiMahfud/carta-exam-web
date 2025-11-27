@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import {
     Dialog,
@@ -29,6 +29,7 @@ interface QuestionEditorProps {
     bankId: string;
     onSuccess: () => void;
     availableTags: string[];
+    questionToEdit?: any;
 }
 
 export function EssayEditor({
@@ -37,6 +38,7 @@ export function EssayEditor({
     bankId,
     onSuccess,
     availableTags,
+    questionToEdit,
 }: QuestionEditorProps) {
     const [formData, setFormData] = useState({
         question: "",
@@ -50,6 +52,25 @@ export function EssayEditor({
     });
     const [newTag, setNewTag] = useState("");
     const [newKeyword, setNewKeyword] = useState("");
+
+    useEffect(() => {
+        if (open) {
+            if (questionToEdit) {
+                setFormData({
+                    question: questionToEdit.content.question,
+                    guidelines: questionToEdit.content.guidelines || "",
+                    maxWords: questionToEdit.content.maxWords || null,
+                    rubric: questionToEdit.answerKey.rubric,
+                    keywords: questionToEdit.answerKey.keywords || [],
+                    difficulty: questionToEdit.difficulty,
+                    defaultPoints: questionToEdit.defaultPoints,
+                    tags: questionToEdit.tags || [],
+                });
+            } else {
+                resetForm();
+            }
+        }
+    }, [open, questionToEdit]);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -84,8 +105,14 @@ export function EssayEditor({
         };
 
         try {
-            const response = await fetch(`/api/question-banks/${bankId}/questions`, {
-                method: "POST",
+            const url = questionToEdit
+                ? `/api/question-banks/${bankId}/questions/${questionToEdit.id}`
+                : `/api/question-banks/${bankId}/questions`;
+
+            const method = questionToEdit ? "PUT" : "POST";
+
+            const response = await fetch(url, {
+                method,
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
                     type: "essay",
@@ -102,11 +129,11 @@ export function EssayEditor({
                 onSuccess();
                 onOpenChange(false);
             } else {
-                alert("Failed to create question");
+                alert("Failed to save question");
             }
         } catch (error) {
-            console.error("Error creating question:", error);
-            alert("Failed to create question");
+            console.error("Error saving question:", error);
+            alert("Failed to save question");
         }
     };
 
@@ -196,9 +223,11 @@ export function EssayEditor({
         <Dialog open={open} onOpenChange={onOpenChange}>
             <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
                 <DialogHeader>
-                    <DialogTitle>Tambah Soal Uraian</DialogTitle>
+                    <DialogTitle>
+                        {questionToEdit ? "Edit Soal Uraian" : "Tambah Soal Uraian"}
+                    </DialogTitle>
                     <DialogDescription>
-                        Buat soal uraian dengan rubrik penilaian
+                        {questionToEdit ? "Edit detail soal uraian" : "Buat soal uraian dengan rubrik penilaian"}
                     </DialogDescription>
                 </DialogHeader>
                 <form onSubmit={handleSubmit}>
@@ -460,7 +489,7 @@ export function EssayEditor({
                         >
                             Batal
                         </Button>
-                        <Button type="submit">Simpan Soal</Button>
+                        <Button type="submit">{questionToEdit ? "Simpan Perubahan" : "Simpan Soal"}</Button>
                     </DialogFooter>
                 </form>
             </DialogContent>
