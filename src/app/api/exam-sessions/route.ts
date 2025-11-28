@@ -1,32 +1,61 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { examSessions, examTemplates, classStudents } from "@/lib/schema";
-import { eq, inArray } from "drizzle-orm";
+import { examSessions, examTemplates } from "@/lib/schema";
+import { eq, desc, and, sql } from "drizzle-orm";
 
-// GET /api/exam-sessions - List all exam sessions
+// GET /api/exam-sessions - List all sessions
 export async function GET(request: Request) {
     try {
         const { searchParams } = new URL(request.url);
+        const page = parseInt(searchParams.get("page") || "1");
+        const limit = parseInt(searchParams.get("limit") || "10");
         const status = searchParams.get("status");
 
-        const baseQuery = db.select({
+        const offset = (page - 1) * limit;
+
+        // Build where conditions
+        const conditions = [];
+        if (status && status !== "all") {
+            conditions.push(eq(examSessions.status, status as any));
+        }
+
+        const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
+
+        // Get total count
+        const totalResult = await db.select({ count: sql<number>`count(*)` })
+            .from(examSessions)
+            .where(whereClause);
+        const total = Number(totalResult[0]?.count || 0);
+
+        // Fetch sessions with template info
+        const sessions = await db.select({
             id: examSessions.id,
             sessionName: examSessions.sessionName,
-            templateId: examSessions.templateId,
-            templateName: examTemplates.name,
+            status: examSessions.status,
             startTime: examSessions.startTime,
             endTime: examSessions.endTime,
-            status: examSessions.status,
             targetType: examSessions.targetType,
+            targetIds: examSessions.targetIds,
+            templateName: examTemplates.name,
+            durationMinutes: examTemplates.durationMinutes,
             createdAt: examSessions.createdAt,
         })
             .from(examSessions)
-            .innerJoin(examTemplates, eq(examSessions.templateId, examTemplates.id));
+            .innerJoin(examTemplates, eq(examSessions.templateId, examTemplates.id))
+            .where(whereClause)
+            .orderBy(desc(examSessions.createdAt))
+            .limit(limit)
+            .offset(offset);
 
-        const sessions = status
-            ? await baseQuery.where(eq(examSessions.status, status as any)).orderBy(examSessions.createdAt)
-            : await baseQuery.orderBy(examSessions.createdAt);
-        return NextResponse.json(sessions);
+        return NextResponse.json({
+            data: sessions,
+            metadata: {
+                total,
+                page,
+                limit,
+                totalPages: Math.ceil(total / limit)
+            }
+        });
     } catch (error) {
         console.error("Error fetching exam sessions:", error);
         return NextResponse.json(
@@ -36,7 +65,7 @@ export async function GET(request: Request) {
     }
 }
 
-// POST /api/exam-sessions - Create new exam session from template
+// POST /api/exam-sessions - Create new session
 export async function POST(request: Request) {
     try {
         const body = await request.json();
@@ -47,27 +76,52 @@ export async function POST(request: Request) {
             endTime,
             targetType,
             targetIds,
-            createdBy,
+            createdBy // Should come from auth session
         } = body;
 
-        if (!templateId || !sessionName || !startTime || !endTime || !targetType || !targetIds || !createdBy) {
+        // Validation
+        if (!templateId || !sessionName || !startTime || !endTime || !targetType || !targetIds) {
             return NextResponse.json(
-                { error: "All fields are required" },
+                { error: "Missing required fields" },
                 { status: 400 }
             );
+        }
+
+        // Validate dates
+        const start = new Date(startTime);
+        const end = new Date(endTime);
+        if (isNaN(start.getTime()) || isNaN(end.getTime())) {
+            return NextResponse.json(
+                { error: "Invalid date format" },
+                { status: 400 }
+            );
+        }
+        if (end <= start) {
+            return NextResponse.json(
+                { error: "End time must be after start time" },
+                { status: 400 }
+            );
+        }
+
+        // Determine initial status
+        const now = new Date();
+        let status = "scheduled";
+        if (now >= start && now <= end) {
+            status = "active";
+        } else if (now > end) {
+            status = "completed";
         }
 
         // Create session
         const newSession = await db.insert(examSessions).values({
             templateId,
             sessionName,
-            startTime: new Date(startTime),
-            endTime: new Date(endTime),
+            startTime: start,
+            endTime: end,
+            status: status as any,
             targetType,
             targetIds,
-            status: "scheduled",
-            generatedQuestions: {}, // Will be populated when questions are generated
-            createdBy,
+            createdBy: createdBy || "system", // Fallback
         }).returning();
 
         return NextResponse.json(newSession[0], { status: 201 });
