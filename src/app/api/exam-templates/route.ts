@@ -1,11 +1,56 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { examTemplates, subjects, users } from "@/lib/schema";
-import { eq, desc } from "drizzle-orm";
+import { eq, desc, asc, like, and, sql } from "drizzle-orm";
 
-// GET /api/exam-templates - List all templates
-export async function GET() {
+// GET /api/exam-templates - List all templates with pagination, filtering, and sorting
+export async function GET(request: Request) {
     try {
+        const { searchParams } = new URL(request.url);
+        const page = parseInt(searchParams.get("page") || "1");
+        const limit = parseInt(searchParams.get("limit") || "10");
+        const search = searchParams.get("search") || "";
+        const subjectId = searchParams.get("subjectId") || "all";
+        const sort = searchParams.get("sort") || "createdAt";
+        const order = searchParams.get("order") || "desc";
+
+        const offset = (page - 1) * limit;
+
+        // Build where conditions
+        const conditions = [];
+        if (search) {
+            conditions.push(like(examTemplates.name, `%${search}%`));
+        }
+        if (subjectId && subjectId !== "all") {
+            conditions.push(eq(examTemplates.subjectId, subjectId));
+        }
+
+        const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
+
+        // Get total count for pagination
+        const totalResult = await db.select({ count: sql<number>`count(*)` })
+            .from(examTemplates)
+            .where(whereClause);
+        const total = Number(totalResult[0]?.count || 0);
+
+        // Determine sort order
+        let orderByClause;
+        switch (sort) {
+            case "name":
+                orderByClause = order === "asc" ? asc(examTemplates.name) : desc(examTemplates.name);
+                break;
+            case "totalScore":
+                orderByClause = order === "asc" ? asc(examTemplates.totalScore) : desc(examTemplates.totalScore);
+                break;
+            case "durationMinutes":
+                orderByClause = order === "asc" ? asc(examTemplates.durationMinutes) : desc(examTemplates.durationMinutes);
+                break;
+            case "createdAt":
+            default:
+                orderByClause = order === "asc" ? asc(examTemplates.createdAt) : desc(examTemplates.createdAt);
+                break;
+        }
+
         const templates = await db.select({
             id: examTemplates.id,
             name: examTemplates.name,
@@ -19,9 +64,20 @@ export async function GET() {
             .from(examTemplates)
             .innerJoin(subjects, eq(examTemplates.subjectId, subjects.id))
             .innerJoin(users, eq(examTemplates.createdBy, users.id))
-            .orderBy(desc(examTemplates.createdAt));
+            .where(whereClause)
+            .orderBy(orderByClause)
+            .limit(limit)
+            .offset(offset);
 
-        return NextResponse.json(templates);
+        return NextResponse.json({
+            data: templates,
+            metadata: {
+                total,
+                page,
+                limit,
+                totalPages: Math.ceil(total / limit)
+            }
+        });
     } catch (error) {
         console.error("Error fetching exam templates:", error);
         return NextResponse.json(

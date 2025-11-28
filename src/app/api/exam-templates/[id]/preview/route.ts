@@ -10,7 +10,7 @@ export async function POST(
 ) {
     try {
         const body = await request.json();
-        const seed = body.seed || Date.now().toString(); // For reproducible randomization
+        const seed = body.seed || Date.now().toString();
 
         // Get the template
         const template = await db.select()
@@ -65,20 +65,7 @@ export async function POST(
             }
         }
 
-        // Apply randomization rules
-        const randomizationRules = (t.randomizationRules as any) || { mode: 'all' };
-        const randomSeed = parseInt(seed);
-
-        selectedQuestions = applyRandomization(selectedQuestions, randomizationRules, randomSeed);
-
-        // Apply essay at end rule if enabled (from base randomization settings)
-        if (t.essayAtEnd) {
-            const essays = selectedQuestions.filter(q => q.type === 'essay');
-            const others = selectedQuestions.filter(q => q.type !== 'essay');
-            selectedQuestions = [...others, ...essays];
-        }
-
-        // Renumber questions
+        // DISABLE RANDOMIZATION FOR PREVIEW - Keep original order for easier checking
         selectedQuestions = selectedQuestions.map((q, idx) => ({
             ...q,
             number: idx + 1,
@@ -94,24 +81,60 @@ export async function POST(
                 const content = (q.content as any) || {};
                 const answerKey = (q.answerKey as any) || {};
 
+                // Transform options array to {label, text} format for MC questions
+                let transformedOptions = null;
+                if ((q.type === 'mc' || q.type === 'complex_mc') && content.options && Array.isArray(content.options)) {
+                    const labels = ['A', 'B', 'C', 'D', 'E'];
+                    transformedOptions = content.options.map((optionText: string, idx: number) => ({
+                        label: labels[idx] || String.fromCharCode(65 + idx),
+                        text: optionText
+                    }));
+                }
+
+                // Transform leftItems/rightItems to pairs format for matching
+                let transformedPairs = null;
+                if (q.type === 'matching' && content.leftItems && content.rightItems) {
+                    transformedPairs = content.leftItems.map((leftItem: string, idx: number) => ({
+                        left: leftItem,
+                        right: content.rightItems[idx] || ''
+                    }));
+                }
+
+                // Get accepted answers for short answer
+                let acceptableAnswers = null;
+                if (q.type === 'short') {
+                    acceptableAnswers = answerKey.acceptedAnswers || content.acceptableAnswers || answerKey.correct || null;
+                    if (acceptableAnswers && !Array.isArray(acceptableAnswers)) {
+                        acceptableAnswers = [acceptableAnswers];
+                    }
+                }
+
+                // Transform rubric format
+                let transformedRubric = null;
+                if (q.type === 'essay' && answerKey.rubric && Array.isArray(answerKey.rubric)) {
+                    transformedRubric = answerKey.rubric.map((r: any) => ({
+                        criterion: r.criteria || r.criterion,
+                        points: r.maxPoints || r.points || 0
+                    }));
+                }
+
                 return {
                     number: q.number,
                     type: q.type,
                     questionText: content.question || content.questionText || '',
-                    options: content.options || null,
+                    options: transformedOptions,
                     correctAnswer: answerKey.correct || answerKey.correctAnswer,
                     points: q.defaultPoints,
                     difficulty: q.difficulty,
-                    // Include additional data based on question type
-                    pairs: content.pairs || null, // for matching
-                    acceptableAnswers: content.acceptableAnswers || null, // for short answer
-                    rubric: content.rubric || null, // for essay
-                    guidelines: content.guidelines || content.maxWords || null, // for essay
+                    pairs: transformedPairs,
+                    acceptableAnswers: acceptableAnswers,
+                    rubric: transformedRubric || content.rubric || null,
+                    guidelines: content.guidelines || content.maxWords || null,
                 };
             }),
             metadata: {
                 totalQuestions: selectedQuestions.length,
-                randomizationApplied: randomizationRules.mode !== 'none',
+                randomizationApplied: false,
                 seed: seed,
             }
         });
@@ -122,62 +145,4 @@ export async function POST(
             { status: 500 }
         );
     }
-}
-
-// Randomization helper function
-function applyRandomization(questions: any[], rules: any, seed: number) {
-    const seededRandom = createSeededRandom(seed);
-
-    switch (rules.mode) {
-        case 'all':
-            return shuffleArray(questions, seededRandom);
-
-        case 'by_type':
-            const typesToRandomize = rules.types || [];
-            const toRandomize = questions.filter(q => typesToRandomize.includes(q.type));
-            const notToRandomize = questions.filter(q => !typesToRandomize.includes(q.type));
-            return [...shuffleArray(toRandomize, seededRandom), ...notToRandomize];
-
-        case 'exclude_type':
-            const typesToExclude = rules.excludeTypes || [];
-            const toRandomizeExclude = questions.filter(q => !typesToExclude.includes(q.type));
-            const notToRandomizeExclude = questions.filter(q => typesToExclude.includes(q.type));
-            return [...shuffleArray(toRandomizeExclude, seededRandom), ...notToRandomizeExclude];
-
-        case 'specific_numbers':
-            const numbersToRandomize = rules.questionNumbers || [];
-            const result = [...questions];
-            const indicesToRandomize = numbersToRandomize.map((n: number) => n - 1).filter((i: number) => i >= 0 && i < result.length);
-
-            if (indicesToRandomize.length > 0) {
-                const itemsToShuffle = indicesToRandomize.map((i: number) => result[i]);
-                const shuffled = shuffleArray(itemsToShuffle, seededRandom);
-                indicesToRandomize.forEach((idx: number, i: number) => {
-                    result[idx] = shuffled[i];
-                });
-            }
-            return result;
-
-        default:
-            return questions;
-    }
-}
-
-// Seeded random number generator
-function createSeededRandom(seed: number) {
-    let currentSeed = seed;
-    return () => {
-        const x = Math.sin(currentSeed++) * 10000;
-        return x - Math.floor(x);
-    };
-}
-
-// Fisher-Yates shuffle with seeded random
-function shuffleArray(array: any[], random: () => number) {
-    const shuffled = [...array];
-    for (let i = shuffled.length - 1; i > 0; i--) {
-        const j = Math.floor(random() * (i + 1));
-        [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
-    }
-    return shuffled;
 }
