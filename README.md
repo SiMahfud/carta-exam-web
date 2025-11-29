@@ -1,36 +1,54 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# CartaExam
 
-## Getting Started
+**Platform Ujian Modern untuk SMAN 1 Campurdarat**
 
-First, run the development server:
+CartaExam adalah aplikasi ujian berbasis web yang dirancang untuk memberikan pengalaman ujian yang aman, efisien, dan mudah digunakan bagi siswa dan guru.
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+## Fitur Utama
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+- **Keamanan Ujian (Lockdown)**: Mencegah kecurangan dengan fitur deteksi pindah tab, pencegahan copy-paste, dan mode layar penuh.
+- **Bank Soal Fleksibel**: Mendukung berbagai tipe soal:
+  - Pilihan Ganda (Multiple Choice)
+  - Pilihan Ganda Kompleks (Complex Multiple Choice)
+  - Menjodohkan (Matching)
+  - Isian Singkat (Short Answer)
+  - Esai (Essay)
+- **Manajemen Ujian**: Penjadwalan sesi ujian, pengacakan soal dan jawaban, serta pengaturan durasi.
+- **Monitoring Real-time**: Guru dapat memantau status pengerjaan siswa dan pelanggaran secara langsung.
+- **Penilaian Otomatis**: Hasil ujian langsung tersedia untuk soal objektif.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Teknologi
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Aplikasi ini dibangun menggunakan teknologi modern:
+- **Framework**: [Next.js](https://nextjs.org/) (App Router)
+- **Database**: SQLite
+- **ORM**: [Drizzle ORM](https://orm.drizzle.team/)
+- **Styling**: [Tailwind CSS](https://tailwindcss.com/)
+- **UI Components**: [Shadcn/UI](https://ui.shadcn.com/)
 
-## Learn More
+## Memulai (Getting Started)
 
-To learn more about Next.js, take a look at the following resources:
+1.  **Clone repository**
+2.  **Install dependencies**:
+    ```bash
+    npm install
+    ```
+3.  **Setup Database**:
+    ```bash
+    npm run db:push
+    # atau
+    npx drizzle-kit push
+    ```
+4.  **Jalankan server development**:
+    ```bash
+    npm run dev
+    ```
+5.  Buka [http://localhost:3000](http://localhost:3000) di browser.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Dokumentasi
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+Dokumentasi lengkap tersedia di folder `docs/`:
 
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- [Dokumentasi API](docs/api_documentation.md)
+- [Panduan Pengguna untuk Guru](docs/user_guide_teachers.md)
+- [Skema Database](docs/database_schema.md)
