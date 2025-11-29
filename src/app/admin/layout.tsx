@@ -47,7 +47,6 @@ export default function AdminLayout({
         { href: "/admin/exam-templates", label: "Template Ujian", icon: FileText },
         { href: "/admin/exam-sessions", label: "Sesi Ujian", icon: Calendar },
         { href: "/admin/grading", label: "Penilaian", icon: Edit3 },
-        { href: "/admin/exams", label: "Ujian (Legacy)", icon: ClipboardList },
         { href: "/admin/users", label: "Manajemen User", icon: GraduationCap },
     ];
 
