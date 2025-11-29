@@ -1,209 +1,209 @@
-# CartaExam Database Schema Documentation
+# Dokumentasi Skema Database CartaExam
 
-This document describes the database schema for the CartaExam application. The application uses SQLite with Drizzle ORM.
+Dokumen ini menjelaskan skema database untuk aplikasi CartaExam. Aplikasi ini menggunakan SQLite dengan Drizzle ORM.
 
-## Overview
+## Ringkasan
 
-The database is organized into several modules:
-- **User Management**: Users, roles.
-- **Subject & Class Management**: Subjects, classes, student enrollments.
-- **Question Bank Management**: Question banks, questions.
-- **Scoring Templates**: Reusable scoring configurations.
-- **Exam Templates & Sessions**: Exam configurations and scheduled sessions.
-- **Legacy/Integration**: Tables for backward compatibility and active exam taking.
+Database diatur ke dalam beberapa modul:
+- **Manajemen Pengguna (User Management)**: Pengguna, peran (role).
+- **Manajemen Mata Pelajaran & Kelas (Subject & Class Management)**: Mata pelajaran, kelas, pendaftaran siswa.
+- **Manajemen Bank Soal (Question Bank Management)**: Bank soal, butir soal.
+- **Template Penilaian (Scoring Templates)**: Konfigurasi penilaian yang dapat digunakan kembali.
+- **Template & Sesi Ujian (Exam Templates & Sessions)**: Konfigurasi ujian dan sesi terjadwal.
+- **Legacy/Integrasi**: Tabel untuk kompatibilitas ke belakang dan pelaksanaan ujian aktif.
 
-## Tables
+## Tabel
 
-### User Management
+### Manajemen Pengguna
 
 #### `users`
-Stores user information for admins, teachers, and students.
+Menyimpan informasi pengguna untuk admin, guru, dan siswa.
 
-| Column | Type | Description |
+| Kolom | Tipe | Deskripsi |
 | :--- | :--- | :--- |
 | `id` | TEXT | Primary Key (UUID) |
-| `name` | TEXT | Full name |
-| `username` | TEXT | Unique username |
-| `password` | TEXT | Hashed password |
+| `name` | TEXT | Nama Lengkap |
+| `username` | TEXT | Username unik |
+| `password` | TEXT | Password ter-hash |
 | `role` | TEXT | Enum: `admin`, `teacher`, `student` |
 | `created_at` | INTEGER | Timestamp |
 
-### Subject & Class Management
+### Manajemen Mata Pelajaran & Kelas
 
 #### `subjects`
-Subjects taught in the school.
+Mata pelajaran yang diajarkan di sekolah.
 
-| Column | Type | Description |
+| Kolom | Tipe | Deskripsi |
 | :--- | :--- | :--- |
 | `id` | TEXT | Primary Key (UUID) |
-| `name` | TEXT | Subject name |
-| `code` | TEXT | Unique subject code (e.g., "MAT") |
-| `description` | TEXT | Optional description |
+| `name` | TEXT | Nama mata pelajaran |
+| `code` | TEXT | Kode unik mata pelajaran (misal: "MAT") |
+| `description` | TEXT | Deskripsi opsional |
 | `created_at` | INTEGER | Timestamp |
 
 #### `classes`
-Classes or grade levels.
+Kelas atau tingkat kelas.
 
-| Column | Type | Description |
+| Kolom | Tipe | Deskripsi |
 | :--- | :--- | :--- |
 | `id` | TEXT | Primary Key (UUID) |
-| `name` | TEXT | Class name (e.g., "X-1") |
-| `grade` | INTEGER | Grade level (10, 11, 12) |
-| `academic_year` | TEXT | Academic year (e.g., "2025/2026") |
-| `teacher_id` | TEXT | Foreign Key -> `users.id` (Homeroom teacher) |
+| `name` | TEXT | Nama kelas (misal: "X-1") |
+| `grade` | INTEGER | Tingkat kelas (10, 11, 12) |
+| `academic_year` | TEXT | Tahun ajaran (misal: "2025/2026") |
+| `teacher_id` | TEXT | Foreign Key -> `users.id` (Wali kelas) |
 | `created_at` | INTEGER | Timestamp |
 
 #### `class_students`
-Many-to-many relationship between classes and students.
+Relasi many-to-many antara kelas dan siswa.
 
-| Column | Type | Description |
+| Kolom | Tipe | Deskripsi |
 | :--- | :--- | :--- |
 | `id` | TEXT | Primary Key (UUID) |
 | `class_id` | TEXT | Foreign Key -> `classes.id` |
 | `student_id` | TEXT | Foreign Key -> `users.id` |
 | `enrolled_at` | INTEGER | Timestamp |
 
-### Question Bank Management
+### Manajemen Bank Soal
 
 #### `question_banks`
-Collections of questions for a specific subject.
+Kumpulan soal untuk mata pelajaran tertentu.
 
-| Column | Type | Description |
+| Kolom | Tipe | Deskripsi |
 | :--- | :--- | :--- |
 | `id` | TEXT | Primary Key (UUID) |
 | `subject_id` | TEXT | Foreign Key -> `subjects.id` |
-| `name` | TEXT | Bank name |
-| `description` | TEXT | Optional description |
+| `name` | TEXT | Nama bank soal |
+| `description` | TEXT | Deskripsi opsional |
 | `created_by` | TEXT | Foreign Key -> `users.id` |
 | `created_at` | INTEGER | Timestamp |
 | `updated_at` | INTEGER | Timestamp |
 
 #### `bank_questions`
-Individual questions within a bank.
+Butir soal individu dalam bank soal.
 
-| Column | Type | Description |
+| Kolom | Tipe | Deskripsi |
 | :--- | :--- | :--- |
 | `id` | TEXT | Primary Key (UUID) |
 | `bank_id` | TEXT | Foreign Key -> `question_banks.id` |
-| `type` | TEXT | Enum: `mc`, `complex_mc`, `matching`, `short`, `essay` |
-| `content` | JSON | Question content and options |
-| `answer_key` | JSON | Correct answer data |
-| `tags` | JSON | Array of tags |
-| `difficulty` | TEXT | Enum: `easy`, `medium`, `hard` |
-| `default_points` | INTEGER | Default points for the question |
+| `type` | TEXT | Enum: `mc` (PG), `complex_mc` (PG Kompleks), `matching` (Menjodohkan), `short` (Isian Singkat), `essay` (Esai) |
+| `content` | JSON | Konten soal dan opsi jawaban |
+| `answer_key` | JSON | Data kunci jawaban |
+| `tags` | JSON | Array tag |
+| `difficulty` | TEXT | Enum: `easy` (Mudah), `medium` (Sedang), `hard` (Sulit) |
+| `default_points` | INTEGER | Poin default untuk soal ini |
 | `created_by` | TEXT | Foreign Key -> `users.id` |
 | `created_at` | INTEGER | Timestamp |
 
-### Scoring Templates
+### Template Penilaian
 
 #### `scoring_templates`
-Reusable scoring rules.
+Aturan penilaian yang dapat digunakan kembali.
 
-| Column | Type | Description |
+| Kolom | Tipe | Deskripsi |
 | :--- | :--- | :--- |
 | `id` | TEXT | Primary Key (UUID) |
-| `name` | TEXT | Template name |
-| `default_weights` | JSON | Weights for each question type |
-| `allow_partial_credit` | BOOLEAN | Whether to allow partial credit |
-| `partial_credit_rules` | JSON | Rules for partial credit calculation |
+| `name` | TEXT | Nama template |
+| `default_weights` | JSON | Bobot untuk setiap tipe soal |
+| `allow_partial_credit` | BOOLEAN | Apakah mengizinkan nilai parsial |
+| `partial_credit_rules` | JSON | Aturan perhitungan nilai parsial |
 
-### Exam Templates & Sessions
+### Template & Sesi Ujian
 
 #### `exam_templates`
-Blueprints for exams, defining rules, timing, and question selection.
+Cetak biru (blueprint) untuk ujian, mendefinisikan aturan, waktu, dan pemilihan soal.
 
-| Column | Type | Description |
+| Kolom | Tipe | Deskripsi |
 | :--- | :--- | :--- |
 | `id` | TEXT | Primary Key (UUID) |
-| `name` | TEXT | Template name |
+| `name` | TEXT | Nama template |
 | `subject_id` | TEXT | Foreign Key -> `subjects.id` |
-| `bank_ids` | JSON | Array of source bank IDs |
-| `duration_minutes` | INTEGER | Exam duration |
-| `randomize_questions` | BOOLEAN | Randomize question order |
-| `randomize_answers` | BOOLEAN | Randomize answer options |
-| `enable_lockdown` | BOOLEAN | Enable browser lockdown |
+| `bank_ids` | JSON | Array ID bank soal sumber |
+| `duration_minutes` | INTEGER | Durasi ujian |
+| `randomize_questions` | BOOLEAN | Acak urutan soal |
+| `randomize_answers` | BOOLEAN | Acak urutan jawaban |
+| `enable_lockdown` | BOOLEAN | Aktifkan lockdown browser |
 | `created_by` | TEXT | Foreign Key -> `users.id` |
 
 #### `exam_sessions`
-Scheduled instances of an exam template.
+Sesi terjadwal dari template ujian.
 
-| Column | Type | Description |
+| Kolom | Tipe | Deskripsi |
 | :--- | :--- | :--- |
 | `id` | TEXT | Primary Key (UUID) |
 | `template_id` | TEXT | Foreign Key -> `exam_templates.id` |
-| `session_name` | TEXT | Name of the session |
-| `start_time` | INTEGER | Scheduled start time |
-| `end_time` | INTEGER | Scheduled end time |
+| `session_name` | TEXT | Nama sesi |
+| `start_time` | INTEGER | Waktu mulai terjadwal |
+| `end_time` | INTEGER | Waktu selesai terjadwal |
 | `status` | TEXT | Enum: `scheduled`, `active`, `completed`, `cancelled` |
 | `target_type` | TEXT | Enum: `class`, `individual` |
-| `target_ids` | JSON | IDs of assigned classes or students |
+| `target_ids` | JSON | ID kelas atau siswa yang ditugaskan |
 
 #### `question_pools`
-Stores the specific set of questions generated for a student in a session (if randomization is used).
+Menyimpan set soal spesifik yang dihasilkan untuk siswa dalam sesi (jika menggunakan pengacakan).
 
-| Column | Type | Description |
+| Kolom | Tipe | Deskripsi |
 | :--- | :--- | :--- |
 | `id` | TEXT | Primary Key (UUID) |
 | `session_id` | TEXT | Foreign Key -> `exam_sessions.id` |
 | `student_id` | TEXT | Foreign Key -> `users.id` |
-| `selected_questions` | JSON | Array of `bank_questions.id` |
-| `question_order` | JSON | Order of questions |
+| `selected_questions` | JSON | Array dari `bank_questions.id` |
+| `question_order` | JSON | Urutan soal |
 
-### Exam Execution (Legacy/Active)
+### Eksekusi Ujian (Legacy/Aktif)
 
 #### `exams`
-(Legacy/Integration) Represents an exam instance.
+(Legacy/Integrasi) Merepresentasikan instansi ujian.
 
-| Column | Type | Description |
+| Kolom | Tipe | Deskripsi |
 | :--- | :--- | :--- |
 | `id` | TEXT | Primary Key (UUID) |
-| `title` | TEXT | Exam title |
+| `title` | TEXT | Judul ujian |
 | `session_id` | TEXT | Foreign Key -> `exam_sessions.id` |
-| `duration_minutes` | INTEGER | Duration |
+| `duration_minutes` | INTEGER | Durasi |
 
 #### `questions`
-Questions instantiated for a specific exam.
+Soal yang diinstansiasi untuk ujian tertentu.
 
-| Column | Type | Description |
+| Kolom | Tipe | Deskripsi |
 | :--- | :--- | :--- |
 | `id` | TEXT | Primary Key (UUID) |
 | `exam_id` | TEXT | Foreign Key -> `exams.id` |
 | `bank_question_id` | TEXT | Foreign Key -> `bank_questions.id` |
-| `type` | TEXT | Question type |
-| `content` | JSON | Content |
-| `answer_key` | JSON | Answer key |
+| `type` | TEXT | Tipe soal |
+| `content` | JSON | Konten |
+| `answer_key` | JSON | Kunci jawaban |
 
 #### `submissions`
-Student submissions for an exam.
+Pengumpulan jawaban siswa untuk ujian.
 
-| Column | Type | Description |
+| Kolom | Tipe | Deskripsi |
 | :--- | :--- | :--- |
 | `id` | TEXT | Primary Key (UUID) |
 | `exam_id` | TEXT | Foreign Key -> `exams.id` |
 | `user_id` | TEXT | Foreign Key -> `users.id` |
 | `session_id` | TEXT | Foreign Key -> `exam_sessions.id` |
-| `score` | INTEGER | Total score |
+| `score` | INTEGER | Total nilai |
 | `status` | TEXT | Enum: `in_progress`, `completed`, `terminated` |
-| `violation_count` | INTEGER | Number of detected violations |
+| `violation_count` | INTEGER | Jumlah pelanggaran terdeteksi |
 
 #### `answers`
-Individual answers within a submission.
+Jawaban individu dalam pengumpulan.
 
-| Column | Type | Description |
+| Kolom | Tipe | Deskripsi |
 | :--- | :--- | :--- |
 | `id` | TEXT | Primary Key (UUID) |
 | `submission_id` | TEXT | Foreign Key -> `submissions.id` |
 | `question_id` | TEXT | Foreign Key -> `questions.id` |
-| `student_answer` | JSON | The student's answer |
-| `is_correct` | BOOLEAN | Correctness status |
-| `score` | INTEGER | Score for this answer |
+| `student_answer` | JSON | Jawaban siswa |
+| `is_correct` | BOOLEAN | Status kebenaran |
+| `score` | INTEGER | Nilai untuk jawaban ini |
 
 #### `exam_tokens`
-Dynamic tokens for exam access.
+Token dinamis untuk akses ujian.
 
-| Column | Type | Description |
+| Kolom | Tipe | Deskripsi |
 | :--- | :--- | :--- |
 | `id` | TEXT | Primary Key (UUID) |
 | `exam_id` | TEXT | Foreign Key -> `exams.id` |
-| `token` | TEXT | The token string |
-| `valid_until` | INTEGER | Expiration time |
+| `token` | TEXT | String token |
+| `valid_until` | INTEGER | Waktu kedaluwarsa |

@@ -1,116 +1,116 @@
-# CartaExam User Guide for Teachers
+# Panduan Pengguna CartaExam untuk Guru
 
-Welcome to the CartaExam Teacher Guide. This document explains how to use the application to manage classes, create exams, and grade student submissions.
+Selamat datang di Panduan Guru CartaExam. Dokumen ini menjelaskan cara menggunakan aplikasi untuk mengelola kelas, membuat ujian, dan menilai hasil ujian siswa.
 
-## Table of Contents
-1. [Dashboard Overview](#dashboard-overview)
-2. [Managing Subjects & Classes](#managing-subjects--classes)
-3. [Question Bank Management](#question-bank-management)
-4. [Creating & Scheduling Exams](#creating--scheduling-exams)
-5. [Monitoring Exams](#monitoring-exams)
-6. [Grading & Results](#grading--results)
+## Daftar Isi
+1. [Ringkasan Dasbor](#ringkasan-dasbor)
+2. [Mengelola Mata Pelajaran & Kelas](#mengelola-mata-pelajaran--kelas)
+3. [Manajemen Bank Soal](#manajemen-bank-soal)
+4. [Membuat & Menjadwalkan Ujian](#membuat--menjadwalkan-ujian)
+5. [Memantau Ujian](#memantau-ujian)
+6. [Penilaian & Hasil](#penilaian--hasil)
 
 ---
 
-## Dashboard Overview
-Upon logging in, you will see the Admin Dashboard. This provides a quick overview of:
-- Active Exam Sessions
-- Recent Submissions
-- Quick links to manage Classes, Exams, and Question Banks.
+## Ringkasan Dasbor
+Setelah login, Anda akan melihat Dasbor Admin. Ini memberikan gambaran cepat tentang:
+- Sesi Ujian Aktif
+- Pengumpulan Terbaru
+- Tautan cepat untuk mengelola Kelas, Ujian, dan Bank Soal.
 
-## Managing Subjects & Classes
+## Mengelola Mata Pelajaran & Kelas
 
-### Creating a Subject
-1. Navigate to **Subjects** in the sidebar.
-2. Click **Add Subject**.
-3. Enter the **Name** (e.g., Mathematics) and **Code** (e.g., MAT).
-4. Click **Save**.
+### Membuat Mata Pelajaran
+1. Navigasi ke **Mata Pelajaran** (Subjects) di sidebar.
+2. Klik **Tambah Mata Pelajaran** (Add Subject).
+3. Masukkan **Nama** (misal: Matematika) dan **Kode** (misal: MAT).
+4. Klik **Simpan** (Save).
 
-### Creating a Class
-1. Navigate to **Classes** in the sidebar.
-2. Click **Add Class**.
-3. Enter the **Class Name** (e.g., X-1), **Grade Level**, and **Academic Year**.
-4. Assign a **Homeroom Teacher** (optional).
-5. Click **Save**.
+### Membuat Kelas
+1. Navigasi ke **Kelas** (Classes) di sidebar.
+2. Klik **Tambah Kelas** (Add Class).
+3. Masukkan **Nama Kelas** (misal: X-1), **Tingkat Kelas**, dan **Tahun Ajaran**.
+4. Tetapkan **Wali Kelas** (opsional).
+5. Klik **Simpan** (Save).
 
-### Assigning Students to Classes
-1. Open a specific **Class** from the list.
-2. Go to the **Students** tab.
-3. Click **Add Students**.
-4. Select students from the list to enroll them in the class.
+### Menambahkan Siswa ke Kelas
+1. Buka **Kelas** tertentu dari daftar.
+2. Pergi ke tab **Siswa** (Students).
+3. Klik **Tambah Siswa** (Add Students).
+4. Pilih siswa dari daftar untuk mendaftarkan mereka ke dalam kelas.
 
-## Question Bank Management
-The Question Bank allows you to create and reuse questions for multiple exams.
+## Manajemen Bank Soal
+Bank Soal memungkinkan Anda membuat dan menggunakan kembali soal untuk berbagai ujian.
 
-### Creating a Question Bank
-1. Navigate to **Question Banks**.
-2. Click **Create Bank**.
-3. Select the **Subject** and give the bank a **Name** (e.g., "Biology Midterm 2025").
-4. Click **Create**.
+### Membuat Bank Soal
+1. Navigasi ke **Bank Soal** (Question Banks).
+2. Klik **Buat Bank** (Create Bank).
+3. Pilih **Mata Pelajaran** dan beri **Nama** bank (misal: "UTS Biologi 2025").
+4. Klik **Buat** (Create).
 
-### Adding Questions
-1. Open your created Question Bank.
-2. Click **Add Question**.
-3. Select the **Question Type**:
-   - **Multiple Choice**: Standard A-E options.
-   - **Complex Multiple Choice**: Multiple correct answers.
-   - **Matching**: Match pairs of items.
-   - **Short Answer**: Text input with auto-grading keywords.
-   - **Essay**: Long text input requiring manual grading.
-4. Fill in the question content, options, and correct answers.
-5. Set **Difficulty** and **Tags** (optional).
-6. Click **Save Question**.
+### Menambahkan Soal
+1. Buka Bank Soal yang telah Anda buat.
+2. Klik **Tambah Soal** (Add Question).
+3. Pilih **Tipe Soal**:
+   - **Pilihan Ganda**: Opsi standar A-E.
+   - **Pilihan Ganda Kompleks**: Lebih dari satu jawaban benar.
+   - **Menjodohkan**: Mencocokkan pasangan item.
+   - **Isian Singkat**: Input teks dengan kata kunci penilaian otomatis.
+   - **Esai**: Input teks panjang yang memerlukan penilaian manual.
+4. Isi konten soal, opsi, dan jawaban benar.
+5. Atur **Tingkat Kesulitan** dan **Tag** (opsional).
+6. Klik **Simpan Soal** (Save Question).
 
-## Creating & Scheduling Exams
+## Membuat & Menjadwalkan Ujian
 
-### Step 1: Create an Exam Template
-An Exam Template defines the rules and structure of the exam.
-1. Navigate to **Exam Templates**.
-2. Click **Create Template**.
-3. **General Info**: Name, Subject, Duration.
-4. **Questions**: Select which **Question Banks** to pull from. You can choose to:
-   - Use all questions from a bank.
-   - Randomly select a specific number of questions.
-   - Filter by tags or difficulty.
-5. **Settings**:
-   - Enable **Lockdown Browser** (prevents tab switching).
-   - Randomize Question Order.
-   - Randomize Answer Order.
-6. Click **Save Template**.
+### Langkah 1: Buat Template Ujian
+Template Ujian mendefinisikan aturan dan struktur ujian.
+1. Navigasi ke **Template Ujian** (Exam Templates).
+2. Klik **Buat Template** (Create Template).
+3. **Info Umum**: Nama, Mata Pelajaran, Durasi.
+4. **Soal**: Pilih **Bank Soal** mana yang akan diambil. Anda dapat memilih untuk:
+   - Menggunakan semua soal dari bank.
+   - Memilih sejumlah soal secara acak.
+   - Memfilter berdasarkan tag atau kesulitan.
+5. **Pengaturan**:
+   - Aktifkan **Lockdown Browser** (mencegah pindah tab).
+   - Acak Urutan Soal.
+   - Acak Urutan Jawaban.
+6. Klik **Simpan Template** (Save Template).
 
-### Step 2: Schedule an Exam Session
-A Session is an instance of an exam for a specific group of students.
-1. Navigate to **Exam Sessions**.
-2. Click **Schedule Session**.
-3. Select the **Exam Template** you created.
-4. Set the **Start Time** and **End Time**.
-5. **Assign To**: Select a **Class** or specific **Students**.
-6. Click **Schedule**.
+### Langkah 2: Jadwalkan Sesi Ujian
+Sesi adalah pelaksanaan ujian untuk kelompok siswa tertentu.
+1. Navigasi ke **Sesi Ujian** (Exam Sessions).
+2. Klik **Jadwalkan Sesi** (Schedule Session).
+3. Pilih **Template Ujian** yang Anda buat.
+4. Atur **Waktu Mulai** dan **Waktu Selesai**.
+5. **Tugaskan Ke**: Pilih **Kelas** atau **Siswa** tertentu.
+6. Klik **Jadwalkan** (Schedule).
 
-## Monitoring Exams
-During an active session, you can monitor student progress.
-1. Go to **Exam Sessions** and click on the **Active** session.
-2. You will see a live dashboard showing:
-   - Who has started.
-   - Current progress (answered questions).
-   - **Violations**: Alerts for tab switching or suspicious behavior.
-3. You can terminate a student's session if necessary.
+## Memantau Ujian
+Selama sesi aktif, Anda dapat memantau kemajuan siswa.
+1. Pergi ke **Sesi Ujian** dan klik pada sesi **Aktif**.
+2. Anda akan melihat dasbor langsung yang menampilkan:
+   - Siapa yang sudah mulai.
+   - Kemajuan saat ini (soal terjawab).
+   - **Pelanggaran**: Peringatan untuk pindah tab atau perilaku mencurigakan.
+3. Anda dapat menghentikan sesi siswa jika diperlukan.
 
-## Grading & Results
+## Penilaian & Hasil
 
-### Auto-Grading
-- Multiple Choice, Matching, and Short Answer questions are graded automatically upon submission.
+### Penilaian Otomatis
+- Soal Pilihan Ganda, Menjodohkan, dan Isian Singkat dinilai secara otomatis setelah pengumpulan.
 
-### Manual Grading (Essays)
-1. Navigate to **Grading**.
-2. You will see a list of submissions with "Pending Manual Grading".
-3. Click on a submission to open the grading interface.
-4. Review the student's essay answers.
-5. Assign a score and add feedback comments.
-6. Click **Save Grades**.
+### Penilaian Manual (Esai)
+1. Navigasi ke **Penilaian** (Grading).
+2. Anda akan melihat daftar pengumpulan dengan status "Menunggu Penilaian Manual".
+3. Klik pada pengumpulan untuk membuka antarmuka penilaian.
+4. Tinjau jawaban esai siswa.
+5. Berikan nilai dan tambahkan komentar umpan balik.
+6. Klik **Simpan Nilai** (Save Grades).
 
-### Viewing Results
-1. Go to the **Exam Session** details.
-2. Click on the **Results** tab.
-3. You can view the final scores for all students.
-4. Export results to CSV/Excel (if available).
+### Melihat Hasil
+1. Pergi ke detail **Sesi Ujian**.
+2. Klik pada tab **Hasil** (Results).
+3. Anda dapat melihat nilai akhir untuk semua siswa.
+4. Ekspor hasil ke CSV/Excel (jika tersedia).

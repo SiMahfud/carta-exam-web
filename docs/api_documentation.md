@@ -1,116 +1,116 @@
-# CartaExam API Documentation
+# Dokumentasi API CartaExam
 
-This document outlines the API endpoints available in the CartaExam application. All API routes are located under `/api`.
+Dokumen ini menguraikan endpoint API yang tersedia di aplikasi CartaExam. Semua rute API terletak di bawah `/api`.
 
-## Base URL
+## URL Dasar
 `/api`
 
-## Endpoints
+## Endpoint
 
-### Classes
-Manage classes and student enrollments.
+### Kelas (Classes)
+Mengelola kelas dan pendaftaran siswa.
 
 - **GET** `/api/classes`
-  - Retrieve a list of all classes.
+  - Mengambil daftar semua kelas.
 - **POST** `/api/classes`
-  - Create a new class.
+  - Membuat kelas baru.
 - **GET** `/api/classes/[id]`
-  - Retrieve details of a specific class.
+  - Mengambil detail kelas tertentu.
 - **PUT** `/api/classes/[id]`
-  - Update a specific class.
+  - Memperbarui kelas tertentu.
 - **DELETE** `/api/classes/[id]`
-  - Delete a specific class.
+  - Menghapus kelas tertentu.
 
-### Subjects
-Manage subjects.
+### Mata Pelajaran (Subjects)
+Mengelola mata pelajaran.
 
 - **GET** `/api/subjects`
-  - Retrieve a list of all subjects.
+  - Mengambil daftar semua mata pelajaran.
 - **POST** `/api/subjects`
-  - Create a new subject.
+  - Membuat mata pelajaran baru.
 - **GET** `/api/subjects/[id]`
-  - Retrieve details of a specific subject.
+  - Mengambil detail mata pelajaran tertentu.
 - **PUT** `/api/subjects/[id]`
-  - Update a specific subject.
+  - Memperbarui mata pelajaran tertentu.
 - **DELETE** `/api/subjects/[id]`
-  - Delete a specific subject.
+  - Menghapus mata pelajaran tertentu.
 
-### Question Banks
-Manage question banks and questions.
+### Bank Soal (Question Banks)
+Mengelola bank soal dan butir soal.
 
 - **GET** `/api/question-banks`
-  - List all question banks.
+  - Menampilkan daftar semua bank soal.
 - **POST** `/api/question-banks`
-  - Create a new question bank.
+  - Membuat bank soal baru.
 - **GET** `/api/question-banks/[id]`
-  - Get details of a question bank (including questions).
+  - Mendapatkan detail bank soal (termasuk soal di dalamnya).
 - **PUT** `/api/question-banks/[id]`
-  - Update a question bank.
+  - Memperbarui bank soal.
 - **DELETE** `/api/question-banks/[id]`
-  - Delete a question bank.
+  - Menghapus bank soal.
 
-### Exam Templates
-Manage exam templates (blueprints).
+### Template Ujian (Exam Templates)
+Mengelola template ujian (cetak biru).
 
 - **GET** `/api/exam-templates`
-  - List all exam templates.
+  - Menampilkan daftar semua template ujian.
 - **POST** `/api/exam-templates`
-  - Create a new exam template.
+  - Membuat template ujian baru.
 - **GET** `/api/exam-templates/[id]`
-  - Get details of an exam template.
+  - Mendapatkan detail template ujian.
 - **PUT** `/api/exam-templates/[id]`
-  - Update an exam template.
+  - Memperbarui template ujian.
 - **DELETE** `/api/exam-templates/[id]`
-  - Delete an exam template.
+  - Menghapus template ujian.
 
-### Exam Sessions
-Manage scheduled exam sessions.
+### Sesi Ujian (Exam Sessions)
+Mengelola sesi ujian terjadwal.
 
 - **GET** `/api/exam-sessions`
-  - List all exam sessions.
+  - Menampilkan daftar semua sesi ujian.
 - **POST** `/api/exam-sessions`
-  - Schedule a new exam session.
+  - Menjadwalkan sesi ujian baru.
 - **GET** `/api/exam-sessions/[id]`
-  - Get details of an exam session.
+  - Mendapatkan detail sesi ujian.
 - **PUT** `/api/exam-sessions/[id]`
-  - Update an exam session (e.g., change status, time).
+  - Memperbarui sesi ujian (misal: ubah status, waktu).
 - **DELETE** `/api/exam-sessions/[id]`
-  - Cancel/Delete an exam session.
+  - Membatalkan/Menghapus sesi ujian.
 
-### Grading
-Manage grading of submissions.
+### Penilaian (Grading)
+Mengelola penilaian hasil ujian.
 
 - **GET** `/api/grading`
-  - List submissions requiring grading.
+  - Menampilkan daftar pengumpulan yang perlu dinilai.
 - **GET** `/api/grading/[submissionId]`
-  - Get a specific submission for grading.
+  - Mendapatkan pengumpulan spesifik untuk dinilai.
 - **POST** `/api/grading/[submissionId]`
-  - Submit grades for a submission.
+  - Menyimpan nilai untuk pengumpulan.
 
-### Scoring Templates
-Manage reusable scoring rules.
+### Template Penilaian (Scoring Templates)
+Mengelola aturan penilaian yang dapat digunakan kembali.
 
 - **GET** `/api/scoring-templates`
-  - List scoring templates.
+  - Menampilkan daftar template penilaian.
 - **POST** `/api/scoring-templates`
-  - Create a scoring template.
+  - Membuat template penilaian.
 
-### Users
-Manage users (students, teachers, admins).
+### Pengguna (Users)
+Mengelola pengguna (siswa, guru, admin).
 
 - **GET** `/api/users`
-  - List users.
+  - Menampilkan daftar pengguna.
 - **POST** `/api/users`
-  - Create a new user.
+  - Membuat pengguna baru.
 
-### Student
-Endpoints for student exam taking.
+### Siswa (Student)
+Endpoint untuk pelaksanaan ujian siswa.
 
 - **GET** `/api/student/exams`
-  - List assigned exams for the current student.
+  - Menampilkan daftar ujian yang ditugaskan untuk siswa saat ini.
 - **POST** `/api/student/exam/[examId]/start`
-  - Start an exam session.
+  - Memulai sesi ujian.
 - **POST** `/api/student/exam/[examId]/submit`
-  - Submit an exam.
+  - Mengumpulkan ujian.
 - **POST** `/api/student/exam/[examId]/answer`
-  - Save an answer.
+  - Menyimpan jawaban.
