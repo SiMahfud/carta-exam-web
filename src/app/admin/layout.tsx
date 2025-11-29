@@ -1,7 +1,7 @@
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { logout } from "@/actions/auth"
-import { BookOpen, Users, Database, FileText, Calendar, ClipboardList } from "lucide-react"
+import { BookOpen, Users, Database, FileText, Calendar, ClipboardList, Edit3 } from "lucide-react"
 
 export default function AdminLayout({
     children,
@@ -15,6 +15,7 @@ export default function AdminLayout({
         { href: "/admin/question-banks", label: "Bank Soal", icon: Database },
         { href: "/admin/exam-templates", label: "Template Ujian", icon: FileText },
         { href: "/admin/exam-sessions", label: "Sesi Ujian", icon: Calendar },
+        { href: "/admin/grading", label: "Penilaian", icon: Edit3 },
         { href: "/admin/exams", label: "Ujian (Legacy)", icon: FileText },
         { href: "/admin/users", label: "Manajemen User", icon: Users },
     ];

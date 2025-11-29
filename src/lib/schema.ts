@@ -252,7 +252,8 @@ export const submissions = sqliteTable("submissions", {
     status: text("status", { enum: ["in_progress", "completed", "terminated"] }).default("in_progress"),
 
     // Grading status
-    gradingStatus: text("grading_status", { enum: ["auto", "pending_manual", "completed"] }).default("auto"),
+    gradingStatus: text("grading_status", { enum: ["auto", "pending_manual", "manual", "completed", "published"] }).default("auto"),
+    createdAt: integer("created_at", { mode: "timestamp" }).default(sql`(unixepoch())`),
 });
 
 export const answers = sqliteTable("answers", {
@@ -269,7 +270,7 @@ export const answers = sqliteTable("answers", {
     partialPoints: integer("partial_points"), // Partial credit earned (for complex_mc, matching)
 
     // Manual grading support
-    gradingStatus: text("grading_status", { enum: ["auto", "pending_manual", "completed"] }).default("auto"),
+    gradingStatus: text("grading_status", { enum: ["auto", "pending_manual", "manual", "completed"] }).default("auto"),
     gradedBy: text("graded_by").references(() => users.id, { onDelete: "set null" }), // Teacher who graded
     gradedAt: integer("graded_at", { mode: "timestamp" }),
     gradingNotes: text("grading_notes"), // Teacher's notes/feedback
