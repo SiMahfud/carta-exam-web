@@ -253,7 +253,7 @@ export const submissions = sqliteTable("submissions", {
 
     // Grading status
     gradingStatus: text("grading_status", { enum: ["auto", "pending_manual", "manual", "completed", "published"] }).default("auto"),
-    createdAt: integer("created_at", { mode: "timestamp" }).default(sql`(unixepoch())`),
+    createdAt: integer("created_at", { mode: "timestamp" }).$defaultFn(() => new Date()),
 });
 
 export const answers = sqliteTable("answers", {
