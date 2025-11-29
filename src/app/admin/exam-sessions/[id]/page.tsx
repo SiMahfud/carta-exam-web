@@ -6,7 +6,14 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { ArrowLeft, RefreshCw, Users, PlayCircle, CheckCircle, AlertTriangle, Clock } from "lucide-react";
+import { ArrowLeft, RefreshCw, Users, PlayCircle, CheckCircle, AlertTriangle, Clock, Eye } from "lucide-react";
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogHeader,
+    DialogTitle,
+} from "@/components/ui/dialog";
 import Link from "next/link";
 import { format } from "date-fns";
 import { id as idLocale } from "date-fns/locale";
@@ -38,6 +45,12 @@ interface SessionData {
     endTime: string;
 }
 
+interface Violation {
+    type: string;
+    details?: string;
+    timestamp: string;
+}
+
 export default function SessionMonitorPage() {
     const params = useParams();
     const router = useRouter();
@@ -48,6 +61,12 @@ export default function SessionMonitorPage() {
     const [session, setSession] = useState<SessionData | null>(null);
     const [stats, setStats] = useState<SessionStats | null>(null);
     const [students, setStudents] = useState<StudentProgress[]>([]);
+
+    // Violations dialog state
+    const [violationsDialogOpen, setViolationsDialogOpen] = useState(false);
+    const [selectedStudent, setSelectedStudent] = useState<StudentProgress | null>(null);
+    const [violations, setViolations] = useState<Violation[]>([]);
+    const [loadingViolations, setLoadingViolations] = useState(false);
 
     useEffect(() => {
         fetchData();
@@ -81,6 +100,32 @@ export default function SessionMonitorPage() {
         }
     };
 
+    const fetchViolations = async (studentId: string) => {
+        setLoadingViolations(true);
+        try {
+            const response = await fetch(`/api/exam-sessions/${params.id}/violations/${studentId}`);
+            if (response.ok) {
+                const data = await response.json();
+                setViolations(data.violations);
+            }
+        } catch (error) {
+            console.error("Error fetching violations:", error);
+            toast({
+                title: "Error",
+                description: "Gagal memuat data pelanggaran",
+                variant: "destructive",
+            });
+        } finally {
+            setLoadingViolations(false);
+        }
+    };
+
+    const handleViewViolations = (student: StudentProgress) => {
+        setSelectedStudent(student);
+        setViolationsDialogOpen(true);
+        fetchViolations(student.id);
+    };
+
     const getStatusBadge = (status: string) => {
         switch (status) {
             case "in_progress":
@@ -91,6 +136,17 @@ export default function SessionMonitorPage() {
             default:
                 return <Badge variant="outline">Belum Mulai</Badge>;
         }
+    };
+
+    const getViolationTypeLabel = (type: string) => {
+        const labels: Record<string, string> = {
+            tab_switch: "Pindah Tab",
+            copy_paste: "Copy/Paste",
+            right_click: "Klik Kanan",
+            screenshot: "Screenshot",
+            fullscreen_exit: "Keluar Fullscreen",
+        };
+        return labels[type] || type;
     };
 
     if (loading) {
@@ -186,6 +242,7 @@ export default function SessionMonitorPage() {
                                     <th className="p-4 text-left font-medium">Waktu Mulai</th>
                                     <th className="p-4 text-left font-medium">Pelanggaran</th>
                                     <th className="p-4 text-left font-medium">Nilai</th>
+                                    <th className="p-4 text-left font-medium">Aksi</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -207,11 +264,23 @@ export default function SessionMonitorPage() {
                                         <td className="p-4 font-medium">
                                             {student.score !== null ? student.score : "-"}
                                         </td>
+                                        <td className="p-4">
+                                            {student.violationCount > 0 && (
+                                                <Button
+                                                    variant="ghost"
+                                                    size="sm"
+                                                    onClick={() => handleViewViolations(student)}
+                                                >
+                                                    <Eye className="h-4 w-4 mr-1" />
+                                                    Detail
+                                                </Button>
+                                            )}
+                                        </td>
                                     </tr>
                                 ))}
                                 {students.length === 0 && (
                                     <tr>
-                                        <td colSpan={6} className="p-4 text-center text-muted-foreground">
+                                        <td colSpan={7} className="p-4 text-center text-muted-foreground">
                                             Tidak ada peserta
                                         </td>
                                     </tr>
@@ -221,6 +290,59 @@ export default function SessionMonitorPage() {
                     </div>
                 </CardContent>
             </Card>
+
+            {/* Violations Dialog */}
+            <Dialog open={violationsDialogOpen} onOpenChange={setViolationsDialogOpen}>
+                <DialogContent className="max-w-2xl">
+                    <DialogHeader>
+                        <DialogTitle>Detail Pelanggaran</DialogTitle>
+                        <DialogDescription>
+                            {selectedStudent?.name} - {selectedStudent?.className}
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="space-y-4">
+                        {loadingViolations ? (
+                            <div className="text-center py-8">
+                                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
+                                <p className="mt-2 text-sm text-muted-foreground">Memuat data...</p>
+                            </div>
+                        ) : violations.length === 0 ? (
+                            <div className="text-center py-8 text-muted-foreground">
+                                Tidak ada pelanggaran
+                            </div>
+                        ) : (
+                            <div className="space-y-3 max-h-96 overflow-y-auto">
+                                {violations.map((violation, idx) => (
+                                    <div key={idx} className="flex gap-4 p-4 bg-muted/30 rounded-lg border">
+                                        <div className="flex-shrink-0">
+                                            <div className="w-10 h-10 rounded-full bg-destructive/20 flex items-center justify-center">
+                                                <AlertTriangle className="h-5 w-5 text-destructive" />
+                                            </div>
+                                        </div>
+                                        <div className="flex-1">
+                                            <div className="flex justify-between items-start">
+                                                <div>
+                                                    <h4 className="font-semibold text-sm">
+                                                        {getViolationTypeLabel(violation.type)}
+                                                    </h4>
+                                                    {violation.details && (
+                                                        <p className="text-sm text-muted-foreground mt-1">
+                                                            {violation.details}
+                                                        </p>
+                                                    )}
+                                                </div>
+                                                <Badge variant="outline" className="text-xs">
+                                                    {format(new Date(violation.timestamp), "HH:mm:ss")}
+                                                </Badge>
+                                            </div>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+                </DialogContent>
+            </Dialog>
         </div>
     );
 }
