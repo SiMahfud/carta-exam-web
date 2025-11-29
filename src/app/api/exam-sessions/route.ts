@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { examSessions, examTemplates } from "@/lib/schema";
+import { examSessions, examTemplates, users } from "@/lib/schema";
 import { eq, desc, and, sql } from "drizzle-orm";
 
 // GET /api/exam-sessions - List all sessions
@@ -112,6 +112,24 @@ export async function POST(request: Request) {
             status = "completed";
         }
 
+        // Get a valid user ID if not provided
+        let userId = createdBy;
+        if (!userId) {
+            // Fetch the first admin user as fallback
+            const adminUsers = await db.select({ id: users.id })
+                .from(users)
+                .where(eq(users.role, "admin"))
+                .limit(1);
+
+            if (adminUsers.length === 0) {
+                return NextResponse.json(
+                    { error: "No admin user found. Please ensure at least one admin user exists." },
+                    { status: 500 }
+                );
+            }
+            userId = adminUsers[0].id;
+        }
+
         // Create session
         const newSession = await db.insert(examSessions).values({
             templateId,
@@ -121,7 +139,7 @@ export async function POST(request: Request) {
             status: status as any,
             targetType,
             targetIds,
-            createdBy: createdBy || "system", // Fallback
+            createdBy: userId,
         }).returning();
 
         return NextResponse.json(newSession[0], { status: 201 });
