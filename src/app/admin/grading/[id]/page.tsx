@@ -24,7 +24,7 @@ interface Answer {
     maxPoints: number;
     partialPoints: number;
     gradingStatus: string;
-    teacherComment: string | null;
+    gradingNotes: string | null;
     defaultPoints: number;
 }
 
@@ -72,7 +72,7 @@ export default function GradingDetailPage() {
                 data.answers.forEach((a: Answer) => {
                     initialGrades.set(a.answerId, {
                         score: a.partialPoints,
-                        comment: a.teacherComment || "",
+                        comment: a.gradingNotes || "",
                     });
                 });
                 setGrades(initialGrades);
@@ -101,7 +101,7 @@ export default function GradingDetailPage() {
             const updates = Array.from(grades.entries()).map(([answerId, data]) => ({
                 answerId,
                 score: data.score,
-                teacherComment: data.comment,
+                gradingNotes: data.comment,
             }));
 
             const response = await fetch(`/api/grading/submissions/${params.id}`, {
