@@ -82,13 +82,48 @@ export async function GET(
                 );
             }
 
+            // For Matching: convert index pairs to text pairs
+            let formattedStudentAnswer = a.studentAnswer;
+            if (a.questionType === 'matching') {
+                try {
+                    const content = a.questionContent as any;
+                    const leftItems = content.leftItems || [];
+                    const rightItems = content.rightItems || [];
+                    const pairs = (a.questionAnswerKey as any)?.pairs || {};
+
+                    const formattedPairs: Record<string, string> = {};
+                    Object.entries(pairs).forEach(([leftIdx, rightIdx]) => {
+                        const left = leftItems[parseInt(leftIdx)];
+                        const right = rightItems[rightIdx as number];
+                        if (left && right) {
+                            formattedPairs[left] = right;
+                        }
+                    });
+                    correctAnswer = formattedPairs;
+
+                    // Format student answer: [{left: "L", right: "R"}] -> { "L": "R" }
+                    if (Array.isArray(a.studentAnswer)) {
+                        const studentMap: Record<string, string> = {};
+                        a.studentAnswer.forEach((pair: any) => {
+                            if (pair.left && pair.right) {
+                                studentMap[pair.left] = pair.right;
+                            }
+                        });
+                        formattedStudentAnswer = studentMap;
+                    }
+                } catch (e) {
+                    console.error("Error formatting matching answer:", e);
+                    correctAnswer = {};
+                }
+            }
+
             return {
                 answerId: a.answerId,
                 questionId: a.questionId,
                 type: a.questionType,
                 questionText: (a.questionContent as any).question || (a.questionContent as any).questionText,
                 questionContent: a.questionContent,
-                studentAnswer: a.studentAnswer,
+                studentAnswer: formattedStudentAnswer,
                 correctAnswer: correctAnswer,
                 isFlagged: a.isFlagged,
                 isCorrect: a.isCorrect,
