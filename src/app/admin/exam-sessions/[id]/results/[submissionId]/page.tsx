@@ -10,6 +10,7 @@ import { ArrowLeft, CheckCircle, XCircle, User, Calendar, Award } from "lucide-r
 import Link from "next/link";
 import { format } from "date-fns";
 import { id as idLocale } from "date-fns/locale";
+import { MatchingResultViewer } from "@/components/exam/MatchingResultViewer";
 
 interface Answer {
     answerId: string;
@@ -202,49 +203,40 @@ export default function SubmissionDetailPage() {
                 );
 
             case "matching":
-                const studentMatches = answer.studentAnswer || {};
-                const correctMatches = answer.correctAnswer || {};
+                const studentPairs = Array.isArray(answer.studentAnswer) ? answer.studentAnswer : [];
+                const correctPairs = (answer.correctAnswer as any)?.pairs || {};
+                const leftItems = (answer.questionContent as any)?.leftItems || [];
+                const rightItems = (answer.questionContent as any)?.rightItems || [];
 
                 return (
                     <div className="space-y-3">
-                        <div>
-                            <h4 className="font-medium mb-2">{answer.questionText}</h4>
-                            <div className="space-y-2">
-                                {Object.entries(correctMatches).map(([left, right]: [string, any], idx: number) => {
-                                    const studentRight = studentMatches[left];
-                                    // Convert to string if object
-                                    const correctRightStr = typeof right === 'object' ? JSON.stringify(right) : String(right);
-                                    const studentRightStr = typeof studentRight === 'object' ? JSON.stringify(studentRight) : String(studentRight || '');
-                                    const isCorrect = studentRightStr === correctRightStr;
-
-                                    return (
-                                        <div
-                                            key={idx}
-                                            className={`p-3 rounded-lg border ${isCorrect
-                                                ? "bg-green-50 border-green-300"
-                                                : "bg-red-50 border-red-300"
-                                                }`}
-                                        >
-                                            <div className="flex items-center justify-between">
-                                                <div className="flex items-center gap-3">
-                                                    <span className="font-semibold">{left}</span>
-                                                    <span>➡️</span>
-                                                    <span>{studentRightStr || "(tidak dijawab)"}</span>
-                                                </div>
-                                                {isCorrect ? (
-                                                    <CheckCircle className="h-4 w-4 text-green-600" />
-                                                ) : (
-                                                    <div className="flex items-center gap-2">
-                                                        <span className="text-sm text-muted-foreground">Seharusnya: {correctRightStr}</span>
-                                                        <XCircle className="h-4 w-4 text-red-600" />
-                                                    </div>
-                                                )}
-                                            </div>
+                        <h4 className="font-medium mb-2">{answer.questionText}</h4>
+                        <MatchingResultViewer
+                            question={{
+                                id: answer.questionId,
+                                questionText: answer.questionText,
+                                leftItems,
+                                rightItems
+                            }}
+                            studentPairs={studentPairs}
+                            correctPairs={correctPairs}
+                        />
+                        {/* Legacy Key View (Optional, maybe hidden or collapsed) */}
+                        <details className="text-xs text-muted-foreground cursor-pointer mt-4">
+                            <summary>Lihat Kunci Jawaban (Teks)</summary>
+                            <div className="mt-2 p-2 bg-muted/20 rounded border">
+                                {Object.entries(correctPairs).map(([left, right]: [string, any], idx) => {
+                                    const rightIndices = Array.isArray(right) ? right : [right];
+                                    return rightIndices.map((rIndex: number, rIdx: number) => (
+                                        <div key={`${idx}-${rIdx}`} className="flex gap-2 py-1">
+                                            <span className="font-medium">{leftItems[parseInt(left)]}</span>
+                                            <span>→</span>
+                                            <span>{rightItems[rIndex]}</span>
                                         </div>
-                                    );
+                                    ));
                                 })}
                             </div>
-                        </div>
+                        </details>
                     </div>
                 );
 
