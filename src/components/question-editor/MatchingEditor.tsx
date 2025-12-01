@@ -42,9 +42,9 @@ export function MatchingEditor({
 }: QuestionEditorProps) {
     const [formData, setFormData] = useState({
         question: "",
-        leftItems: ["", "", ""], // Minimum 3 items
-        rightItems: ["", "", ""], // Minimum 3 items
-        pairs: {} as { [key: number]: number }, // leftIndex -> rightIndex
+        leftItems: ["", ""], // Minimum 2 items
+        rightItems: ["", ""], // Minimum 2 items
+        pairs: {} as { [key: number]: number[] }, // leftIndex -> rightIndex[]
         difficulty: "medium",
         defaultPoints: 1,
         tags: [] as string[],
@@ -58,7 +58,7 @@ export function MatchingEditor({
                     question: questionToEdit.content.question,
                     leftItems: questionToEdit.content.leftItems,
                     rightItems: questionToEdit.content.rightItems,
-                    pairs: questionToEdit.answerKey.pairs,
+                    pairs: normalizePairs(questionToEdit.answerKey.pairs),
                     difficulty: questionToEdit.difficulty,
                     defaultPoints: questionToEdit.defaultPoints,
                     tags: questionToEdit.tags || [],
@@ -83,7 +83,7 @@ export function MatchingEditor({
 
         // Validate all pairs are defined
         for (let i = 0; i < formData.leftItems.length; i++) {
-            if (formData.pairs[i] === undefined) {
+            if (!formData.pairs[i] || formData.pairs[i].length === 0) {
                 alert(`Pilih pasangan untuk item kiri ${i + 1}`);
                 return;
             }
@@ -135,8 +135,8 @@ export function MatchingEditor({
     const resetForm = () => {
         setFormData({
             question: "",
-            leftItems: ["", "", ""],
-            rightItems: ["", "", ""],
+            leftItems: ["", ""],
+            rightItems: ["", ""],
             pairs: {},
             difficulty: "medium",
             defaultPoints: 1,
@@ -149,35 +149,63 @@ export function MatchingEditor({
         setFormData({
             ...formData,
             leftItems: [...formData.leftItems, ""],
+        });
+    };
+
+    const addRightItem = () => {
+        setFormData({
+            ...formData,
             rightItems: [...formData.rightItems, ""],
         });
     };
 
-    const removeItem = (index: number) => {
-        if (formData.leftItems.length > 3) {
+    const removeLeftItem = (index: number) => {
+        if (formData.leftItems.length > 1) {
             const newLeftItems = formData.leftItems.filter((_, i) => i !== index);
-            const newRightItems = formData.rightItems.filter((_, i) => i !== index);
 
-            // Rebuild pairs after removal
-            const newPairs: { [key: number]: number } = {};
+            // Rebuild pairs after removal of LEFT item
+            const newPairs: { [key: number]: number[] } = {};
             Object.keys(formData.pairs).forEach((key) => {
                 const oldLeftIndex = parseInt(key);
-                const oldRightIndex = formData.pairs[oldLeftIndex];
+                const rightIndices = formData.pairs[oldLeftIndex];
 
-                // Adjust indices
                 if (oldLeftIndex < index) {
-                    // Left index stays same, right might shift
-                    newPairs[oldLeftIndex] = oldRightIndex > index ? oldRightIndex - 1 : oldRightIndex;
+                    newPairs[oldLeftIndex] = rightIndices;
                 } else if (oldLeftIndex > index) {
-                    // Left index shifts down
-                    newPairs[oldLeftIndex - 1] = oldRightIndex > index ? oldRightIndex - 1 : oldRightIndex;
+                    newPairs[oldLeftIndex - 1] = rightIndices;
                 }
-                // Skip if oldLeftIndex === index (removed)
+                // If oldLeftIndex === index, it's removed
             });
 
             setFormData({
                 ...formData,
                 leftItems: newLeftItems,
+                pairs: newPairs,
+            });
+        }
+    };
+
+    const removeRightItem = (index: number) => {
+        if (formData.rightItems.length > 1) {
+            const newRightItems = formData.rightItems.filter((_, i) => i !== index);
+
+            // Rebuild pairs after removal of RIGHT item
+            const newPairs: { [key: number]: number[] } = {};
+            Object.keys(formData.pairs).forEach((key) => {
+                const leftIndex = parseInt(key);
+                const oldRightIndices = formData.pairs[leftIndex];
+
+                const newRightIndices = oldRightIndices
+                    .filter(ri => ri !== index) // Remove connection to deleted item
+                    .map(ri => ri > index ? ri - 1 : ri); // Shift indices
+
+                if (newRightIndices.length > 0) {
+                    newPairs[leftIndex] = newRightIndices;
+                }
+            });
+
+            setFormData({
+                ...formData,
                 rightItems: newRightItems,
                 pairs: newPairs,
             });
@@ -196,14 +224,38 @@ export function MatchingEditor({
         setFormData({ ...formData, rightItems: newRightItems });
     };
 
-    const setPair = (leftIndex: number, rightIndex: number) => {
+    const togglePair = (leftIndex: number, rightIndex: number) => {
+        const currentPairs = formData.pairs[leftIndex] || [];
+        let newPairs;
+
+        if (currentPairs.includes(rightIndex)) {
+            newPairs = currentPairs.filter(i => i !== rightIndex);
+        } else {
+            newPairs = [...currentPairs, rightIndex];
+        }
+
         setFormData({
             ...formData,
             pairs: {
                 ...formData.pairs,
-                [leftIndex]: rightIndex,
+                [leftIndex]: newPairs,
             },
         });
+    };
+
+    // Helper to normalize pairs from DB (which might be 1-to-1 or 1-to-many)
+    const normalizePairs = (pairs: any): { [key: number]: number[] } => {
+        const normalized: { [key: number]: number[] } = {};
+        Object.keys(pairs).forEach(key => {
+            const val = pairs[key];
+            const k = parseInt(key);
+            if (Array.isArray(val)) {
+                normalized[k] = val;
+            } else {
+                normalized[k] = [val];
+            }
+        });
+        return normalized;
     };
 
     const addTag = () => {
@@ -265,7 +317,7 @@ export function MatchingEditor({
                                     size="sm"
                                 >
                                     <Plus className="h-4 w-4 mr-1" />
-                                    Tambah Pasangan
+                                    Tambah Item Kiri
                                 </Button>
                             </div>
                             <div className="space-y-3">
@@ -288,38 +340,57 @@ export function MatchingEditor({
                                             <ArrowRight className="h-4 w-4 text-muted-foreground" />
                                         </div>
 
-                                        {/* Pairing Dropdown */}
-                                        <div className="col-span-5">
+                                        {/* Pairing Area */}
+                                        <div className="col-span-5 space-y-2">
                                             <Select
-                                                value={formData.pairs[index]?.toString()}
                                                 onValueChange={(value) =>
-                                                    setPair(index, parseInt(value))
+                                                    togglePair(index, parseInt(value))
                                                 }
                                             >
                                                 <SelectTrigger>
-                                                    <SelectValue placeholder="Pilih pasangan..." />
+                                                    <SelectValue placeholder="Tambah pasangan..." />
                                                 </SelectTrigger>
                                                 <SelectContent>
-                                                    {formData.rightItems.map((rightItem, rIndex) => (
-                                                        <SelectItem
-                                                            key={rIndex}
-                                                            value={rIndex.toString()}
-                                                        >
-                                                            {rightItem || `Item Kanan ${rIndex + 1}`}
-                                                        </SelectItem>
-                                                    ))}
+                                                    {formData.rightItems.map((rightItem, rIndex) => {
+                                                        const isSelected = (formData.pairs[index] || []).includes(rIndex);
+                                                        if (isSelected) return null; // Hide already selected
+                                                        return (
+                                                            <SelectItem
+                                                                key={rIndex}
+                                                                value={rIndex.toString()}
+                                                            >
+                                                                {rightItem || `Item Kanan ${rIndex + 1}`}
+                                                            </SelectItem>
+                                                        );
+                                                    })}
                                                 </SelectContent>
                                             </Select>
+
+                                            {/* Selected Pairs Badges */}
+                                            <div className="flex flex-wrap gap-1">
+                                                {(formData.pairs[index] || []).map((rIndex) => (
+                                                    <Badge key={rIndex} variant="secondary" className="text-xs">
+                                                        {formData.rightItems[rIndex] || `Item Kanan ${rIndex + 1}`}
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => togglePair(index, rIndex)}
+                                                            className="ml-1 hover:text-destructive"
+                                                        >
+                                                            <X className="h-3 w-3" />
+                                                        </button>
+                                                    </Badge>
+                                                ))}
+                                            </div>
                                         </div>
 
                                         {/* Remove Button */}
                                         <div className="col-span-1">
-                                            {formData.leftItems.length > 3 && (
+                                            {formData.leftItems.length > 2 && (
                                                 <Button
                                                     type="button"
                                                     variant="ghost"
                                                     size="icon"
-                                                    onClick={() => removeItem(index)}
+                                                    onClick={() => removeLeftItem(index)}
                                                 >
                                                     <Trash2 className="h-4 w-4 text-destructive" />
                                                 </Button>
@@ -329,24 +400,46 @@ export function MatchingEditor({
                                 ))}
                             </div>
                             <p className="text-sm text-muted-foreground mt-2">
-                                Minimal 3 pasangan item
+                                Minimal 2 item kiri
                             </p>
                         </div>
 
-                        {/* Right Items (for reference) */}
+                        {/* Right Items */}
                         <div>
-                            <Label>Item Kanan (akan diacak saat ujian)</Label>
+                            <div className="flex justify-between items-center mb-2">
+                                <Label>Item Kanan (akan diacak saat ujian)</Label>
+                                <Button
+                                    type="button"
+                                    onClick={addRightItem}
+                                    variant="outline"
+                                    size="sm"
+                                >
+                                    <Plus className="h-4 w-4 mr-1" />
+                                    Tambah Item Kanan
+                                </Button>
+                            </div>
                             <div className="space-y-2 mt-2">
                                 {formData.rightItems.map((rightItem, index) => (
-                                    <Input
-                                        key={index}
-                                        value={rightItem}
-                                        onChange={(e) =>
-                                            updateRightItem(index, e.target.value)
-                                        }
-                                        placeholder={`Item Kanan ${index + 1}`}
-                                        required
-                                    />
+                                    <div key={index} className="flex gap-2 items-center">
+                                        <Input
+                                            value={rightItem}
+                                            onChange={(e) =>
+                                                updateRightItem(index, e.target.value)
+                                            }
+                                            placeholder={`Item Kanan ${index + 1}`}
+                                            required
+                                        />
+                                        {formData.rightItems.length > 1 && (
+                                            <Button
+                                                type="button"
+                                                variant="ghost"
+                                                size="icon"
+                                                onClick={() => removeRightItem(index)}
+                                            >
+                                                <Trash2 className="h-4 w-4 text-destructive" />
+                                            </Button>
+                                        )}
+                                    </div>
                                 ))}
                             </div>
                         </div>

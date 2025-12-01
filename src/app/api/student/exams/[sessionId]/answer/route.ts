@@ -97,11 +97,20 @@ export async function POST(
             const rightItems = content.rightItems || [];
             const keyPairs = answerKey.pairs || {}; // { "0": 1, "1": 0 } (indices)
 
-            // Convert index-based key to value-based pairs
-            const correctPairs = Object.entries(keyPairs).map(([leftIdx, rightIdx]) => ({
-                left: leftItems[parseInt(leftIdx)],
-                right: rightItems[rightIdx as number]
-            })).filter(p => p.left && p.right);
+            // Convert index-based key to value-based pairs (supports 1-to-many)
+            const correctPairs: { left: string; right: string }[] = [];
+            Object.entries(keyPairs).forEach(([leftIdx, rightValue]) => {
+                const leftItem = leftItems[parseInt(leftIdx)];
+                // Handle both single value (legacy) and array (new)
+                const rightIndices = Array.isArray(rightValue) ? rightValue : [rightValue];
+
+                rightIndices.forEach((rIdx: any) => {
+                    const rightItem = rightItems[rIdx as number];
+                    if (leftItem && rightItem) {
+                        correctPairs.push({ left: leftItem, right: rightItem });
+                    }
+                });
+            });
 
             const studentPairs = answer || []; // Array of { left, right }
 

@@ -10,6 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { ArrowLeft, Save, Send, Check, X } from "lucide-react";
 import Link from "next/link";
+import { MatchingResultViewer } from "@/components/exam/MatchingResultViewer";
 
 interface Answer {
     answerId: string;
@@ -251,45 +252,33 @@ export default function GradingDetailPage() {
                         </span>
                     </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div className="border rounded-lg p-4">
-                            <h4 className="font-semibold mb-3 text-sm">Jawaban Siswa</h4>
-                            {studentPairs.length === 0 ? (
-                                <p className="text-muted-foreground italic text-sm">Tidak ada jawaban</p>
-                            ) : (
-                                <div className="space-y-2">
-                                    {studentPairs.map((pair: any, idx: number) => {
-                                        const isPairCorrect = correctPairs[pair.left] === pair.right;
-                                        return (
-                                            <div key={idx} className={`flex items-center gap-2 text-sm p-2 rounded border ${isPairCorrect ? "bg-green-50 border-green-200" : "bg-red-50 border-red-200"}`}>
-                                                <span className="font-medium flex-1">{leftItems[pair.left] || "?"}</span>
-                                                <ArrowLeft className="h-4 w-4 rotate-180 text-muted-foreground" />
-                                                <span className="flex-1">{rightItems[pair.right] || "?"}</span>
-                                                {isPairCorrect ? (
-                                                    <Check className="h-4 w-4 text-green-600" />
-                                                ) : (
-                                                    <X className="h-4 w-4 text-red-600" />
-                                                )}
-                                            </div>
-                                        );
-                                    })}
-                                </div>
-                            )}
-                        </div>
+                    <MatchingResultViewer
+                        question={{
+                            id: answer.questionId,
+                            questionText: answer.questionText,
+                            leftItems,
+                            rightItems
+                        }}
+                        studentPairs={studentPairs}
+                        correctPairs={correctPairs}
+                    />
 
-                        <div className="border rounded-lg p-4 bg-muted/20">
-                            <h4 className="font-semibold mb-3 text-sm">Kunci Jawaban</h4>
-                            <div className="space-y-2">
-                                {Object.entries(correctPairs).map(([left, right]: [string, any], idx) => (
-                                    <div key={idx} className="flex items-center gap-2 text-sm p-2 rounded border bg-white">
-                                        <span className="font-medium flex-1">{leftItems[parseInt(left)]}</span>
-                                        <ArrowLeft className="h-4 w-4 rotate-180 text-muted-foreground" />
-                                        <span className="flex-1">{rightItems[right]}</span>
+                    {/* Legacy Key View (Optional, maybe hidden or collapsed) */}
+                    <details className="text-xs text-muted-foreground cursor-pointer">
+                        <summary>Lihat Kunci Jawaban (Teks)</summary>
+                        <div className="mt-2 p-2 bg-muted/20 rounded border">
+                            {Object.entries(correctPairs).map(([left, right]: [string, any], idx) => {
+                                const rightIndices = Array.isArray(right) ? right : [right];
+                                return rightIndices.map((rIndex: number, rIdx: number) => (
+                                    <div key={`${idx}-${rIdx}`} className="flex gap-2 py-1">
+                                        <span className="font-medium">{leftItems[parseInt(left)]}</span>
+                                        <span>→</span>
+                                        <span>{rightItems[rIndex]}</span>
                                     </div>
-                                ))}
-                            </div>
+                                ));
+                            })}
                         </div>
-                    </div>
+                    </details>
                 </div>
             );
         }
