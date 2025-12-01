@@ -56,10 +56,25 @@ export async function POST(
         const maxPoints = question.defaultPoints;
 
         if (question.type === 'mc') {
-            isCorrect = answer === answerKey.correctAnswer;
+            // Extract correct answer from answerKey (may be {correct: 2} or direct value)
+            let correctAnswer = answerKey.correct !== undefined ? answerKey.correct : answerKey.correctAnswer;
+
+            // Convert index to letter if numeric (0->A, 1->B, 2->C, etc.)
+            if (typeof correctAnswer === 'number') {
+                correctAnswer = String.fromCharCode(65 + correctAnswer);
+            }
+
+            isCorrect = answer === correctAnswer;
             earnedPoints = isCorrect ? maxPoints : 0;
         } else if (question.type === 'complex_mc') {
-            const correctAnswers = answerKey.correctAnswers || [];
+            // Extract correct answers  (may be {correct: [0,2,4]} or {correctAnswers: ["A","C","E"]})
+            let correctAnswers = answerKey.correct !== undefined ? answerKey.correct : (answerKey.correctAnswers || []);
+
+            // Convert indices to letters if array of numbers
+            if (Array.isArray(correctAnswers) && correctAnswers.length > 0 && typeof correctAnswers[0] === 'number') {
+                correctAnswers = correctAnswers.map((idx: number) => String.fromCharCode(65 + idx));
+            }
+
             const studentAnswers = answer || [];
             const correctCount = studentAnswers.filter((a: string) => correctAnswers.includes(a)).length;
             const incorrectCount = studentAnswers.length - correctCount;
