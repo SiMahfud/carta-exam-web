@@ -77,13 +77,26 @@ export async function POST(
             isCorrect = acceptedAnswers.some((a: string) => a.toLowerCase() === studentAnswer);
             earnedPoints = isCorrect ? maxPoints : 0;
         } else if (question.type === 'matching') {
-            const correctPairs = answerKey.pairs || [];
-            const studentPairs = answer || [];
+            const content = question.content as any;
+            const leftItems = content.leftItems || [];
+            const rightItems = content.rightItems || [];
+            const keyPairs = answerKey.pairs || {}; // { "0": 1, "1": 0 } (indices)
+
+            // Convert index-based key to value-based pairs
+            const correctPairs = Object.entries(keyPairs).map(([leftIdx, rightIdx]) => ({
+                left: leftItems[parseInt(leftIdx)],
+                right: rightItems[rightIdx as number]
+            })).filter(p => p.left && p.right);
+
+            const studentPairs = answer || []; // Array of { left, right }
+
             const correctCount = studentPairs.filter((sp: any) =>
                 correctPairs.some((cp: any) => cp.left === sp.left && cp.right === sp.right)
             ).length;
-            earnedPoints = (correctCount / correctPairs.length) * maxPoints;
-            isCorrect = correctCount === correctPairs.length;
+
+            // Avoid division by zero
+            earnedPoints = correctPairs.length > 0 ? (correctCount / correctPairs.length) * maxPoints : 0;
+            isCorrect = correctCount === correctPairs.length && correctCount > 0;
         } else if (question.type === 'essay') {
             // Essay requires manual grading
             earnedPoints = 0;

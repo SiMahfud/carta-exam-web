@@ -17,6 +17,7 @@ import {
     AlertDialogHeader,
     AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { MatchingQuestionRenderer } from "@/components/exam/MatchingQuestionRenderer";
 
 interface Question {
     id: string;
@@ -24,6 +25,8 @@ interface Question {
     questionText: string;
     options?: { label: string; text: string }[];
     pairs?: { left: string; right: string }[];
+    leftItems?: string[];
+    rightItems?: string[];
     points: number;
 }
 
@@ -550,32 +553,12 @@ function QuestionRenderer({ question, answer, onChange }: { question: Question; 
     }
 
     if (question.type === "matching") {
-        const pairs = answer || {};
         return (
-            <div className="space-y-4 max-w-3xl">
-                <div className="flex items-center gap-2 text-sm text-muted-foreground bg-muted/20 p-2 rounded-md w-fit mb-4">
-                    <AlertCircle className="h-4 w-4" />
-                    Pasangkan pernyataan kiri dengan jawaban kanan
-                </div>
-                {question.pairs?.map((pair, idx) => (
-                    <div key={idx} className="flex flex-col sm:flex-row items-start sm:items-center gap-4 p-4 bg-muted/10 rounded-xl border border-muted/50">
-                        <div className="flex-1 font-medium text-foreground/90">{pair.left}</div>
-                        <div className="hidden sm:block text-muted-foreground">→</div>
-                        <div className="w-full sm:w-1/3">
-                            <select
-                                value={pairs[pair.left] || ""}
-                                onChange={(e) => onChange({ ...pairs, [pair.left]: e.target.value })}
-                                className="w-full p-2.5 border rounded-lg bg-background focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all"
-                            >
-                                <option value="">Pilih pasangan...</option>
-                                {question.pairs?.map((p, i) => (
-                                    <option key={i} value={p.right}>{p.right}</option>
-                                ))}
-                            </select>
-                        </div>
-                    </div>
-                ))}
-            </div>
+            <MatchingQuestionRenderer
+                question={question}
+                answer={answer}
+                onChange={onChange}
+            />
         );
     }
 

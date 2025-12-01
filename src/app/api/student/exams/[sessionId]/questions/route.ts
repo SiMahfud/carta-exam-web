@@ -88,12 +88,19 @@ export async function GET(
                 text: opt
             }));
 
+            // Handle matching question items
+            let rightItems = content.rightItems || [];
+            if (template.randomizeAnswers && question.type === 'matching') {
+                rightItems = [...rightItems].sort(() => Math.random() - 0.5);
+            }
+
             return {
                 id: question.id,
                 type: question.type,
                 questionText: content.question || content.questionText,
                 options: formattedOptions,
-                pairs: content.pairs,
+                leftItems: content.leftItems,
+                rightItems: rightItems,
                 points: question.defaultPoints,
                 // Don't send answer keys to student
             };
