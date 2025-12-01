@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { submissions, bankQuestions, examTemplates, examSessions } from "@/lib/schema";
+import { submissions, bankQuestions, examTemplates, examSessions, answers } from "@/lib/schema";
 import { eq, inArray, and } from "drizzle-orm";
 
 // GET /api/student/exams/[sessionId]/questions - Get questions for submission
@@ -56,6 +56,7 @@ export async function GET(
         // Get template for randomization settings
         const templateData = await db.select({
             randomizeAnswers: examTemplates.randomizeAnswers,
+            durationMinutes: examTemplates.durationMinutes,
         })
             .from(examTemplates)
             .where(eq(examTemplates.id, session.templateId))
@@ -106,10 +107,45 @@ export async function GET(
             };
         }).filter(Boolean);
 
+        // Fetch existing answers
+        const existingAnswers = await db.select()
+            .from(answers)
+            .where(eq(answers.submissionId, submission.id));
+
+        // Map answers for frontend
+        const answersMap: Record<string, any> = {};
+        existingAnswers.forEach(ans => {
+            // Use bankQuestionId if available, otherwise fallback to questionId (legacy)
+            const qId = ans.bankQuestionId || ans.questionId;
+            if (qId) {
+                answersMap[qId] = {
+                    answer: ans.studentAnswer,
+                    isFlagged: ans.isFlagged
+                };
+            }
+        });
+
+        // Calculate effective end time
+        // End time is the earlier of:
+        // 1. Student's start time + duration
+        // 2. Session's hard end time
+        let effectiveEndTime = new Date(session.endTime);
+
+        if (submission.startTime && template.durationMinutes) {
+            const startTime = new Date(submission.startTime);
+            const durationMs = template.durationMinutes * 60 * 1000;
+            const studentEndTime = new Date(startTime.getTime() + durationMs);
+
+            if (studentEndTime < effectiveEndTime) {
+                effectiveEndTime = studentEndTime;
+            }
+        }
+
         return NextResponse.json({
             questions: orderedQuestions,
-            endTime: session.endTime,
+            endTime: effectiveEndTime,
             submissionId: submission.id,
+            answers: answersMap
         });
     } catch (error) {
         console.error("Error fetching questions:", error);

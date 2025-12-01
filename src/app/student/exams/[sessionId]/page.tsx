@@ -105,6 +105,19 @@ export default function TakeExamPage() {
                 const data = await response.json();
                 setQuestions(data.questions);
                 setEndTime(new Date(data.endTime));
+
+                // Restore answers if available
+                if (data.answers) {
+                    const restoredAnswers = new Map<string, Answer>();
+                    Object.entries(data.answers).forEach(([qId, ans]: [string, any]) => {
+                        restoredAnswers.set(qId, {
+                            questionId: qId,
+                            answer: ans.answer,
+                            isFlagged: ans.isFlagged
+                        });
+                    });
+                    setAnswers(restoredAnswers);
+                }
             } else {
                 throw new Error("Failed to load questions");
             }
