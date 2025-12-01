@@ -32,15 +32,36 @@ export default function StudentExamsPage() {
     const [exams, setExams] = useState<Exam[]>([]);
     const [loading, setLoading] = useState(true);
     const [filter, setFilter] = useState("all");
-
-    // TODO: Get from auth/session
-    const studentId = "student-1";
+    const [studentId, setStudentId] = useState<string | null>(null);
 
     useEffect(() => {
-        fetchExams();
-    }, [filter]);
+        fetchStudentId();
+    }, []);
+
+    useEffect(() => {
+        if (studentId) {
+            fetchExams();
+        }
+    }, [filter, studentId]);
+
+    const fetchStudentId = async () => {
+        try {
+            const response = await fetch("/api/auth/session");
+            if (response.ok) {
+                const data = await response.json();
+                setStudentId(data.user.id);
+            } else {
+                router.push("/login");
+            }
+        } catch (error) {
+            console.error("Error fetching session:", error);
+            router.push("/login");
+        }
+    };
 
     const fetchExams = async () => {
+        if (!studentId) return;
+
         setLoading(true);
         try {
             const params = new URLSearchParams({
@@ -83,6 +104,8 @@ export default function StudentExamsPage() {
     };
 
     const handleStartExam = async (sessionId: string) => {
+        if (!studentId) return;
+
         try {
             const response = await fetch(`/api/student/exams/${sessionId}/start`, {
                 method: "POST",
@@ -157,9 +180,9 @@ export default function StudentExamsPage() {
                     {exams.map((exam) => (
                         <Card key={exam.id} className="flex flex-col overflow-hidden transition-all duration-300 hover:shadow-lg hover:-translate-y-1 border-muted/60">
                             <div className={`h-2 w-full ${exam.examStatus === 'active' ? 'bg-green-500' :
-                                    exam.examStatus === 'in_progress' ? 'bg-blue-500' :
-                                        exam.examStatus === 'upcoming' ? 'bg-primary' :
-                                            exam.examStatus === 'expired' ? 'bg-destructive' : 'bg-muted'
+                                exam.examStatus === 'in_progress' ? 'bg-blue-500' :
+                                    exam.examStatus === 'upcoming' ? 'bg-primary' :
+                                        exam.examStatus === 'expired' ? 'bg-destructive' : 'bg-muted'
                                 }`} />
                             <CardHeader className="pb-3">
                                 <div className="flex justify-between items-start mb-2">

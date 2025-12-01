@@ -129,6 +129,7 @@ export default function EditExamSessionPage() {
                     sessionName: formData.sessionName,
                     startTime: formData.startTime,
                     endTime: formData.endTime,
+                    targetIds: formData.targetIds,
                     status: formData.status
                 }),
             });
@@ -204,6 +205,28 @@ export default function EditExamSessionPage() {
                                     value={formData.endTime}
                                     onChange={e => setFormData({ ...formData, endTime: e.target.value })}
                                 />
+                            </div>
+                        </div>
+
+                        <div className="space-y-4">
+                            <Label>Target Peserta (Kelas)</Label>
+                            <div className="grid grid-cols-2 md:grid-cols-3 gap-4 border rounded-lg p-4">
+                                {classes.map(cls => (
+                                    <div key={cls.id} className="flex items-center space-x-2">
+                                        <Checkbox
+                                            id={cls.id}
+                                            checked={formData.targetIds?.includes(cls.id)}
+                                            onCheckedChange={() => handleClassToggle(cls.id)}
+                                        />
+                                        <label
+                                            htmlFor={cls.id}
+                                            className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
+                                        >
+                                            {cls.name}
+                                        </label>
+                                    </div>
+                                ))}
+                                {classes.length === 0 && <p className="text-sm text-muted-foreground col-span-full">Belum ada data kelas</p>}
                             </div>
                         </div>
 

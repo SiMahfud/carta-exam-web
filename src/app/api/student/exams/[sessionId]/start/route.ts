@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { examSessions, examTemplates, submissions, bankQuestions } from "@/lib/schema";
-import { eq, inArray } from "drizzle-orm";
+import { eq, inArray, and } from "drizzle-orm";
 
 // POST /api/student/exams/[sessionId]/start - Start taking an exam
 export async function POST(
@@ -22,8 +22,10 @@ export async function POST(
         // Check if already has submission
         const existingSubmission = await db.select()
             .from(submissions)
-            .where(eq(submissions.sessionId, params.sessionId))
-            .where(eq(submissions.userId, studentId))
+            .where(and(
+                eq(submissions.sessionId, params.sessionId),
+                eq(submissions.userId, studentId)
+            ))
             .limit(1);
 
         if (existingSubmission.length > 0) {
@@ -106,7 +108,6 @@ export async function POST(
 
         // Create submission
         const newSubmission = await db.insert(submissions).values({
-            examId: params.sessionId, // Using sessionId as examId for now
             userId: studentId,
             sessionId: params.sessionId,
             status: "in_progress",

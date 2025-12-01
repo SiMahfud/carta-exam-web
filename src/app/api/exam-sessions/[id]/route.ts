@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { examSessions, examTemplates } from "@/lib/schema";
+import { examSessions, examTemplates, questionPools, submissions, exams } from "@/lib/schema";
 import { eq } from "drizzle-orm";
 
 // GET /api/exam-sessions/[id] - Get session details
@@ -88,8 +88,21 @@ export async function DELETE(
     { params }: { params: { id: string } }
 ) {
     try {
-        // TODO: Check for submissions before deleting
+        // 1. Delete related question pools
+        await db.delete(questionPools)
+            .where(eq(questionPools.sessionId, params.id));
 
+        // 2. Unlink submissions (set sessionId to null)
+        await db.update(submissions)
+            .set({ sessionId: null })
+            .where(eq(submissions.sessionId, params.id));
+
+        // 3. Unlink exams (set sessionId to null)
+        await db.update(exams)
+            .set({ sessionId: null })
+            .where(eq(exams.sessionId, params.id));
+
+        // 4. Finally delete the session
         const deletedSession = await db.delete(examSessions)
             .where(eq(examSessions.id, params.id))
             .returning();
@@ -102,10 +115,10 @@ export async function DELETE(
         }
 
         return NextResponse.json({ message: "Session deleted successfully" });
-    } catch (error) {
+    } catch (error: any) {
         console.error("Error deleting session:", error);
         return NextResponse.json(
-            { error: "Failed to delete session" },
+            { error: error.message || "Failed to delete session" },
             { status: 500 }
         );
     }

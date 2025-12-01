@@ -232,7 +232,7 @@ export const questions = sqliteTable("questions", {
 
 export const submissions = sqliteTable("submissions", {
     id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
-    examId: text("exam_id").notNull().references(() => exams.id, { onDelete: "cascade" }),
+    examId: text("exam_id").references(() => exams.id, { onDelete: "cascade" }),
     userId: text("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
 
     // Link to session
@@ -259,7 +259,8 @@ export const submissions = sqliteTable("submissions", {
 export const answers = sqliteTable("answers", {
     id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
     submissionId: text("submission_id").notNull().references(() => submissions.id, { onDelete: "cascade" }),
-    questionId: text("question_id").notNull().references(() => questions.id, { onDelete: "cascade" }),
+    questionId: text("question_id").references(() => questions.id, { onDelete: "cascade" }), // Legacy, nullable
+    bankQuestionId: text("bank_question_id").references(() => bankQuestions.id, { onDelete: "cascade" }), // New system
     studentAnswer: text("student_answer", { mode: "json" }),
     isFlagged: integer("is_flagged", { mode: "boolean" }).default(false),
     isCorrect: integer("is_correct", { mode: "boolean" }),

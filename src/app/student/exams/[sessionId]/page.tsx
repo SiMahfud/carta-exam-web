@@ -48,13 +48,34 @@ export default function TakeExamPage() {
     const [showSubmitDialog, setShowSubmitDialog] = useState(false);
     const [autoSaving, setAutoSaving] = useState(false);
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+    const [studentId, setStudentId] = useState<string | null>(null);
 
-    const studentId = "student-1"; // TODO: Get from auth
     const sessionId = params.sessionId as string;
 
     useEffect(() => {
-        fetchQuestions();
+        fetchStudentId();
     }, []);
+
+    useEffect(() => {
+        if (studentId) {
+            fetchQuestions();
+        }
+    }, [studentId]);
+
+    const fetchStudentId = async () => {
+        try {
+            const response = await fetch("/api/auth/session");
+            if (response.ok) {
+                const data = await response.json();
+                setStudentId(data.user.id);
+            } else {
+                router.push("/login");
+            }
+        } catch (error) {
+            console.error("Error fetching session:", error);
+            router.push("/login");
+        }
+    };
 
     useEffect(() => {
         if (!endTime) return;
@@ -73,6 +94,8 @@ export default function TakeExamPage() {
     }, [endTime]);
 
     const fetchQuestions = async () => {
+        if (!studentId) return;
+
         try {
             const response = await fetch(`/api/student/exams/${sessionId}/questions?studentId=${studentId}`);
             if (response.ok) {

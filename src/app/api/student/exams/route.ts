@@ -35,6 +35,7 @@ export async function GET(request: Request) {
             status: examSessions.status,
             startTime: examSessions.startTime,
             endTime: examSessions.endTime,
+            targetIds: examSessions.targetIds,
             templateName: examTemplates.name,
             subjectName: sql<string>`subjects.name`,
             durationMinutes: examTemplates.durationMinutes,

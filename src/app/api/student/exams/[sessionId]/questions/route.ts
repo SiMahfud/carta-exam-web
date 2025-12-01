@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { submissions, bankQuestions, examTemplates, examSessions } from "@/lib/schema";
-import { eq, inArray } from "drizzle-orm";
+import { eq, inArray, and } from "drizzle-orm";
 
 // GET /api/student/exams/[sessionId]/questions - Get questions for submission
 export async function GET(
@@ -22,8 +22,10 @@ export async function GET(
         // Get submission
         const submissionData = await db.select()
             .from(submissions)
-            .where(eq(submissions.sessionId, params.sessionId))
-            .where(eq(submissions.userId, studentId))
+            .where(and(
+                eq(submissions.sessionId, params.sessionId),
+                eq(submissions.userId, studentId)
+            ))
             .limit(1);
 
         if (submissionData.length === 0) {
@@ -80,11 +82,17 @@ export async function GET(
                 options = [...options].sort(() => Math.random() - 0.5);
             }
 
+            // Transform options to expected format {label, text}
+            const formattedOptions = options.map((opt: string, index: number) => ({
+                label: String.fromCharCode(65 + index), // A, B, C, D, E
+                text: opt
+            }));
+
             return {
                 id: question.id,
                 type: question.type,
                 questionText: content.question || content.questionText,
-                options,
+                options: formattedOptions,
                 pairs: content.pairs,
                 points: question.defaultPoints,
                 // Don't send answer keys to student

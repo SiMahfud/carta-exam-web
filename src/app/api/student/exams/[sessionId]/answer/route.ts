@@ -95,7 +95,7 @@ export async function POST(
             .from(answers)
             .where(and(
                 eq(answers.submissionId, submission.id),
-                eq(answers.questionId, questionId)
+                eq(answers.bankQuestionId, questionId)
             ))
             .limit(1);
 
@@ -115,7 +115,7 @@ export async function POST(
             // Insert
             await db.insert(answers).values({
                 submissionId: submission.id,
-                questionId,
+                bankQuestionId: questionId,
                 studentAnswer: answer,
                 isFlagged: isFlagged || false,
                 isCorrect,

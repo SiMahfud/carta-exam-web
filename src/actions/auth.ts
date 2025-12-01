@@ -42,3 +42,18 @@ export async function logout() {
     cookies().delete("user_session")
     redirect("/login")
 }
+
+export async function getCurrentUser() {
+    const sessionCookie = cookies().get("user_session")
+
+    if (!sessionCookie) {
+        return null
+    }
+
+    try {
+        const session = JSON.parse(sessionCookie.value)
+        return session // { id, role, name }
+    } catch {
+        return null
+    }
+}

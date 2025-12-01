@@ -43,6 +43,17 @@ interface ExamSession {
     createdAt: string;
 }
 
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+
 export default function ExamSessionsPage() {
     const [sessions, setSessions] = useState<ExamSession[]>([]);
     const [loading, setLoading] = useState(true);
@@ -52,6 +63,10 @@ export default function ExamSessionsPage() {
     const [page, setPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
     const [statusFilter, setStatusFilter] = useState("all");
+
+    // Delete Confirmation State
+    const [deleteId, setDeleteId] = useState<string | null>(null);
+    const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
 
     useEffect(() => {
         fetchSessions();
@@ -82,6 +97,41 @@ export default function ExamSessionsPage() {
         } finally {
             setLoading(false);
         }
+    };
+
+    const confirmDelete = async () => {
+        if (!deleteId) return;
+
+        try {
+            const response = await fetch(`/api/exam-sessions/${deleteId}`, {
+                method: "DELETE",
+            });
+
+            if (response.ok) {
+                toast({
+                    title: "Berhasil",
+                    description: "Sesi ujian berhasil dihapus",
+                });
+                fetchSessions();
+            } else {
+                const errorData = await response.json();
+                throw new Error(errorData.error || "Gagal menghapus sesi");
+            }
+        } catch (error: any) {
+            toast({
+                title: "Error",
+                description: error.message || "Gagal menghapus sesi ujian",
+                variant: "destructive",
+            });
+        } finally {
+            setDeleteId(null);
+            setIsDeleteDialogOpen(false);
+        }
+    };
+
+    const handleDeleteClick = (id: string) => {
+        setDeleteId(id);
+        setIsDeleteDialogOpen(true);
     };
 
     const getStatusBadge = (status: string) => {
@@ -193,10 +243,18 @@ export default function ExamSessionsPage() {
                                                 </Button>
                                             </DropdownMenuTrigger>
                                             <DropdownMenuContent align="end">
-                                                <DropdownMenuItem>
-                                                    <Edit className="mr-2 h-4 w-4" /> Edit
-                                                </DropdownMenuItem>
-                                                <DropdownMenuItem className="text-destructive">
+                                                <Link href={`/admin/exam-sessions/${session.id}/edit`}>
+                                                    <DropdownMenuItem>
+                                                        <Edit className="mr-2 h-4 w-4" /> Edit
+                                                    </DropdownMenuItem>
+                                                </Link>
+                                                <DropdownMenuItem
+                                                    className="text-destructive focus:text-destructive"
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        handleDeleteClick(session.id);
+                                                    }}
+                                                >
                                                     <Trash2 className="mr-2 h-4 w-4" /> Hapus
                                                 </DropdownMenuItem>
                                             </DropdownMenuContent>
@@ -214,6 +272,23 @@ export default function ExamSessionsPage() {
                     />
                 </div>
             )}
+
+            <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>Apakah Anda yakin?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            Tindakan ini tidak dapat dibatalkan. Sesi ujian akan dihapus secara permanen beserta data terkait.
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel>Batal</AlertDialogCancel>
+                        <AlertDialogAction onClick={confirmDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                            Hapus
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
         </div>
     );
 }
