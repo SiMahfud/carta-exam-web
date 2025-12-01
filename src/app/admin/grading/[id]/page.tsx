@@ -16,6 +16,7 @@ interface Answer {
     questionId: string;
     type: string;
     questionText: string;
+    questionContent: any;
     studentAnswer: any;
     correctAnswer: any;
     isFlagged: boolean;
@@ -231,7 +232,128 @@ export default function GradingDetailPage() {
             );
         }
 
-        // Non-essay questions - just show the answer and result
+        if (answer.type === "matching") {
+            const studentPairs = Array.isArray(answer.studentAnswer) ? answer.studentAnswer : [];
+            const correctPairs = (answer.correctAnswer as any)?.pairs || {};
+            const leftItems = (answer.questionContent as any)?.leftItems || [];
+            const rightItems = (answer.questionContent as any)?.rightItems || [];
+
+            return (
+                <div className="space-y-4">
+                    <div className="flex items-center gap-2 mb-2">
+                        {answer.isCorrect ? (
+                            <Badge className="bg-green-500"><Check className="h-3 w-3 mr-1" /> Benar</Badge>
+                        ) : (
+                            <Badge variant="destructive"><X className="h-3 w-3 mr-1" /> Salah</Badge>
+                        )}
+                        <span className="text-sm">
+                            Poin: {answer.partialPoints}/{answer.maxPoints}
+                        </span>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="border rounded-lg p-4">
+                            <h4 className="font-semibold mb-3 text-sm">Jawaban Siswa</h4>
+                            {studentPairs.length === 0 ? (
+                                <p className="text-muted-foreground italic text-sm">Tidak ada jawaban</p>
+                            ) : (
+                                <div className="space-y-2">
+                                    {studentPairs.map((pair: any, idx: number) => {
+                                        const isPairCorrect = correctPairs[pair.left] === pair.right;
+                                        return (
+                                            <div key={idx} className={`flex items-center gap-2 text-sm p-2 rounded border ${isPairCorrect ? "bg-green-50 border-green-200" : "bg-red-50 border-red-200"}`}>
+                                                <span className="font-medium flex-1">{leftItems[pair.left] || "?"}</span>
+                                                <ArrowLeft className="h-4 w-4 rotate-180 text-muted-foreground" />
+                                                <span className="flex-1">{rightItems[pair.right] || "?"}</span>
+                                                {isPairCorrect ? (
+                                                    <Check className="h-4 w-4 text-green-600" />
+                                                ) : (
+                                                    <X className="h-4 w-4 text-red-600" />
+                                                )}
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            )}
+                        </div>
+
+                        <div className="border rounded-lg p-4 bg-muted/20">
+                            <h4 className="font-semibold mb-3 text-sm">Kunci Jawaban</h4>
+                            <div className="space-y-2">
+                                {Object.entries(correctPairs).map(([left, right]: [string, any], idx) => (
+                                    <div key={idx} className="flex items-center gap-2 text-sm p-2 rounded border bg-white">
+                                        <span className="font-medium flex-1">{leftItems[parseInt(left)]}</span>
+                                        <ArrowLeft className="h-4 w-4 rotate-180 text-muted-foreground" />
+                                        <span className="flex-1">{rightItems[right]}</span>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+        }
+
+        if (answer.type === "complex_mc") {
+            const selectedOptions = Array.isArray(answer.studentAnswer) ? answer.studentAnswer : [];
+            const correctOptions = (answer.correctAnswer as any)?.correctOptions || [];
+            const options = (answer.questionContent as any)?.options || [];
+
+            return (
+                <div className="space-y-4">
+                    <div className="flex items-center gap-2 mb-2">
+                        {answer.isCorrect ? (
+                            <Badge className="bg-green-500"><Check className="h-3 w-3 mr-1" /> Benar</Badge>
+                        ) : (
+                            <Badge variant="destructive"><X className="h-3 w-3 mr-1" /> Salah</Badge>
+                        )}
+                        <span className="text-sm">
+                            Poin: {answer.partialPoints}/{answer.maxPoints}
+                        </span>
+                    </div>
+
+                    <div className="border rounded-lg overflow-hidden">
+                        <div className="bg-muted px-4 py-2 border-b grid grid-cols-[1fr,100px,100px] gap-4 text-sm font-medium">
+                            <div>Opsi Jawaban</div>
+                            <div className="text-center">Pilihan Siswa</div>
+                            <div className="text-center">Kunci</div>
+                        </div>
+                        <div className="divide-y">
+                            {options.map((opt: any) => {
+                                const isSelected = selectedOptions.includes(opt.label);
+                                const isCorrect = correctOptions.includes(opt.label);
+                                let rowClass = "";
+
+                                if (isSelected && isCorrect) rowClass = "bg-green-50";
+                                else if (isSelected && !isCorrect) rowClass = "bg-red-50";
+                                else if (!isSelected && isCorrect) rowClass = "bg-yellow-50";
+
+                                return (
+                                    <div key={opt.label} className={`px-4 py-3 grid grid-cols-[1fr,100px,100px] gap-4 text-sm items-center ${rowClass}`}>
+                                        <div>
+                                            <span className="font-semibold mr-2">{opt.label}.</span>
+                                            {opt.text}
+                                        </div>
+                                        <div className="flex justify-center">
+                                            {isSelected && (
+                                                <div className="h-5 w-5 rounded bg-primary text-primary-foreground flex items-center justify-center">
+                                                    <Check className="h-3 w-3" />
+                                                </div>
+                                            )}
+                                        </div>
+                                        <div className="flex justify-center">
+                                            {isCorrect && <Check className="h-5 w-5 text-green-600" />}
+                                        </div>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    </div>
+                </div>
+            );
+        }
+
+        // Default fallback for MC and Short Answer
         return (
             <div className="space-y-3">
                 <div className="flex items-center gap-2">

@@ -62,6 +62,16 @@ export default function SessionMonitorPage() {
     const [stats, setStats] = useState<SessionStats | null>(null);
     const [students, setStudents] = useState<StudentProgress[]>([]);
 
+    // Filters
+    const [searchQuery, setSearchQuery] = useState("");
+    const [classFilter, setClassFilter] = useState("all");
+
+    // Bulk Actions
+    const [selectedStudentIds, setSelectedStudentIds] = useState<string[]>([]);
+    const [actionDialogOpen, setActionDialogOpen] = useState(false);
+    const [selectedAction, setSelectedAction] = useState<string>("");
+    const [processingAction, setProcessingAction] = useState(false);
+
     // Violations dialog state
     const [violationsDialogOpen, setViolationsDialogOpen] = useState(false);
     const [selectedStudent, setSelectedStudent] = useState<StudentProgress | null>(null);
@@ -126,6 +136,62 @@ export default function SessionMonitorPage() {
         fetchViolations(student.id);
     };
 
+    const handleSelectAll = (checked: boolean) => {
+        if (checked) {
+            setSelectedStudentIds(filteredStudents.map(s => s.id));
+        } else {
+            setSelectedStudentIds([]);
+        }
+    };
+
+    const handleSelectStudent = (studentId: string, checked: boolean) => {
+        if (checked) {
+            setSelectedStudentIds(prev => [...prev, studentId]);
+        } else {
+            setSelectedStudentIds(prev => prev.filter(id => id !== studentId));
+        }
+    };
+
+    const handleBulkAction = async () => {
+        if (!selectedAction || selectedStudentIds.length === 0) return;
+
+        setProcessingAction(true);
+        try {
+            const response = await fetch(`/api/exam-sessions/${params.id}/participant-actions`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    studentIds: selectedStudentIds,
+                    action: selectedAction
+                }),
+            });
+
+            if (response.ok) {
+                toast({
+                    title: "Berhasil",
+                    description: "Aksi berhasil diterapkan",
+                });
+                setActionDialogOpen(false);
+                setSelectedStudentIds([]);
+                setSelectedAction("");
+                fetchData();
+            } else {
+                throw new Error("Failed to perform action");
+            }
+        } catch (error) {
+            console.error("Error performing action:", error);
+            toast({
+                title: "Error",
+                description: "Gagal menerapkan aksi",
+                variant: "destructive",
+            });
+        } finally {
+            setProcessingAction(false);
+        }
+    };
+
     const getStatusBadge = (status: string) => {
         switch (status) {
             case "in_progress":
@@ -148,6 +214,15 @@ export default function SessionMonitorPage() {
         };
         return labels[type] || type;
     };
+
+    // Filter logic
+    const uniqueClasses = Array.from(new Set(students.map(s => s.className))).sort();
+
+    const filteredStudents = students.filter(student => {
+        const matchesSearch = student.name.toLowerCase().includes(searchQuery.toLowerCase());
+        const matchesClass = classFilter === "all" || student.className === classFilter;
+        return matchesSearch && matchesClass;
+    });
 
     if (loading) {
         return <div className="flex justify-center py-20">Memuat data monitoring...</div>;
@@ -226,6 +301,54 @@ export default function SessionMonitorPage() {
                 </Card>
             </div>
 
+            {/* Filters and Actions */}
+            <div className="flex flex-col md:flex-row gap-4 justify-between items-end md:items-center">
+                <div className="flex gap-4 w-full md:w-auto">
+                    <div className="w-full md:w-64">
+                        <input
+                            type="text"
+                            placeholder="Cari nama siswa..."
+                            className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                        />
+                    </div>
+                    <select
+                        className="flex h-10 items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 w-40"
+                        value={classFilter}
+                        onChange={(e) => setClassFilter(e.target.value)}
+                    >
+                        <option value="all">Semua Kelas</option>
+                        {uniqueClasses.map(cls => (
+                            <option key={cls} value={cls}>{cls}</option>
+                        ))}
+                    </select>
+                </div>
+
+                <div className="flex gap-2 items-center">
+                    <span className="text-sm text-muted-foreground">
+                        {selectedStudentIds.length} dipilih
+                    </span>
+                    <select
+                        className="flex h-10 items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 w-40"
+                        value={selectedAction}
+                        onChange={(e) => setSelectedAction(e.target.value)}
+                        disabled={selectedStudentIds.length === 0}
+                    >
+                        <option value="">Pilih Aksi...</option>
+                        <option value="reset_time">Reset Waktu</option>
+                        <option value="force_finish">Paksa Selesai</option>
+                        <option value="retake">Ulang Ujian</option>
+                    </select>
+                    <Button
+                        onClick={() => setActionDialogOpen(true)}
+                        disabled={!selectedAction || selectedStudentIds.length === 0}
+                    >
+                        Terapkan
+                    </Button>
+                </div>
+            </div>
+
             {/* Student List */}
             <Card>
                 <CardHeader>
@@ -236,18 +359,34 @@ export default function SessionMonitorPage() {
                         <table className="w-full text-sm">
                             <thead>
                                 <tr className="border-b bg-muted/50">
+                                    <th className="p-4 w-10">
+                                        <input
+                                            type="checkbox"
+                                            checked={filteredStudents.length > 0 && selectedStudentIds.length === filteredStudents.length}
+                                            onChange={(e) => handleSelectAll(e.target.checked)}
+                                            className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+                                        />
+                                    </th>
                                     <th className="p-4 text-left font-medium">Nama Siswa</th>
                                     <th className="p-4 text-left font-medium">Kelas</th>
                                     <th className="p-4 text-left font-medium">Status</th>
                                     <th className="p-4 text-left font-medium">Waktu Mulai</th>
                                     <th className="p-4 text-left font-medium">Pelanggaran</th>
                                     <th className="p-4 text-left font-medium">Nilai</th>
-                                    <th className="p-4 text-left font-medium">Aksi</th>
+                                    <th className="p-4 text-left font-medium">Detail</th>
                                 </tr>
                             </thead>
                             <tbody>
-                                {students.map((student) => (
+                                {filteredStudents.map((student) => (
                                     <tr key={student.id} className="border-b last:border-0 hover:bg-muted/50">
+                                        <td className="p-4">
+                                            <input
+                                                type="checkbox"
+                                                checked={selectedStudentIds.includes(student.id)}
+                                                onChange={(e) => handleSelectStudent(student.id, e.target.checked)}
+                                                className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+                                            />
+                                        </td>
                                         <td className="p-4 font-medium">{student.name}</td>
                                         <td className="p-4 text-muted-foreground">{student.className}</td>
                                         <td className="p-4">{getStatusBadge(student.status)}</td>
@@ -272,16 +411,16 @@ export default function SessionMonitorPage() {
                                                     onClick={() => handleViewViolations(student)}
                                                 >
                                                     <Eye className="h-4 w-4 mr-1" />
-                                                    Detail
+                                                    Lihat
                                                 </Button>
                                             )}
                                         </td>
                                     </tr>
                                 ))}
-                                {students.length === 0 && (
+                                {filteredStudents.length === 0 && (
                                     <tr>
-                                        <td colSpan={7} className="p-4 text-center text-muted-foreground">
-                                            Tidak ada peserta
+                                        <td colSpan={8} className="p-4 text-center text-muted-foreground">
+                                            Tidak ada peserta yang sesuai filter
                                         </td>
                                     </tr>
                                 )}
@@ -290,6 +429,30 @@ export default function SessionMonitorPage() {
                     </div>
                 </CardContent>
             </Card>
+
+            {/* Action Confirmation Dialog */}
+            <Dialog open={actionDialogOpen} onOpenChange={setActionDialogOpen}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>Konfirmasi Aksi</DialogTitle>
+                        <DialogDescription>
+                            Apakah Anda yakin ingin melakukan aksi <strong>
+                                {selectedAction === 'reset_time' ? 'Reset Waktu' :
+                                    selectedAction === 'force_finish' ? 'Paksa Selesai' :
+                                        selectedAction === 'retake' ? 'Ulang Ujian' : selectedAction}
+                            </strong> pada {selectedStudentIds.length} peserta yang dipilih?
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="flex justify-end gap-4 mt-4">
+                        <Button variant="outline" onClick={() => setActionDialogOpen(false)}>
+                            Batal
+                        </Button>
+                        <Button onClick={handleBulkAction} disabled={processingAction}>
+                            {processingAction ? "Memproses..." : "Ya, Lanjutkan"}
+                        </Button>
+                    </div>
+                </DialogContent>
+            </Dialog>
 
             {/* Violations Dialog */}
             <Dialog open={violationsDialogOpen} onOpenChange={setViolationsDialogOpen}>

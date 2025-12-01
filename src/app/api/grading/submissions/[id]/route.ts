@@ -67,6 +67,7 @@ export async function GET(
             questionId: a.questionId,
             type: a.questionType,
             questionText: (a.questionContent as any).question || (a.questionContent as any).questionText,
+            questionContent: a.questionContent,
             studentAnswer: a.studentAnswer,
             correctAnswer: a.questionAnswerKey,
             isFlagged: a.isFlagged,
