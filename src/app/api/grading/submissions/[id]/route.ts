@@ -82,39 +82,12 @@ export async function GET(
                 );
             }
 
-            // For Matching: convert index pairs to text pairs
-            let formattedStudentAnswer = a.studentAnswer;
+            // For Matching: Return raw data to preserve structure (indices) and one-to-many relationships
+            // The frontend MatchingResultViewer handles the raw format best.
             if (a.questionType === 'matching') {
-                try {
-                    const content = a.questionContent as any;
-                    const leftItems = content.leftItems || [];
-                    const rightItems = content.rightItems || [];
-                    const pairs = (a.questionAnswerKey as any)?.pairs || {};
-
-                    const formattedPairs: Record<string, string> = {};
-                    Object.entries(pairs).forEach(([leftIdx, rightIdx]) => {
-                        const left = leftItems[parseInt(leftIdx)];
-                        const right = rightItems[rightIdx as number];
-                        if (left && right) {
-                            formattedPairs[left] = right;
-                        }
-                    });
-                    correctAnswer = formattedPairs;
-
-                    // Format student answer: [{left: "L", right: "R"}] -> { "L": "R" }
-                    if (Array.isArray(a.studentAnswer)) {
-                        const studentMap: Record<string, string> = {};
-                        a.studentAnswer.forEach((pair: any) => {
-                            if (pair.left && pair.right) {
-                                studentMap[pair.left] = pair.right;
-                            }
-                        });
-                        formattedStudentAnswer = studentMap;
-                    }
-                } catch (e) {
-                    console.error("Error formatting matching answer:", e);
-                    correctAnswer = {};
-                }
+                // No transformation needed.
+                // studentAnswer is already [{left, right}] (or legacy object)
+                // correctAnswer is already { pairs: {0: 1} }
             }
 
             return {
@@ -123,7 +96,7 @@ export async function GET(
                 type: a.questionType,
                 questionText: (a.questionContent as any).question || (a.questionContent as any).questionText,
                 questionContent: a.questionContent,
-                studentAnswer: formattedStudentAnswer,
+                studentAnswer: a.studentAnswer,
                 correctAnswer: correctAnswer,
                 isFlagged: a.isFlagged,
                 isCorrect: a.isCorrect,

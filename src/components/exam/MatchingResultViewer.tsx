@@ -9,7 +9,7 @@ interface MatchingResultViewerProps {
         leftItems?: string[];
         rightItems?: string[];
     };
-    studentPairs: { left: number; right: number }[]; // Indices
+    studentPairs: any[]; // Can be { left: number, right: number } or { left: string, right: string }
     correctPairs: { [key: number]: number | number[] }; // Left Index -> Right Index(es)
 }
 
@@ -20,6 +20,20 @@ export function MatchingResultViewer({ question, studentPairs, correctPairs }: M
     const leftItems = useMemo(() => question.leftItems || [], [question.leftItems]);
     const rightItems = useMemo(() => question.rightItems || [], [question.rightItems]);
 
+    // Colors for connections to make them distinct (matching student view)
+    const colors = [
+        "#ef4444", // red
+        "#f97316", // orange
+        "#eab308", // yellow
+        "#22c55e", // green
+        "#06b6d4", // cyan
+        "#3b82f6", // blue
+        "#8b5cf6", // violet
+        "#d946ef", // fuchsia
+    ];
+
+    const getColor = (index: number) => colors[index % colors.length];
+
     // Calculate line positions
     useEffect(() => {
         if (!containerRef.current) return;
@@ -29,9 +43,27 @@ export function MatchingResultViewer({ question, studentPairs, correctPairs }: M
             const containerRect = containerRef.current?.getBoundingClientRect();
             if (!containerRect) return;
 
-            studentPairs.forEach((pair) => {
-                const leftEl = document.getElementById(`res-left-${question.id}-${pair.left}`);
-                const rightEl = document.getElementById(`res-right-${question.id}-${pair.right}`);
+            studentPairs.forEach((pair: any) => {
+                // Determine if pair uses indices or values
+                let leftIndex = -1;
+                let rightIndex = -1;
+
+                if (typeof pair.left === 'number') {
+                    leftIndex = pair.left;
+                } else {
+                    leftIndex = leftItems.indexOf(pair.left);
+                }
+
+                if (typeof pair.right === 'number') {
+                    rightIndex = pair.right;
+                } else {
+                    rightIndex = rightItems.indexOf(pair.right);
+                }
+
+                if (leftIndex === -1 || rightIndex === -1) return;
+
+                const leftEl = document.getElementById(`res-left-${question.id}-${leftIndex}`);
+                const rightEl = document.getElementById(`res-right-${question.id}-${rightIndex}`);
 
                 if (leftEl && rightEl) {
                     const leftRect = leftEl.getBoundingClientRect();
@@ -43,14 +75,14 @@ export function MatchingResultViewer({ question, studentPairs, correctPairs }: M
                     const y2 = rightRect.top + rightRect.height / 2 - containerRect.top;
 
                     // Check correctness
-                    const correctRightIndices = correctPairs[pair.left];
+                    const correctRightIndices = correctPairs[leftIndex];
                     const isCorrect = Array.isArray(correctRightIndices)
-                        ? correctRightIndices.includes(pair.right)
-                        : correctRightIndices === pair.right;
+                        ? correctRightIndices.includes(rightIndex)
+                        : correctRightIndices === rightIndex;
 
                     newLines.push({
                         x1, y1, x2, y2,
-                        color: isCorrect ? "#22c55e" : "#ef4444", // Green or Red
+                        color: isCorrect ? "#22c55e" : "#ef4444", // Green or Red for the line itself
                         isCorrect
                     });
                 }
@@ -67,7 +99,7 @@ export function MatchingResultViewer({ question, studentPairs, correctPairs }: M
             window.removeEventListener("resize", calculateLines);
             clearTimeout(timeout);
         };
-    }, [studentPairs, correctPairs, question.id]);
+    }, [studentPairs, correctPairs, question.id, leftItems, rightItems]);
 
     return (
         <div className="space-y-6 select-none">
@@ -102,6 +134,7 @@ export function MatchingResultViewer({ question, studentPairs, correctPairs }: M
                                 strokeWidth="2.5"
                                 strokeLinecap="round"
                             />
+                            {/* Dots at ends */}
                             <circle cx={line.x1} cy={line.y1} r="3" fill={line.color} />
                             <circle cx={line.x2} cy={line.y2} r="3" fill={line.color} />
                         </g>
@@ -113,19 +146,31 @@ export function MatchingResultViewer({ question, studentPairs, correctPairs }: M
                     <h3 className="font-semibold text-center mb-4 text-muted-foreground text-sm uppercase tracking-wider">Pernyataan</h3>
                     {leftItems.map((item, idx) => {
                         // Check if this item has any student connections
-                        const hasConnection = studentPairs.some(p => p.left === idx);
+                        const hasConnection = studentPairs.some((p: any) => {
+                            if (typeof p.left === 'number') return p.left === idx;
+                            return p.left === item;
+                        });
+                        const color = getColor(idx);
 
                         return (
                             <div
                                 id={`res-left-${question.id}-${idx}`}
                                 key={idx}
                                 className={`
-                                    relative p-3 rounded-lg border bg-background
+                                    relative p-4 rounded-xl border-2 bg-background
                                     flex items-center justify-between
-                                    ${hasConnection ? "border-muted-foreground/30" : "border-muted text-muted-foreground"}
+                                    ${hasConnection ? `border-[${color}]/50` : "border-muted text-muted-foreground"}
                                 `}
+                                style={{ borderColor: hasConnection ? color : undefined }}
                             >
                                 <span className="font-medium text-sm">{item}</span>
+                                {/* Connection indicator dot */}
+                                <div className={`
+                                    w-3 h-3 rounded-full border transition-colors
+                                    ${hasConnection ? `bg-[${color}] border-[${color}]` : "bg-muted border-muted-foreground/30"}
+                                `}
+                                    style={{ backgroundColor: hasConnection ? color : undefined, borderColor: hasConnection ? color : undefined }}
+                                />
                             </div>
                         );
                     })}
@@ -135,18 +180,26 @@ export function MatchingResultViewer({ question, studentPairs, correctPairs }: M
                 <div className="flex-1 space-y-4 z-20">
                     <h3 className="font-semibold text-center mb-4 text-muted-foreground text-sm uppercase tracking-wider">Pasangan</h3>
                     {rightItems.map((item, idx) => {
-                        const hasConnection = studentPairs.some(p => p.right === idx);
+                        const hasConnection = studentPairs.some((p: any) => {
+                            if (typeof p.right === 'number') return p.right === idx;
+                            return p.right === item;
+                        });
 
                         return (
                             <div
                                 id={`res-right-${question.id}-${idx}`}
                                 key={idx}
                                 className={`
-                                    relative p-3 rounded-lg border bg-background
+                                    relative p-4 rounded-xl border-2 bg-background
                                     flex items-center gap-3
-                                    ${hasConnection ? "border-muted-foreground/30" : "border-muted text-muted-foreground"}
+                                    ${hasConnection ? "border-primary/50" : "border-muted text-muted-foreground"}
                                 `}
                             >
+                                {/* Connection indicator dot */}
+                                <div className={`
+                                    w-3 h-3 rounded-full border transition-colors shrink-0
+                                    ${hasConnection ? "bg-primary border-primary" : "bg-muted border-muted-foreground/30"}
+                                `} />
                                 <span className="font-medium text-sm flex-1 text-right">{item}</span>
                             </div>
                         );

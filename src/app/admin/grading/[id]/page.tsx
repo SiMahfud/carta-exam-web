@@ -234,7 +234,17 @@ export default function GradingDetailPage() {
         }
 
         if (answer.type === "matching") {
-            const studentPairs = Array.isArray(answer.studentAnswer) ? answer.studentAnswer : [];
+            let studentPairs: any[] = [];
+            if (Array.isArray(answer.studentAnswer)) {
+                studentPairs = answer.studentAnswer;
+            } else if (typeof answer.studentAnswer === 'object' && answer.studentAnswer !== null) {
+                // Convert legacy object format { "left": "right" } to array [{ left: "left", right: "right" }]
+                studentPairs = Object.entries(answer.studentAnswer).map(([left, right]) => ({
+                    left,
+                    right
+                }));
+            }
+
             const correctPairs = (answer.correctAnswer as any)?.pairs || {};
             const leftItems = (answer.questionContent as any)?.leftItems || [];
             const rightItems = (answer.questionContent as any)?.rightItems || [];
