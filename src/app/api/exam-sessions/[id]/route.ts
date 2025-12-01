@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { examSessions, examTemplates, questionPools, submissions, exams } from "@/lib/schema";
 import { eq } from "drizzle-orm";
+import { fromDateTimeLocalString } from "@/lib/date-utils";
 
 // GET /api/exam-sessions/[id] - Get session details
 export async function GET(
@@ -52,13 +53,28 @@ export async function PATCH(
 ) {
     try {
         const body = await request.json();
-        const { sessionName, startTime, endTime, status } = body;
+        const { sessionName, startTime, endTime, status, targetIds } = body;
 
         const updateData: any = {};
-        if (sessionName) updateData.sessionName = sessionName;
-        if (startTime) updateData.startTime = new Date(startTime);
-        if (endTime) updateData.endTime = new Date(endTime);
-        if (status) updateData.status = status;
+
+        // Use 'in' operator to check if field exists in body, allowing empty strings/null
+        if ('sessionName' in body && sessionName !== undefined) {
+            updateData.sessionName = sessionName;
+        }
+        if ('startTime' in body && startTime !== undefined && startTime !== '') {
+            // Convert datetime-local string to Date with UTC+7 handling
+            updateData.startTime = fromDateTimeLocalString(startTime);
+        }
+        if ('endTime' in body && endTime !== undefined && endTime !== '') {
+            // Convert datetime-local string to Date with UTC+7 handling
+            updateData.endTime = fromDateTimeLocalString(endTime);
+        }
+        if ('status' in body && status !== undefined) {
+            updateData.status = status;
+        }
+        if ('targetIds' in body && targetIds !== undefined) {
+            updateData.targetIds = targetIds;
+        }
 
         const updatedSession = await db.update(examSessions)
             .set(updateData)

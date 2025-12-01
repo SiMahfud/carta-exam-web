@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { examSessions, examTemplates, users } from "@/lib/schema";
 import { eq, desc, and, sql } from "drizzle-orm";
+import { fromDateTimeLocalString } from "@/lib/date-utils";
 
 // GET /api/exam-sessions - List all sessions
 export async function GET(request: Request) {
@@ -87,9 +88,9 @@ export async function POST(request: Request) {
             );
         }
 
-        // Validate dates
-        const start = new Date(startTime);
-        const end = new Date(endTime);
+        // Validate dates (convert from datetime-local format with UTC+7)
+        const start = fromDateTimeLocalString(startTime);
+        const end = fromDateTimeLocalString(endTime);
         if (isNaN(start.getTime()) || isNaN(end.getTime())) {
             return NextResponse.json(
                 { error: "Invalid date format" },

@@ -17,6 +17,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
 import { ArrowLeft, Loader2 } from "lucide-react";
 import Link from "next/link";
+import { toDateTimeLocalString } from "@/lib/date-utils";
 
 interface ExamSession {
     id: string;
@@ -69,9 +70,9 @@ export default function EditExamSessionPage() {
 
             if (sessionRes.ok) {
                 const session = await sessionRes.json();
-                // Convert dates to datetime-local format
-                const startTime = new Date(session.startTime).toISOString().slice(0, 16);
-                const endTime = new Date(session.endTime).toISOString().slice(0, 16);
+                // Convert dates to datetime-local format (UTC+7)
+                const startTime = toDateTimeLocalString(session.startTime);
+                const endTime = toDateTimeLocalString(session.endTime);
 
                 setFormData({
                     sessionName: session.sessionName,
