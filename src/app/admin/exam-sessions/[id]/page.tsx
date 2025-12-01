@@ -255,10 +255,18 @@ export default function SessionMonitorPage() {
                         </p>
                     </div>
                 </div>
-                <Button variant="outline" onClick={fetchData} disabled={refreshing}>
-                    <RefreshCw className={`mr-2 h-4 w-4 ${refreshing ? "animate-spin" : ""}`} />
-                    Refresh
-                </Button>
+                <div className="flex gap-2">
+                    <Link href={`/admin/exam-sessions/${params.id}/results`}>
+                        <Button variant="default">
+                            <Eye className="mr-2 h-4 w-4" />
+                            Lihat Hasil
+                        </Button>
+                    </Link>
+                    <Button variant="outline" onClick={fetchData} disabled={refreshing}>
+                        <RefreshCw className={`mr-2 h-4 w-4 ${refreshing ? "animate-spin" : ""}`} />
+                        Refresh
+                    </Button>
+                </div>
             </div>
 
             {/* Stats Cards */}

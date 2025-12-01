@@ -40,10 +40,10 @@ export async function GET(
 
         const submission = submissionData[0];
 
-        // Get all answers with question details
+        // Get all answers with question details (FIX: use bankQuestionId)
         const answersData = await db.select({
             answerId: answers.id,
-            questionId: answers.questionId,
+            questionId: answers.bankQuestionId,
             studentAnswer: answers.studentAnswer,
             isFlagged: answers.isFlagged,
             isCorrect: answers.isCorrect,
@@ -58,27 +58,48 @@ export async function GET(
             defaultPoints: bankQuestions.defaultPoints,
         })
             .from(answers)
-            .innerJoin(bankQuestions, eq(answers.questionId, bankQuestions.id))
+            .innerJoin(bankQuestions, eq(answers.bankQuestionId, bankQuestions.id))
             .where(eq(answers.submissionId, params.id));
 
-        // Format answers for frontend
-        const formattedAnswers = answersData.map(a => ({
-            answerId: a.answerId,
-            questionId: a.questionId,
-            type: a.questionType,
-            questionText: (a.questionContent as any).question || (a.questionContent as any).questionText,
-            questionContent: a.questionContent,
-            studentAnswer: a.studentAnswer,
-            correctAnswer: a.questionAnswerKey,
-            isFlagged: a.isFlagged,
-            isCorrect: a.isCorrect,
-            score: a.score,
-            maxPoints: a.maxPoints,
-            partialPoints: a.partialPoints,
-            gradingStatus: a.gradingStatus,
-            gradingNotes: a.gradingNotes,
-            defaultPoints: a.defaultPoints,
-        }));
+        // Format answers for frontend with proper answer key conversion
+        const formattedAnswers = answersData.map(a => {
+            let correctAnswer = a.questionAnswerKey;
+
+            // Extract value if stored as object {correct: value}
+            if (correctAnswer && typeof correctAnswer === 'object' && 'correct' in correctAnswer) {
+                correctAnswer = (correctAnswer as any).correct;
+            }
+
+            // For MC: convert index to letter (0->A, 1->B, 2->C, etc.)
+            if (a.questionType === 'mc' && typeof correctAnswer === 'number') {
+                correctAnswer = String.fromCharCode(65 + correctAnswer);
+            }
+
+            // For Complex MC: convert array of indices to array of letters
+            if (a.questionType === 'complex_mc' && Array.isArray(correctAnswer)) {
+                correctAnswer = correctAnswer.map((idx: any) =>
+                    typeof idx === 'number' ? String.fromCharCode(65 + idx) : idx
+                );
+            }
+
+            return {
+                answerId: a.answerId,
+                questionId: a.questionId,
+                type: a.questionType,
+                questionText: (a.questionContent as any).question || (a.questionContent as any).questionText,
+                questionContent: a.questionContent,
+                studentAnswer: a.studentAnswer,
+                correctAnswer: correctAnswer,
+                isFlagged: a.isFlagged,
+                isCorrect: a.isCorrect,
+                score: a.score,
+                maxPoints: a.maxPoints,
+                partialPoints: a.partialPoints,
+                gradingStatus: a.gradingStatus,
+                gradingNotes: a.gradingNotes,
+                defaultPoints: a.defaultPoints,
+            };
+        });
 
         return NextResponse.json({
             submission,
