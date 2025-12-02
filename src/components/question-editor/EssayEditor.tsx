@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { RichTextEditor } from "@/components/ui/rich-text-editor";
 import { Textarea } from "@/components/ui/textarea";
 import {
     Select,
@@ -230,20 +231,18 @@ export function EssayEditor({
                         {questionToEdit ? "Edit detail soal uraian" : "Buat soal uraian dengan rubrik penilaian"}
                     </DialogDescription>
                 </DialogHeader>
+
                 <form onSubmit={handleSubmit}>
                     <div className="space-y-4">
                         {/* Question Text */}
                         <div>
                             <Label htmlFor="question">Pertanyaan *</Label>
-                            <Textarea
-                                id="question"
+                            <RichTextEditor
                                 value={formData.question}
-                                onChange={(e) =>
-                                    setFormData({ ...formData, question: e.target.value })
+                                onChange={(value) =>
+                                    setFormData({ ...formData, question: value })
                                 }
-                                required
                                 placeholder="Masukkan pertanyaan..."
-                                rows={4}
                             />
                         </div>
 
@@ -491,8 +490,8 @@ export function EssayEditor({
                         </Button>
                         <Button type="submit">{questionToEdit ? "Simpan Perubahan" : "Simpan Soal"}</Button>
                     </DialogFooter>
-                </form>
-            </DialogContent>
-        </Dialog>
+                </form >
+            </DialogContent >
+        </Dialog >
     );
 }

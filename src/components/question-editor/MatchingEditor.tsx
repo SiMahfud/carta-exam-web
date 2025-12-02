@@ -12,7 +12,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
+import { RichTextEditor } from "@/components/ui/rich-text-editor";
 import {
     Select,
     SelectContent,
@@ -294,15 +294,12 @@ export function MatchingEditor({
                         {/* Question Text */}
                         <div>
                             <Label htmlFor="question">Pertanyaan *</Label>
-                            <Textarea
-                                id="question"
+                            <RichTextEditor
                                 value={formData.question}
-                                onChange={(e) =>
-                                    setFormData({ ...formData, question: e.target.value })
+                                onChange={(value) =>
+                                    setFormData({ ...formData, question: value })
                                 }
-                                required
                                 placeholder="Masukkan pertanyaan..."
-                                rows={3}
                             />
                         </div>
 
@@ -322,21 +319,20 @@ export function MatchingEditor({
                             </div>
                             <div className="space-y-3">
                                 {formData.leftItems.map((leftItem, index) => (
-                                    <div key={index} className="grid grid-cols-12 gap-2 items-center">
+                                    <div key={index} className="grid grid-cols-12 gap-2 items-start">
                                         {/* Left Item */}
                                         <div className="col-span-5">
-                                            <Input
+                                            <RichTextEditor
                                                 value={leftItem}
-                                                onChange={(e) =>
-                                                    updateLeftItem(index, e.target.value)
+                                                onChange={(value) =>
+                                                    updateLeftItem(index, value)
                                                 }
                                                 placeholder={`Item Kiri ${index + 1}`}
-                                                required
                                             />
                                         </div>
 
                                         {/* Arrow */}
-                                        <div className="col-span-1 flex justify-center">
+                                        <div className="col-span-1 flex justify-center mt-2">
                                             <ArrowRight className="h-4 w-4 text-muted-foreground" />
                                         </div>
 
@@ -354,12 +350,16 @@ export function MatchingEditor({
                                                     {formData.rightItems.map((rightItem, rIndex) => {
                                                         const isSelected = (formData.pairs[index] || []).includes(rIndex);
                                                         if (isSelected) return null; // Hide already selected
+                                                        // For dropdown, we need plain text or a snippet. Rich text might be too much.
+                                                        // Let's strip HTML tags for the dropdown label or just show "Item Kanan X"
+                                                        // A simple regex to strip tags:
+                                                        const plainText = rightItem.replace(/<[^>]+>/g, '') || `Item Kanan ${rIndex + 1}`;
                                                         return (
                                                             <SelectItem
                                                                 key={rIndex}
                                                                 value={rIndex.toString()}
                                                             >
-                                                                {rightItem || `Item Kanan ${rIndex + 1}`}
+                                                                {plainText.substring(0, 30) + (plainText.length > 30 ? "..." : "")}
                                                             </SelectItem>
                                                         );
                                                     })}
@@ -368,18 +368,22 @@ export function MatchingEditor({
 
                                             {/* Selected Pairs Badges */}
                                             <div className="flex flex-wrap gap-1">
-                                                {(formData.pairs[index] || []).map((rIndex) => (
-                                                    <Badge key={rIndex} variant="secondary" className="text-xs">
-                                                        {formData.rightItems[rIndex] || `Item Kanan ${rIndex + 1}`}
-                                                        <button
-                                                            type="button"
-                                                            onClick={() => togglePair(index, rIndex)}
-                                                            className="ml-1 hover:text-destructive"
-                                                        >
-                                                            <X className="h-3 w-3" />
-                                                        </button>
-                                                    </Badge>
-                                                ))}
+                                                {(formData.pairs[index] || []).map((rIndex) => {
+                                                    const rightItemContent = formData.rightItems[rIndex];
+                                                    const plainText = rightItemContent.replace(/<[^>]+>/g, '') || `Item Kanan ${rIndex + 1}`;
+                                                    return (
+                                                        <Badge key={rIndex} variant="secondary" className="text-xs">
+                                                            {plainText.substring(0, 20) + (plainText.length > 20 ? "..." : "")}
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => togglePair(index, rIndex)}
+                                                                className="ml-1 hover:text-destructive"
+                                                            >
+                                                                <X className="h-3 w-3" />
+                                                            </button>
+                                                        </Badge>
+                                                    );
+                                                })}
                                             </div>
                                         </div>
 
@@ -391,6 +395,7 @@ export function MatchingEditor({
                                                     variant="ghost"
                                                     size="icon"
                                                     onClick={() => removeLeftItem(index)}
+                                                    className="mt-1"
                                                 >
                                                     <Trash2 className="h-4 w-4 text-destructive" />
                                                 </Button>
@@ -420,21 +425,23 @@ export function MatchingEditor({
                             </div>
                             <div className="space-y-2 mt-2">
                                 {formData.rightItems.map((rightItem, index) => (
-                                    <div key={index} className="flex gap-2 items-center">
-                                        <Input
-                                            value={rightItem}
-                                            onChange={(e) =>
-                                                updateRightItem(index, e.target.value)
-                                            }
-                                            placeholder={`Item Kanan ${index + 1}`}
-                                            required
-                                        />
+                                    <div key={index} className="flex gap-2 items-start">
+                                        <div className="flex-1">
+                                            <RichTextEditor
+                                                value={rightItem}
+                                                onChange={(value) =>
+                                                    updateRightItem(index, value)
+                                                }
+                                                placeholder={`Item Kanan ${index + 1}`}
+                                            />
+                                        </div>
                                         {formData.rightItems.length > 1 && (
                                             <Button
                                                 type="button"
                                                 variant="ghost"
                                                 size="icon"
                                                 onClick={() => removeRightItem(index)}
+                                                className="mt-1"
                                             >
                                                 <Trash2 className="h-4 w-4 text-destructive" />
                                             </Button>

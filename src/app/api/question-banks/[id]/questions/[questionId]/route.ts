@@ -82,9 +82,10 @@ export async function PUT(
 // DELETE /api/question-banks/[bankId]/questions/[questionId]
 export async function DELETE(
     request: Request,
-    { params }: { params: { id: string; questionId: string } }
+    context: { params: Promise<{ id: string; questionId: string }> }
 ) {
     try {
+        const params = await context.params;
         const deleted = await db.delete(bankQuestions)
             .where(eq(bankQuestions.id, params.questionId))
             .returning();

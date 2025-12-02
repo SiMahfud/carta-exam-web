@@ -12,7 +12,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
+import { RichTextEditor } from "@/components/ui/rich-text-editor";
 import {
     Select,
     SelectContent,
@@ -190,15 +190,12 @@ export function ShortAnswerEditor({
                         {/* Question Text */}
                         <div>
                             <Label htmlFor="question">Pertanyaan *</Label>
-                            <Textarea
-                                id="question"
+                            <RichTextEditor
                                 value={formData.question}
-                                onChange={(e) =>
-                                    setFormData({ ...formData, question: e.target.value })
+                                onChange={(value) =>
+                                    setFormData({ ...formData, question: value })
                                 }
-                                required
                                 placeholder="Masukkan pertanyaan..."
-                                rows={3}
                             />
                         </div>
 

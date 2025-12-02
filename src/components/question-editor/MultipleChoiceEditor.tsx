@@ -12,7 +12,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
+import { RichTextEditor } from "@/components/ui/rich-text-editor";
 import {
     Select,
     SelectContent,
@@ -166,15 +166,12 @@ export function MultipleChoiceEditor({
                         {/* Question Text */}
                         <div>
                             <Label htmlFor="question">Pertanyaan *</Label>
-                            <Textarea
-                                id="question"
+                            <RichTextEditor
                                 value={formData.question}
-                                onChange={(e) =>
-                                    setFormData({ ...formData, question: e.target.value })
+                                onChange={(value) =>
+                                    setFormData({ ...formData, question: value })
                                 }
-                                required
                                 placeholder="Masukkan pertanyaan..."
-                                rows={3}
                             />
                         </div>
 
@@ -183,18 +180,19 @@ export function MultipleChoiceEditor({
                             <Label>Opsi Jawaban *</Label>
                             <div className="space-y-2 mt-2">
                                 {["A", "B", "C", "D", "E"].map((letter, index) => (
-                                    <div key={index} className="flex gap-2 items-center">
-                                        <Badge variant="outline" className="w-8">
+                                    <div key={index} className="flex gap-2 items-start">
+                                        <Badge variant="outline" className="w-8 mt-2">
                                             {letter}
                                         </Badge>
-                                        <Input
-                                            value={formData.options[index]}
-                                            onChange={(e) =>
-                                                updateOption(index, e.target.value)
-                                            }
-                                            required
-                                            placeholder={`Opsi ${letter}`}
-                                        />
+                                        <div className="flex-1">
+                                            <RichTextEditor
+                                                value={formData.options[index]}
+                                                onChange={(value) =>
+                                                    updateOption(index, value)
+                                                }
+                                                placeholder={`Opsi ${letter}`}
+                                            />
+                                        </div>
                                         <input
                                             type="radio"
                                             name="correctAnswer"
@@ -206,7 +204,7 @@ export function MultipleChoiceEditor({
                                                     correctAnswer: e.target.value,
                                                 })
                                             }
-                                            className="w-5 h-5"
+                                            className="w-5 h-5 mt-2"
                                         />
                                     </div>
                                 ))}

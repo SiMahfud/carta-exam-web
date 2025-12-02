@@ -12,7 +12,6 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { RichTextEditor } from "@/components/ui/rich-text-editor";
 import {
     Select,
     SelectContent,
@@ -22,7 +21,8 @@ import {
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Plus, X, Tag as TagIcon } from "lucide-react";
-import { Checkbox } from "@/components/ui/checkbox";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { RichTextEditor } from "@/components/ui/rich-text-editor";
 
 interface QuestionEditorProps {
     open: boolean;
@@ -33,7 +33,7 @@ interface QuestionEditorProps {
     questionToEdit?: any;
 }
 
-export function ComplexMCEditor({
+export function TrueFalseEditor({
     open,
     onOpenChange,
     bankId,
@@ -43,9 +43,8 @@ export function ComplexMCEditor({
 }: QuestionEditorProps) {
     const [formData, setFormData] = useState({
         question: "",
-        options: ["", ""], // Minimum 2 options
-        correctAnswers: [] as number[], // Multiple correct answers
-        difficulty: "medium",
+        correctAnswer: "true", // "true" or "false"
+        difficulty: "easy",
         defaultPoints: 1,
         tags: [] as string[],
     });
@@ -54,10 +53,14 @@ export function ComplexMCEditor({
     useEffect(() => {
         if (open) {
             if (questionToEdit) {
+                // Check if it's a legacy MC question used as T/F or a new T/F type
+                // Assuming we store T/F as a specific type or just MC with 2 options
+                // For this implementation, let's assume we are saving it as 'mc' type but with specific structure
+                // OR we can introduce a new 'true_false' type. Let's use 'true_false' type for clarity as requested.
+
                 setFormData({
                     question: questionToEdit.content.question,
-                    options: questionToEdit.content.options,
-                    correctAnswers: questionToEdit.answerKey.correct,
+                    correctAnswer: questionToEdit.answerKey.correct.toString(),
                     difficulty: questionToEdit.difficulty,
                     defaultPoints: questionToEdit.defaultPoints,
                     tags: questionToEdit.tags || [],
@@ -71,18 +74,13 @@ export function ComplexMCEditor({
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
 
-        if (formData.correctAnswers.length === 0) {
-            alert("Pilih minimal satu jawaban yang benar");
-            return;
-        }
-
         const content = {
             question: formData.question,
-            options: formData.options,
+            options: ["Benar", "Salah"], // Fixed options
         };
 
         const answerKey = {
-            correct: formData.correctAnswers, // Array of indices
+            correct: formData.correctAnswer === "true" ? 0 : 1, // 0 for True, 1 for False
         };
 
         try {
@@ -96,7 +94,8 @@ export function ComplexMCEditor({
                 method,
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
-                    type: "complex_mc",
+
+                    type: "true_false",
                     content,
                     answerKey,
                     tags: formData.tags,
@@ -121,26 +120,12 @@ export function ComplexMCEditor({
     const resetForm = () => {
         setFormData({
             question: "",
-            options: ["", ""],
-            correctAnswers: [],
-            difficulty: "medium",
+            correctAnswer: "true",
+            difficulty: "easy",
             defaultPoints: 1,
             tags: [],
         });
         setNewTag("");
-    };
-
-    const updateOption = (index: number, value: string) => {
-        const newOptions = [...formData.options];
-        newOptions[index] = value;
-        setFormData({ ...formData, options: newOptions });
-    };
-
-    const toggleCorrectAnswer = (index: number) => {
-        const newCorrectAnswers = formData.correctAnswers.includes(index)
-            ? formData.correctAnswers.filter((i) => i !== index)
-            : [...formData.correctAnswers, index];
-        setFormData({ ...formData, correctAnswers: newCorrectAnswers });
     };
 
     const addTag = () => {
@@ -163,44 +148,15 @@ export function ComplexMCEditor({
         }
     };
 
-    const addOption = () => {
-        if (formData.options.length < 10) {
-            setFormData({
-                ...formData,
-                options: [...formData.options, ""]
-            });
-        }
-    };
-
-    const removeOption = (index: number) => {
-        if (formData.options.length > 2) {
-            const newOptions = formData.options.filter((_, i) => i !== index);
-            // Update correctAnswers: remove if it was marked correct, adjust indices
-            const newCorrectAnswers = formData.correctAnswers
-                .filter(i => i !== index) // Remove the deleted option
-                .map(i => i > index ? i - 1 : i); // Adjust indices
-            setFormData({
-                ...formData,
-                options: newOptions,
-                correctAnswers: newCorrectAnswers
-            });
-        }
-    };
-
-    // Helper function to get letter for option index
-    const getOptionLetter = (index: number) => {
-        return String.fromCharCode(65 + index); // A=65, B=66, etc.
-    };
-
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
             <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
                 <DialogHeader>
                     <DialogTitle>
-                        {questionToEdit ? "Edit Soal Pilihan Ganda Kompleks" : "Tambah Soal Pilihan Ganda Kompleks"}
+                        {questionToEdit ? "Edit Soal Benar/Salah" : "Tambah Soal Benar/Salah"}
                     </DialogTitle>
                     <DialogDescription>
-                        {questionToEdit ? "Edit detail soal PG kompleks" : "Buat soal PG kompleks dengan lebih dari satu jawaban benar"}
+                        {questionToEdit ? "Edit detail soal benar/salah" : "Buat soal dengan pilihan jawaban Benar atau Salah"}
                     </DialogDescription>
                 </DialogHeader>
                 <form onSubmit={handleSubmit}>
@@ -213,61 +169,29 @@ export function ComplexMCEditor({
                                 onChange={(value) =>
                                     setFormData({ ...formData, question: value })
                                 }
-                                placeholder="Masukkan pertanyaan..."
+                                placeholder="Masukkan pernyataan..."
                             />
                         </div>
 
-                        {/* Options */}
+                        {/* Correct Answer */}
                         <div>
-                            <div className="flex justify-between items-center mb-2">
-                                <Label>Opsi Jawaban * (Minimal 2, Maksimal 10)</Label>
-                                <Button
-                                    type="button"
-                                    onClick={addOption}
-                                    variant="outline"
-                                    size="sm"
-                                    disabled={formData.options.length >= 10}
-                                >
-                                    <Plus className="h-4 w-4 mr-1" />
-                                    Tambah Opsi
-                                </Button>
-                            </div>
-                            <div className="space-y-2 mt-2">
-                                {formData.options.map((option, index) => (
-                                    <div key={index} className="flex gap-2 items-start">
-                                        <Badge variant="outline" className="w-8 flex-shrink-0 mt-2">
-                                            {getOptionLetter(index)}
-                                        </Badge>
-                                        <div className="flex-1">
-                                            <RichTextEditor
-                                                value={option}
-                                                onChange={(value) =>
-                                                    updateOption(index, value)
-                                                }
-                                                placeholder={`Opsi ${getOptionLetter(index)}`}
-                                            />
-                                        </div>
-                                        <Checkbox
-                                            checked={formData.correctAnswers.includes(index)}
-                                            onCheckedChange={() => toggleCorrectAnswer(index)}
-                                            className="mt-2"
-                                        />
-                                        <Button
-                                            type="button"
-                                            variant="ghost"
-                                            size="icon"
-                                            onClick={() => removeOption(index)}
-                                            disabled={formData.options.length <= 2}
-                                            className="flex-shrink-0 mt-1"
-                                        >
-                                            <X className="h-4 w-4" />
-                                        </Button>
-                                    </div>
-                                ))}
-                            </div>
-                            <p className="text-sm text-muted-foreground mt-2">
-                                Centang checkbox untuk menandai jawaban yang benar (bisa lebih dari satu)
-                            </p>
+                            <Label>Kunci Jawaban *</Label>
+                            <RadioGroup
+                                value={formData.correctAnswer}
+                                onValueChange={(value) =>
+                                    setFormData({ ...formData, correctAnswer: value })
+                                }
+                                className="flex gap-4 mt-2"
+                            >
+                                <div className="flex items-center space-x-2">
+                                    <RadioGroupItem value="true" id="r-true" />
+                                    <Label htmlFor="r-true" className="cursor-pointer">Benar</Label>
+                                </div>
+                                <div className="flex items-center space-x-2">
+                                    <RadioGroupItem value="false" id="r-false" />
+                                    <Label htmlFor="r-false" className="cursor-pointer">Salah</Label>
+                                </div>
+                            </RadioGroup>
                         </div>
 
                         {/* Difficulty and Points */}

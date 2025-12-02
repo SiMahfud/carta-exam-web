@@ -45,6 +45,7 @@ import { ComplexMCEditor } from "@/components/question-editor/ComplexMCEditor";
 import { ShortAnswerEditor } from "@/components/question-editor/ShortAnswerEditor";
 import { MatchingEditor } from "@/components/question-editor/MatchingEditor";
 import { EssayEditor } from "@/components/question-editor/EssayEditor";
+import { TrueFalseEditor } from "@/components/question-editor/TrueFalseEditor";
 
 interface BankQuestion {
     id: string;
@@ -183,6 +184,7 @@ export default function QuestionBankDetailPage() {
             matching: "Menjodohkan",
             short: "Isian Singkat",
             essay: "Uraian",
+            true_false: "Benar/Salah",
         };
         return labels[type] || type;
     };
@@ -246,6 +248,17 @@ export default function QuestionBankDetailPage() {
                                 >
                                     <FileQuestion className="mr-2 h-4 w-4" />
                                     Pilihan Ganda
+                                </Button>
+                                <Button
+                                    variant="outline"
+                                    className="justify-start"
+                                    onClick={() => {
+                                        setSelectedType("true_false");
+                                        setTypeDialogOpen(false);
+                                    }}
+                                >
+                                    <FileQuestion className="mr-2 h-4 w-4" />
+                                    Benar/Salah
                                 </Button>
                                 <Button
                                     variant="outline"
@@ -349,6 +362,14 @@ export default function QuestionBankDetailPage() {
                         <p className="text-2xl font-bold">{bank.statistics?.essay || 0}</p>
                     </CardContent>
                 </Card>
+                <Card>
+                    <CardHeader className="p-4">
+                        <CardTitle className="text-sm">B/S</CardTitle>
+                    </CardHeader>
+                    <CardContent className="p-4 pt-0">
+                        <p className="text-2xl font-bold">{bank.statistics?.true_false || 0}</p>
+                    </CardContent>
+                </Card>
             </div>
 
             {/* Filters */}
@@ -374,6 +395,7 @@ export default function QuestionBankDetailPage() {
                                     <SelectItem value="matching">Menjodohkan</SelectItem>
                                     <SelectItem value="short">Isian Singkat</SelectItem>
                                     <SelectItem value="essay">Uraian</SelectItem>
+                                    <SelectItem value="true_false">Benar/Salah</SelectItem>
                                 </SelectContent>
                             </Select>
                         </div>
@@ -589,6 +611,22 @@ export default function QuestionBankDetailPage() {
             />
             <EssayEditor
                 open={selectedType === "essay"}
+                onOpenChange={(open) => {
+                    if (!open) {
+                        setSelectedType("");
+                        setEditingQuestion(null);
+                    }
+                }}
+                bankId={bankId}
+                onSuccess={() => {
+                    fetchQuestions();
+                    fetchTags();
+                }}
+                availableTags={availableTags}
+                questionToEdit={editingQuestion || undefined}
+            />
+            <TrueFalseEditor
+                open={selectedType === "true_false"}
                 onOpenChange={(open) => {
                     if (!open) {
                         setSelectedType("");
