@@ -3,6 +3,7 @@ import { db } from "@/lib/db";
 import { examSessions, examTemplates, users } from "@/lib/schema";
 import { eq, desc, and, sql } from "drizzle-orm";
 import { fromDateTimeLocalString } from "@/lib/date-utils";
+import { ActivityLogger } from "@/lib/activity-logger";
 
 // GET /api/exam-sessions - List all sessions
 export async function GET(request: Request) {
@@ -142,6 +143,13 @@ export async function POST(request: Request) {
             targetIds,
             createdBy: userId,
         }).returning();
+
+        // Log activity
+        await ActivityLogger.examSession.created(
+            userId,
+            newSession[0].id,
+            sessionName
+        );
 
         return NextResponse.json(newSession[0], { status: 201 });
     } catch (error) {

@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { subjects } from "@/lib/schema";
+import { subjects, users } from "@/lib/schema";
 import { eq } from "drizzle-orm";
+import { ActivityLogger } from "@/lib/activity-logger";
 
 // GET /api/subjects/[id] - Get single subject
 export async function GET(
@@ -56,6 +57,12 @@ export async function PUT(
             );
         }
 
+        // Log activity
+        const admin = await db.select({ id: users.id }).from(users).where(eq(users.role, "admin")).limit(1);
+        if (admin.length > 0) {
+            await ActivityLogger.subject.updated(admin[0].id, updated[0].id, updated[0].name);
+        }
+
         return NextResponse.json(updated[0]);
     } catch (error: unknown) {
         console.error("Error updating subject:", error);
@@ -87,6 +94,12 @@ export async function DELETE(
                 { error: "Subject not found" },
                 { status: 404 }
             );
+        }
+
+        // Log activity
+        const admin = await db.select({ id: users.id }).from(users).where(eq(users.role, "admin")).limit(1);
+        if (admin.length > 0) {
+            await ActivityLogger.subject.deleted(admin[0].id, deleted[0].id, deleted[0].name);
         }
 
         return NextResponse.json({ message: "Subject deleted successfully" });

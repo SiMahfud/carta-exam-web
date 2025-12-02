@@ -277,6 +277,16 @@ export const answers = sqliteTable("answers", {
     gradingNotes: text("grading_notes"), // Teacher's notes/feedback
 });
 
+export const activityLogs = sqliteTable("activity_logs", {
+    id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+    userId: text("user_id").references(() => users.id, { onDelete: "set null" }),
+    action: text("action").notNull(), // e.g., "created", "updated", "deleted", "started", "completed"
+    entityType: text("entity_type").notNull(), // e.g., "exam_session", "question_bank", "subject", "class", "user"
+    entityId: text("entity_id"), // ID of the entity affected
+    details: text("details", { mode: "json" }).$type<Record<string, unknown>>(), // Additional context
+    createdAt: integer("created_at", { mode: "timestamp" }).default(sql`(unixepoch())`),
+});
+
 export const examTokens = sqliteTable("exam_tokens", {
     id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
     examId: text("exam_id").notNull().references(() => exams.id, { onDelete: "cascade" }),

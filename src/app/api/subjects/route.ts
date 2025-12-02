@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { subjects } from "@/lib/schema";
+import { subjects, users } from "@/lib/schema";
 import { eq } from "drizzle-orm";
+import { ActivityLogger } from "@/lib/activity-logger";
 
 // GET /api/subjects - List all subjects
 export async function GET() {
@@ -35,6 +36,12 @@ export async function POST(request: Request) {
             code: code.toUpperCase(),
             description,
         }).returning();
+
+        // Log activity (get first admin for now)
+        const admin = await db.select({ id: users.id }).from(users).where(eq(users.role, "admin")).limit(1);
+        if (admin.length > 0) {
+            await ActivityLogger.subject.created(admin[0].id, newSubject[0].id, name);
+        }
 
         return NextResponse.json(newSubject[0], { status: 201 });
     } catch (error: unknown) {

@@ -1,3 +1,5 @@
+"use client";
+
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import Link from "next/link";
 import {
@@ -10,11 +12,48 @@ import {
     TrendingUp,
     Activity,
     Clock,
-    ArrowRight
+    ArrowRight,
+    Loader2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useEffect, useState } from "react";
+import { useToast } from "@/hooks/use-toast";
+
+interface Stat {
+    label: string;
+    value: string;
+    change: string;
+    icon: string;
+}
+
+interface ActivityLog {
+    id: string;
+    description: string;
+    timeAgo: string;
+    userName: string;
+    action: string;
+    entityType: string;
+}
+
+interface HealthStatus {
+    server: {
+        status: "operational" | "degraded" | "down";
+        responseTime: string;
+    };
+    database: {
+        status: "connected" | "down";
+        responseTime: string;
+    };
+    version: string;
+}
 
 export default function AdminDashboard() {
+    const { toast } = useToast();
+    const [stats, setStats] = useState<Record<string, Stat> | null>(null);
+    const [activities, setActivities] = useState<ActivityLog[]>([]);
+    const [health, setHealth] = useState<HealthStatus | null>(null);
+    const [loading, setLoading] = useState(true);
+
     const quickActions = [
         {
             title: "Mata Pelajaran",
@@ -66,11 +105,63 @@ export default function AdminDashboard() {
         },
     ];
 
-    const stats = [
-        { label: "Total Siswa", value: "1,240", change: "+12%", icon: Users },
-        { label: "Ujian Selesai", value: "8,432", change: "+5%", icon: FileText },
-        { label: "Sesi Aktif", value: "3", change: "Live", icon: Activity },
-    ];
+    useEffect(() => {
+        const fetchDashboardData = async () => {
+            try {
+                // Fetch stats
+                const statsRes = await fetch("/api/admin/stats");
+                if (statsRes.ok) {
+                    const statsData = await statsRes.json();
+                    setStats(statsData);
+                }
+
+                // Fetch activities
+                const activitiesRes = await fetch("/api/admin/activities?limit=5");
+                if (activitiesRes.ok) {
+                    const activitiesData = await activitiesRes.json();
+                    setActivities(activitiesData);
+                }
+
+                // Fetch health
+                const healthRes = await fetch("/api/admin/health");
+                if (healthRes.ok) {
+                    const healthData = await healthRes.json();
+                    setHealth(healthData);
+                }
+            } catch (error) {
+                console.error("Error fetching dashboard data:", error);
+                toast({
+                    title: "Error",
+                    description: "Gagal memuat data dashboard",
+                    variant: "destructive",
+                });
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchDashboardData();
+    }, [toast]);
+
+    const getIconComponent = (iconName: string) => {
+        const icons: Record<string, typeof Users> = {
+            Users,
+            FileText,
+            Activity,
+        };
+        return icons[iconName] || Activity;
+    };
+
+    const getActivityIcon = (entityType: string) => {
+        const icons: Record<string, typeof Clock> = {
+            exam_session: Calendar,
+            question_bank: Database,
+            subject: BookOpen,
+            class: Users,
+            user: GraduationCap,
+        };
+        return icons[entityType] || Clock;
+    };
 
     return (
         <div className="space-y-8">
@@ -82,35 +173,56 @@ export default function AdminDashboard() {
                     </p>
                 </div>
                 <div className="flex gap-2">
-                    <Button>
-                        <Calendar className="mr-2 h-4 w-4" />
-                        Jadwal Baru
-                    </Button>
+                    <Link href="/admin/exam-sessions">
+                        <Button>
+                            <Calendar className="mr-2 h-4 w-4" />
+                            Jadwal Baru
+                        </Button>
+                    </Link>
                 </div>
             </div>
 
             {/* Stats Grid */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                {stats.map((stat, i) => (
-                    <Card key={i} className="border-none shadow-md bg-white hover:shadow-lg transition-all duration-200">
-                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                            <CardTitle className="text-sm font-medium text-muted-foreground">
-                                {stat.label}
-                            </CardTitle>
-                            <stat.icon className="h-4 w-4 text-muted-foreground" />
-                        </CardHeader>
-                        <CardContent>
-                            <div className="text-2xl font-bold text-slate-900">{stat.value}</div>
-                            <p className="text-xs text-muted-foreground mt-1 flex items-center">
-                                <span className="text-green-600 font-medium flex items-center mr-1">
-                                    <TrendingUp className="h-3 w-3 mr-1" />
-                                    {stat.change}
-                                </span>
-                                dari bulan lalu
-                            </p>
-                        </CardContent>
-                    </Card>
-                ))}
+                {loading ? (
+                    // Loading skeleton
+                    Array.from({ length: 3 }).map((_, i) => (
+                        <Card key={i} className="border-none shadow-md bg-white">
+                            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                                <div className="h-4 w-24 bg-slate-200 animate-pulse rounded"></div>
+                                <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                            </CardHeader>
+                            <CardContent>
+                                <div className="h-8 w-20 bg-slate-200 animate-pulse rounded mb-2"></div>
+                                <div className="h-3 w-32 bg-slate-200 animate-pulse rounded"></div>
+                            </CardContent>
+                        </Card>
+                    ))
+                ) : stats ? (
+                    Object.values(stats).map((stat, i) => {
+                        const Icon = getIconComponent(stat.icon);
+                        return (
+                            <Card key={i} className="border-none shadow-md bg-white hover:shadow-lg transition-all duration-200">
+                                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                                    <CardTitle className="text-sm font-medium text-muted-foreground">
+                                        {stat.label}
+                                    </CardTitle>
+                                    <Icon className="h-4 w-4 text-muted-foreground" />
+                                </CardHeader>
+                                <CardContent>
+                                    <div className="text-2xl font-bold text-slate-900">{stat.value}</div>
+                                    <p className="text-xs text-muted-foreground mt-1 flex items-center">
+                                        <span className="text-green-600 font-medium flex items-center mr-1">
+                                            <TrendingUp className="h-3 w-3 mr-1" />
+                                            {stat.change}
+                                        </span>
+                                        {stat.change !== "Live" && "dari bulan lalu"}
+                                    </p>
+                                </CardContent>
+                            </Card>
+                        );
+                    })
+                ) : null}
             </div>
 
             {/* Quick Actions */}
@@ -153,19 +265,44 @@ export default function AdminDashboard() {
                         <CardDescription>Log aktivitas sistem terbaru</CardDescription>
                     </CardHeader>
                     <CardContent>
-                        <div className="space-y-4">
-                            {[1, 2, 3].map((i) => (
-                                <div key={i} className="flex items-start gap-3 pb-4 border-b last:border-0 last:pb-0">
-                                    <div className="bg-blue-100 p-2 rounded-full">
-                                        <Clock className="h-4 w-4 text-blue-600" />
+                        {loading ? (
+                            <div className="space-y-4">
+                                {Array.from({ length: 3 }).map((_, i) => (
+                                    <div key={i} className="flex items-start gap-3 pb-4 border-b">
+                                        <div className="bg-slate-200 p-2 rounded-full animate-pulse">
+                                            <div className="h-4 w-4"></div>
+                                        </div>
+                                        <div className="flex-1">
+                                            <div className="h-4 w-3/4 bg-slate-200 animate-pulse rounded mb-2"></div>
+                                            <div className="h-3 w-1/2 bg-slate-200 animate-pulse rounded"></div>
+                                        </div>
                                     </div>
-                                    <div>
-                                        <p className="text-sm font-medium text-slate-900">Sesi Ujian "Matematika XII IPA" dimulai</p>
-                                        <p className="text-xs text-muted-foreground">2 menit yang lalu oleh Pak Budi</p>
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
+                                ))}
+                            </div>
+                        ) : activities.length > 0 ? (
+                            <div className="space-y-4">
+                                {activities.map((activity, i) => {
+                                    const Icon = getActivityIcon(activity.entityType);
+                                    return (
+                                        <div key={activity.id} className={`flex items-start gap-3 pb-4 ${i < activities.length - 1 ? 'border-b' : ''}`}>
+                                            <div className="bg-blue-100 p-2 rounded-full">
+                                                <Icon className="h-4 w-4 text-blue-600" />
+                                            </div>
+                                            <div>
+                                                <p className="text-sm font-medium text-slate-900">{activity.description}</p>
+                                                <p className="text-xs text-muted-foreground">
+                                                    {activity.timeAgo} oleh {activity.userName}
+                                                </p>
+                                            </div>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        ) : (
+                            <p className="text-sm text-muted-foreground text-center py-8">
+                                Belum ada aktivitas
+                            </p>
+                        )}
                     </CardContent>
                 </Card>
 
@@ -175,19 +312,39 @@ export default function AdminDashboard() {
                         <CardDescription className="text-slate-300">Informasi fitur dan pembaruan</CardDescription>
                     </CardHeader>
                     <CardContent>
-                        <ul className="space-y-3">
-                            <li className="flex items-center gap-2 text-sm">
-                                <div className="h-2 w-2 rounded-full bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.6)]"></div>
-                                <span>Server Operational</span>
-                            </li>
-                            <li className="flex items-center gap-2 text-sm">
-                                <div className="h-2 w-2 rounded-full bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.6)]"></div>
-                                <span>Database Connected</span>
-                            </li>
-                            <li className="pt-4 border-t border-slate-700">
-                                <p className="text-xs font-mono text-slate-400">Version 2.4.0 (Stable)</p>
-                            </li>
-                        </ul>
+                        {loading ? (
+                            <ul className="space-y-3">
+                                {Array.from({ length: 2 }).map((_, i) => (
+                                    <li key={i} className="flex items-center gap-2 text-sm">
+                                        <div className="h-2 w-2 rounded-full bg-slate-600 animate-pulse"></div>
+                                        <div className="h-4 w-32 bg-slate-700 animate-pulse rounded"></div>
+                                    </li>
+                                ))}
+                            </ul>
+                        ) : health ? (
+                            <ul className="space-y-3">
+                                <li className="flex items-center gap-2 text-sm">
+                                    <div className={`h-2 w-2 rounded-full ${health.server.status === "operational" ? "bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.6)]" : "bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.6)]"}`}></div>
+                                    <span>Server {health.server.status === "operational" ? "Operational" : "Down"}</span>
+                                    <span className="text-xs text-slate-400">({health.server.responseTime})</span>
+                                </li>
+                                <li className="flex items-center gap-2 text-sm">
+                                    <div className={`h-2 w-2 rounded-full ${health.database.status === "connected" ? "bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.6)]" : "bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.6)]"}`}></div>
+                                    <span>Database {health.database.status === "connected" ? "Connected" : "Down"}</span>
+                                    <span className="text-xs text-slate-400">({health.database.responseTime})</span>
+                                </li>
+                                <li className="pt-4 border-t border-slate-700">
+                                    <p className="text-xs font-mono text-slate-400">Version {health.version}</p>
+                                </li>
+                            </ul>
+                        ) : (
+                            <ul className="space-y-3">
+                                <li className="flex items-center gap-2 text-sm">
+                                    <div className="h-2 w-2 rounded-full bg-slate-500"></div>
+                                    <span>Checking status...</span>
+                                </li>
+                            </ul>
+                        )}
                     </CardContent>
                 </Card>
             </div>

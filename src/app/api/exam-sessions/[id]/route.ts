@@ -3,6 +3,7 @@ import { db } from "@/lib/db";
 import { examSessions, examTemplates, questionPools, submissions, exams } from "@/lib/schema";
 import { eq } from "drizzle-orm";
 import { fromDateTimeLocalString } from "@/lib/date-utils";
+import { ActivityLogger } from "@/lib/activity-logger";
 
 // GET /api/exam-sessions/[id] - Get session details
 export async function GET(
@@ -88,6 +89,13 @@ export async function PATCH(
             );
         }
 
+        // Log activity
+        await ActivityLogger.examSession.updated(
+            updatedSession[0].createdBy,
+            updatedSession[0].id,
+            updatedSession[0].sessionName
+        );
+
         return NextResponse.json(updatedSession[0]);
     } catch (error) {
         console.error("Error updating session:", error);
@@ -104,6 +112,19 @@ export async function DELETE(
     { params }: { params: { id: string } }
 ) {
     try {
+        // Get session info before deleting for logging
+        const sessionToDelete = await db.select()
+            .from(examSessions)
+            .where(eq(examSessions.id, params.id))
+            .limit(1);
+
+        if (sessionToDelete.length === 0) {
+            return NextResponse.json(
+                { error: "Session not found" },
+                { status: 404 }
+            );
+        }
+
         // 1. Delete related question pools
         await db.delete(questionPools)
             .where(eq(questionPools.sessionId, params.id));
@@ -119,16 +140,15 @@ export async function DELETE(
             .where(eq(exams.sessionId, params.id));
 
         // 4. Finally delete the session
-        const deletedSession = await db.delete(examSessions)
-            .where(eq(examSessions.id, params.id))
-            .returning();
+        await db.delete(examSessions)
+            .where(eq(examSessions.id, params.id));
 
-        if (deletedSession.length === 0) {
-            return NextResponse.json(
-                { error: "Session not found" },
-                { status: 404 }
-            );
-        }
+        // Log activity
+        await ActivityLogger.examSession.deleted(
+            sessionToDelete[0].createdBy,
+            sessionToDelete[0].id,
+            sessionToDelete[0].sessionName
+        );
 
         return NextResponse.json({ message: "Session deleted successfully" });
     } catch (error: any) {
