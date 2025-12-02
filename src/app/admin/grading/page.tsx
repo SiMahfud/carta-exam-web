@@ -5,8 +5,9 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
-import { Edit, Calendar, User, FileText } from "lucide-react";
+import { Edit, Calendar, User, FileText, LayoutGrid, Table2, Send, Search } from "lucide-react";
 import {
     Select,
     SelectContent,
@@ -17,6 +18,18 @@ import {
 import { Pagination } from "@/components/ui/pagination";
 import { format } from "date-fns";
 import { id as idLocale } from "date-fns/locale";
+import { GradingStatsCard } from "@/components/grading/GradingStatsCard";
+import { GradingTableView } from "@/components/grading/GradingTableView";
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 interface Submission {
     id: string;
@@ -34,18 +47,56 @@ interface Submission {
     createdAt: string;
 }
 
+interface Class {
+    id: string;
+    name: string;
+}
+
 export default function GradingPage() {
     const router = useRouter();
     const { toast } = useToast();
     const [submissions, setSubmissions] = useState<Submission[]>([]);
+    const [classes, setClasses] = useState<Class[]>([]);
     const [loading, setLoading] = useState(true);
     const [page, setPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
     const [statusFilter, setStatusFilter] = useState("pending_manual");
+    const [searchQuery, setSearchQuery] = useState("");
+    const [classFilter, setClassFilter] = useState("all");
+    const [sortBy, setSortBy] = useState("date");
+    const [sortOrder, setSortOrder] = useState("desc");
+    const [viewMode, setViewMode] = useState<"card" | "table">("card");
+    const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+    const [showBatchPublishDialog, setShowBatchPublishDialog] = useState(false);
+    const [batchPublishing, setBatchPublishing] = useState(false);
+
+    useEffect(() => {
+        // Load view preference from localStorage
+        const savedView = localStorage.getItem("gradingViewMode");
+        if (savedView === "table" || savedView === "card") {
+            setViewMode(savedView);
+        }
+    }, []);
 
     useEffect(() => {
         fetchSubmissions();
-    }, [page, statusFilter]);
+    }, [page, statusFilter, searchQuery, classFilter, sortBy, sortOrder]);
+
+    useEffect(() => {
+        fetchClasses();
+    }, []);
+
+    const fetchClasses = async () => {
+        try {
+            const response = await fetch("/api/classes");
+            if (response.ok) {
+                const data = await response.json();
+                setClasses(data || []);
+            }
+        } catch (error) {
+            console.error("Error fetching classes:", error);
+        }
+    };
 
     const fetchSubmissions = async () => {
         setLoading(true);
@@ -54,7 +105,17 @@ export default function GradingPage() {
                 page: page.toString(),
                 limit: "10",
                 status: statusFilter,
+                orderBy: sortBy,
+                order: sortOrder,
             });
+
+            if (searchQuery) {
+                params.append("search", searchQuery);
+            }
+
+            if (classFilter && classFilter !== "all") {
+                params.append("classId", classFilter);
+            }
 
             const response = await fetch(`/api/grading/submissions?${params.toString()}`);
             if (response.ok) {
@@ -71,6 +132,65 @@ export default function GradingPage() {
             });
         } finally {
             setLoading(false);
+        }
+    };
+
+    const handleViewModeChange = (mode: "card" | "table") => {
+        setViewMode(mode);
+        localStorage.setItem("gradingViewMode", mode);
+    };
+
+    const handleSelectChange = (id: string, checked: boolean) => {
+        const newSelected = new Set(selectedIds);
+        if (checked) {
+            newSelected.add(id);
+        } else {
+            newSelected.delete(id);
+        }
+        setSelectedIds(newSelected);
+    };
+
+    const handleSelectAll = (checked: boolean) => {
+        if (checked) {
+            // Only select completed submissions
+            const completedIds = submissions
+                .filter(s => s.gradingStatus === "completed")
+                .map(s => s.id);
+            setSelectedIds(new Set(completedIds));
+        } else {
+            setSelectedIds(new Set());
+        }
+    };
+
+    const handleBatchPublish = async () => {
+        setBatchPublishing(true);
+        try {
+            const response = await fetch("/api/grading/batch-publish", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ submissionIds: Array.from(selectedIds) }),
+            });
+
+            if (response.ok) {
+                const data = await response.json();
+                toast({
+                    title: "Berhasil",
+                    description: `${data.success} submission berhasil dipublikasi${data.failed > 0 ? `, ${data.failed} gagal` : ""}`,
+                });
+                setSelectedIds(new Set());
+                fetchSubmissions();
+            } else {
+                throw new Error("Failed to batch publish");
+            }
+        } catch (error) {
+            toast({
+                title: "Error",
+                description: "Gagal mempublikasi submission",
+                variant: "destructive",
+            });
+        } finally {
+            setBatchPublishing(false);
+            setShowBatchPublishDialog(false);
         }
     };
 
@@ -102,27 +222,115 @@ export default function GradingPage() {
                         Tinjau dan nilai hasil ujian siswa
                     </p>
                 </div>
+                <div className="flex items-center gap-2">
+                    <Button
+                        variant={viewMode === "card" ? "default" : "outline"}
+                        size="icon"
+                        onClick={() => handleViewModeChange("card")}
+                    >
+                        <LayoutGrid className="h-4 w-4" />
+                    </Button>
+                    <Button
+                        variant={viewMode === "table" ? "default" : "outline"}
+                        size="icon"
+                        onClick={() => handleViewModeChange("table")}
+                    >
+                        <Table2 className="h-4 w-4" />
+                    </Button>
+                </div>
             </div>
 
+            {/* Statistics Dashboard */}
+            <GradingStatsCard />
+
             {/* Filters */}
-            <div className="flex items-center gap-4 bg-muted/30 p-4 rounded-lg border">
-                <div className="flex items-center gap-2">
-                    <span className="text-sm font-medium">Status:</span>
-                    <Select value={statusFilter} onValueChange={(val) => {
-                        setStatusFilter(val);
-                        setPage(1);
-                    }}>
-                        <SelectTrigger className="w-[180px]">
-                            <SelectValue placeholder="Filter Status" />
-                        </SelectTrigger>
-                        <SelectContent>
-                            <SelectItem value="all">Semua</SelectItem>
-                            <SelectItem value="pending_manual">Perlu Dinilai</SelectItem>
-                            <SelectItem value="completed">Selesai</SelectItem>
-                            <SelectItem value="published">Dipublikasi</SelectItem>
-                        </SelectContent>
-                    </Select>
+            <div className="space-y-4 bg-muted/30 p-4 rounded-lg border">
+                <div className="flex flex-wrap items-center gap-4">
+                    <div className="flex items-center gap-2 flex-1 min-w-[200px]">
+                        <Search className="h-4 w-4 text-muted-foreground" />
+                        <Input
+                            placeholder="Cari nama siswa..."
+                            value={searchQuery}
+                            onChange={(e) => {
+                                setSearchQuery(e.target.value);
+                                setPage(1);
+                            }}
+                            className="flex-1"
+                        />
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                        <span className="text-sm font-medium">Kelas:</span>
+                        <Select value={classFilter} onValueChange={(val) => {
+                            setClassFilter(val);
+                            setPage(1);
+                        }}>
+                            <SelectTrigger className="w-[180px]">
+                                <SelectValue placeholder="Pilih Kelas" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="all">Semua Kelas</SelectItem>
+                                {classes.map((cls) => (
+                                    <SelectItem key={cls.id} value={cls.id}>
+                                        {cls.name}
+                                    </SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                        <span className="text-sm font-medium">Status:</span>
+                        <Select value={statusFilter} onValueChange={(val) => {
+                            setStatusFilter(val);
+                            setPage(1);
+                        }}>
+                            <SelectTrigger className="w-[180px]">
+                                <SelectValue placeholder="Filter Status" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="all">Semua</SelectItem>
+                                <SelectItem value="pending_manual">Perlu Dinilai</SelectItem>
+                                <SelectItem value="completed">Selesai</SelectItem>
+                                <SelectItem value="published">Dipublikasi</SelectItem>
+                            </SelectContent>
+                        </Select>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                        <span className="text-sm font-medium">Urutkan:</span>
+                        <Select value={`${sortBy}-${sortOrder}`} onValueChange={(val) => {
+                            const [newSortBy, newSortOrder] = val.split("-");
+                            setSortBy(newSortBy);
+                            setSortOrder(newSortOrder);
+                            setPage(1);
+                        }}>
+                            <SelectTrigger className="w-[180px]">
+                                <SelectValue placeholder="Urutkan" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="date-desc">Terbaru</SelectItem>
+                                <SelectItem value="date-asc">Terlama</SelectItem>
+                                <SelectItem value="studentName-asc">Nama A-Z</SelectItem>
+                                <SelectItem value="studentName-desc">Nama Z-A</SelectItem>
+                                <SelectItem value="sessionName-asc">Sesi A-Z</SelectItem>
+                                <SelectItem value="sessionName-desc">Sesi Z-A</SelectItem>
+                            </SelectContent>
+                        </Select>
+                    </div>
                 </div>
+
+                {selectedIds.size > 0 && (
+                    <div className="flex items-center justify-between pt-4 border-t">
+                        <span className="text-sm font-medium">
+                            {selectedIds.size} item dipilih
+                        </span>
+                        <Button onClick={() => setShowBatchPublishDialog(true)}>
+                            <Send className="mr-2 h-4 w-4" />
+                            Publikasi Massal
+                        </Button>
+                    </div>
+                )}
             </div>
 
             {loading ? (
@@ -134,6 +342,14 @@ export default function GradingPage() {
                 <div className="text-center py-20 border rounded-lg bg-muted/20">
                     <p className="text-muted-foreground">Tidak ada pengumpulan untuk dinilai</p>
                 </div>
+            ) : viewMode === "table" ? (
+                <GradingTableView
+                    submissions={submissions}
+                    selectedIds={selectedIds}
+                    onSelectChange={handleSelectChange}
+                    onSelectAll={handleSelectAll}
+                    onGrade={handleGrade}
+                />
             ) : (
                 <div className="space-y-4">
                     {submissions.map((submission) => (
@@ -188,6 +404,33 @@ export default function GradingPage() {
                     />
                 </div>
             )}
+
+            {viewMode === "table" && submissions.length > 0 && (
+                <Pagination
+                    currentPage={page}
+                    totalPages={totalPages}
+                    onPageChange={setPage}
+                />
+            )}
+
+            {/* Batch Publish Dialog */}
+            <AlertDialog open={showBatchPublishDialog} onOpenChange={setShowBatchPublishDialog}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>Publikasi Massal</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            Apakah Anda yakin ingin mempublikasi {selectedIds.size} submission sekaligus?
+                            Siswa akan dapat melihat nilai mereka setelah dipublikasi.
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel>Batal</AlertDialogCancel>
+                        <AlertDialogAction onClick={handleBatchPublish} disabled={batchPublishing}>
+                            {batchPublishing ? "Mempublikasi..." : "Publikasi"}
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
         </div>
     );
 }

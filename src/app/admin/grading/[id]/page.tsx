@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
-import { ArrowLeft, Save, Send, Check, X } from "lucide-react";
+import { ArrowLeft, Save, Send, Check, X, ChevronLeft, ChevronRight, SkipForward } from "lucide-react";
 import Link from "next/link";
 import { MatchingResultViewer } from "@/components/exam/MatchingResultViewer";
 
@@ -56,10 +56,87 @@ export default function GradingDetailPage() {
     const [submission, setSubmission] = useState<Submission | null>(null);
     const [answers, setAnswers] = useState<Answer[]>([]);
     const [grades, setGrades] = useState<Map<string, { score: number; comment: string }>>(new Map());
+    const [pendingSubmissions, setPendingSubmissions] = useState<string[]>([]);
+    const [currentIndex, setCurrentIndex] = useState(-1);
 
     useEffect(() => {
         fetchSubmissionDetails();
-    }, []);
+        fetchPendingSubmissions();
+    }, [params.id]);
+
+    useEffect(() => {
+        // Keyboard shortcuts
+        const handleKeyPress = (e: KeyboardEvent) => {
+            // Don't trigger if typing in input/textarea
+            if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) {
+                return;
+            }
+
+            // Ctrl+S to save
+            if (e.ctrlKey && e.key === 's') {
+                e.preventDefault();
+                handleSave();
+            }
+
+            // Ctrl+Enter to publish
+            if (e.ctrlKey && e.key === 'Enter') {
+                e.preventDefault();
+                if (submission?.gradingStatus !== "pending_manual") {
+                    handlePublish();
+                }
+            }
+
+            // n for next
+            if (e.key === 'n' && currentIndex < pendingSubmissions.length - 1) {
+                e.preventDefault();
+                navigateToNext();
+            }
+
+            // p for previous
+            if (e.key === 'p' && currentIndex > 0) {
+                e.preventDefault();
+                navigateToPrevious();
+            }
+        };
+
+        window.addEventListener('keydown', handleKeyPress);
+        return () => window.removeEventListener('keydown', handleKeyPress);
+    }, [submission, currentIndex, pendingSubmissions]);
+
+    const fetchPendingSubmissions = async () => {
+        try {
+            // Fetch all pending submissions to enable navigation
+            const response = await fetch("/api/grading/submissions?status=pending_manual&limit=1000");
+            if (response.ok) {
+                const data = await response.json();
+                const ids = data.data.map((s: any) => s.id);
+                setPendingSubmissions(ids);
+
+                const index = ids.indexOf(params.id);
+                setCurrentIndex(index);
+            }
+        } catch (error) {
+            console.error("Error fetching pending submissions:", error);
+        }
+    };
+
+    const navigateToNext = () => {
+        if (currentIndex >= 0 && currentIndex < pendingSubmissions.length - 1) {
+            const nextId = pendingSubmissions[currentIndex + 1];
+            router.push(`/admin/grading/${nextId}`);
+        }
+    };
+
+    const navigateToPrevious = () => {
+        if (currentIndex > 0) {
+            const prevId = pendingSubmissions[currentIndex - 1];
+            router.push(`/admin/grading/${prevId}`);
+        }
+    };
+
+    const skipToNext = () => {
+        navigateToNext();
+    };
 
     const fetchSubmissionDetails = async () => {
         try {
@@ -410,17 +487,43 @@ export default function GradingDetailPage() {
                 <div className="flex-1">
                     <h2 className="text-2xl font-bold tracking-tight">{submission.sessionName}</h2>
                     <p className="text-muted-foreground">Siswa: {submission.studentName}</p>
+                    {currentIndex >= 0 && pendingSubmissions.length > 0 && (
+                        <p className="text-sm text-muted-foreground">
+                            {currentIndex + 1} dari {pendingSubmissions.length} submission
+                        </p>
+                    )}
                 </div>
                 <div className="flex gap-2">
-                    <Button variant="outline" onClick={handleSave} disabled={saving}>
+                    {currentIndex > 0 && (
+                        <Button variant="outline" size="icon" onClick={navigateToPrevious} title="Previous (P)">
+                            <ChevronLeft className="h-4 w-4" />
+                        </Button>
+                    )}
+                    {currentIndex >= 0 && currentIndex < pendingSubmissions.length - 1 && (
+                        <>
+                            <Button variant="outline" onClick={skipToNext}>
+                                <SkipForward className="mr-2 h-4 w-4" />
+                                Skip
+                            </Button>
+                            <Button variant="outline" size="icon" onClick={navigateToNext} title="Next (N)">
+                                <ChevronRight className="h-4 w-4" />
+                            </Button>
+                        </>
+                    )}
+                    <Button variant="outline" onClick={handleSave} disabled={saving} title="Ctrl+S">
                         <Save className="mr-2 h-4 w-4" />
                         {saving ? "Menyimpan..." : "Simpan"}
                     </Button>
-                    <Button onClick={handlePublish} disabled={publishing || submission.gradingStatus === "pending_manual"}>
+                    <Button onClick={handlePublish} disabled={publishing || submission.gradingStatus === "pending_manual"} title="Ctrl+Enter">
                         <Send className="mr-2 h-4 w-4" />
                         {publishing ? "Mempublikasi..." : "Publikasikan"}
                     </Button>
                 </div>
+            </div>
+
+            {/* Keyboard Shortcuts Help */}
+            <div className="text-xs text-muted-foreground bg-muted/30 p-2 rounded border">
+                <span className="font-medium">Shortcut:</span> Ctrl+S (Simpan) • Ctrl+Enter (Publikasi) • N (Next) • P (Previous)
             </div>
 
             {/* Summary Card */}

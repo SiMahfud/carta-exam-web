@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { submissions, users, examSessions, examTemplates } from "@/lib/schema";
-import { eq, or, desc, and, sql } from "drizzle-orm";
+import { submissions, users, examSessions, examTemplates, classStudents, classes } from "@/lib/schema";
+import { eq, or, desc, asc, and, sql, like } from "drizzle-orm";
 
 // GET /api/grading/submissions - List submissions needing grading
 export async function GET(request: Request) {
@@ -11,6 +11,10 @@ export async function GET(request: Request) {
         const limit = parseInt(searchParams.get("limit") || "20");
         const status = searchParams.get("status"); // pending_manual, completed, all
         const sessionId = searchParams.get("sessionId"); // Filter by session
+        const search = searchParams.get("search"); // Search by student name
+        const classId = searchParams.get("classId"); // Filter by class
+        const orderBy = searchParams.get("orderBy") || "date"; // date, studentName, sessionName
+        const order = searchParams.get("order") || "desc"; // asc, desc
 
         const offset = (page - 1) * limit;
 
@@ -25,16 +29,35 @@ export async function GET(request: Request) {
             conditions.push(eq(submissions.sessionId, sessionId));
         }
 
+        if (search) {
+            conditions.push(sql`LOWER(${users.name}) LIKE LOWER(${'%' + search + '%'})`);
+        }
+
+        if (classId) {
+            conditions.push(eq(classStudents.classId, classId));
+        }
+
         const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
 
-        // Get total count
-        const totalResult = await db.select({ count: sql<number>`count(*)` })
-            .from(submissions)
-            .where(whereClause);
-        const total = Number(totalResult[0]?.count || 0);
+        // Determine order by clause
+        let orderByClause;
+        const orderFn = order === "asc" ? asc : desc;
 
-        // Fetch submissions with related data
-        const submissionsData = await db.select({
+        switch (orderBy) {
+            case "studentName":
+                orderByClause = orderFn(users.name);
+                break;
+            case "sessionName":
+                orderByClause = orderFn(examSessions.sessionName);
+                break;
+            case "date":
+            default:
+                orderByClause = orderFn(submissions.createdAt);
+                break;
+        }
+
+        // Build query - join with classStudents if needed for class filtering
+        let query = db.select({
             id: submissions.id,
             sessionId: submissions.sessionId,
             userId: submissions.userId,
@@ -52,9 +75,29 @@ export async function GET(request: Request) {
             .from(submissions)
             .innerJoin(users, eq(submissions.userId, users.id))
             .innerJoin(examSessions, eq(submissions.sessionId, examSessions.id))
+            .innerJoin(examTemplates, eq(examSessions.templateId, examTemplates.id));
+
+        // Add class join if filtering by class
+        if (classId) {
+            query = query.leftJoin(classStudents, eq(users.id, classStudents.studentId)) as any;
+        }
+
+        // Get total count
+        const totalResult = await db.select({ count: sql<number>`count(DISTINCT ${submissions.id})` })
+            .from(submissions)
+            .innerJoin(users, eq(submissions.userId, users.id))
+            .innerJoin(examSessions, eq(submissions.sessionId, examSessions.id))
             .innerJoin(examTemplates, eq(examSessions.templateId, examTemplates.id))
+            .$dynamic()
+            .leftJoin(classStudents, classId ? eq(users.id, classStudents.studentId) : sql`1=0`)
+            .where(whereClause);
+
+        const total = Number(totalResult[0]?.count || 0);
+
+        // Fetch submissions with related data
+        const submissionsData = await query
             .where(whereClause)
-            .orderBy(desc(submissions.createdAt))
+            .orderBy(orderByClause)
             .limit(limit)
             .offset(offset);
 
