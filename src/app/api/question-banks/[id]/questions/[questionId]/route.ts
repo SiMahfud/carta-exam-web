@@ -6,9 +6,10 @@ import { eq } from "drizzle-orm";
 // GET /api/question-banks/[bankId]/questions/[questionId]
 export async function GET(
     request: Request,
-    { params }: { params: { id: string; questionId: string } }
+    context: { params: Promise<{ id: string; questionId: string }> }
 ) {
     try {
+        const params = await context.params;
         const question = await db.select()
             .from(bankQuestions)
             .where(eq(bankQuestions.id, params.questionId))
@@ -34,9 +35,10 @@ export async function GET(
 // PUT /api/question-banks/[bankId]/questions/[questionId] - Update question
 export async function PUT(
     request: Request,
-    { params }: { params: { id: string; questionId: string } }
+    context: { params: Promise<{ id: string; questionId: string }> }
 ) {
     try {
+        const params = await context.params;
         const body = await request.json();
         const {
             type,

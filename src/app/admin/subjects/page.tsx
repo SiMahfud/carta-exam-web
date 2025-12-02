@@ -22,6 +22,16 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Plus, Pencil, Trash2, BookOpen } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 interface Subject {
     id: string;
@@ -36,6 +46,8 @@ export default function SubjectsPage() {
     const [loading, setLoading] = useState(true);
     const [dialogOpen, setDialogOpen] = useState(false);
     const [editingSubject, setEditingSubject] = useState<Subject | null>(null);
+    const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+    const [subjectToDelete, setSubjectToDelete] = useState<string | null>(null);
     const { toast } = useToast();
 
     const [formData, setFormData] = useState({
@@ -108,24 +120,29 @@ export default function SubjectsPage() {
         }
     };
 
-    const handleDelete = async (id: string) => {
-        if (!confirm("Are you sure you want to delete this subject?")) return;
+    const handleDeleteClick = (id: string) => {
+        setSubjectToDelete(id);
+        setDeleteDialogOpen(true);
+    };
+
+    const handleDeleteConfirm = async () => {
+        if (!subjectToDelete) return;
 
         try {
-            const response = await fetch(`/api/subjects/${id}`, {
+            const response = await fetch(`/api/subjects/${subjectToDelete}`, {
                 method: "DELETE",
             });
 
             if (response.ok) {
                 toast({
-                    title: "Success",
-                    description: "Subject deleted successfully",
+                    title: "Berhasil",
+                    description: "Mata pelajaran berhasil dihapus",
                 });
                 fetchSubjects();
             } else {
                 toast({
                     title: "Error",
-                    description: "Failed to delete subject",
+                    description: "Gagal menghapus mata pelajaran",
                     variant: "destructive",
                 });
             }
@@ -133,9 +150,12 @@ export default function SubjectsPage() {
             console.error("Error deleting subject:", error);
             toast({
                 title: "Error",
-                description: "Failed to delete subject",
+                description: "Gagal menghapus mata pelajaran",
                 variant: "destructive",
             });
+        } finally {
+            setDeleteDialogOpen(false);
+            setSubjectToDelete(null);
         }
     };
 
@@ -208,7 +228,7 @@ export default function SubjectsPage() {
                                         <Button
                                             variant="ghost"
                                             size="icon"
-                                            onClick={() => handleDelete(subject.id)}
+                                            onClick={() => handleDeleteClick(subject.id)}
                                         >
                                             <Trash2 className="h-4 w-4 text-destructive" />
                                         </Button>
@@ -299,6 +319,27 @@ export default function SubjectsPage() {
                     </form>
                 </DialogContent>
             </Dialog>
+
+            {/* Delete Confirmation Dialog */}
+            <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>Hapus Mata Pelajaran?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            Apakah Anda yakin ingin menghapus mata pelajaran ini? Tindakan ini tidak dapat dibatalkan.
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel>Batal</AlertDialogCancel>
+                        <AlertDialogAction
+                            onClick={handleDeleteConfirm}
+                            className="bg-destructive hover:bg-destructive/90"
+                        >
+                            Hapus
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
         </div>
     );
 }

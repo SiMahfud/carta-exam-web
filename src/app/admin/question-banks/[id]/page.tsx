@@ -38,6 +38,16 @@ import {
     DialogTrigger,
 } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { MultipleChoiceEditor } from "@/components/question-editor/MultipleChoiceEditor";
@@ -70,6 +80,8 @@ export default function QuestionBankDetailPage() {
     const [typeDialogOpen, setTypeDialogOpen] = useState(false);
     const [selectedType, setSelectedType] = useState<string>("");
     const [editingQuestion, setEditingQuestion] = useState<BankQuestion | null>(null);
+    const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+    const [questionToDelete, setQuestionToDelete] = useState<string | null>(null);
 
     // Filters
     const [filterType, setFilterType] = useState<string>("all");
@@ -144,31 +156,50 @@ export default function QuestionBankDetailPage() {
         }
     };
 
-    const handleDelete = async (questionId: string) => {
-        if (!confirm("Yakin ingin menghapus soal ini?")) return;
+    const handleDeleteClick = (questionId: string) => {
+        console.log("Delete button clicked for question:", questionId);
+        setQuestionToDelete(questionId);
+        setDeleteDialogOpen(true);
+    };
 
+    const handleDeleteConfirm = async () => {
+        if (!questionToDelete) return;
+
+        console.log("Deleting question:", questionToDelete);
         try {
             const response = await fetch(
-                `/api/question-banks/${bankId}/questions/${questionId}`,
+                `/api/question-banks/${bankId}/questions/${questionToDelete}`,
                 { method: "DELETE" }
             );
 
+            console.log("Delete response:", response.status);
+
             if (response.ok) {
                 toast({
-                    title: "Success",
-                    description: "Question deleted successfully",
+                    title: "Berhasil",
+                    description: "Soal berhasil dihapus",
                 });
                 fetchQuestions();
                 fetchTags();
             } else {
+                const errorData = await response.json().catch(() => ({}));
+                console.error("Delete failed:", errorData);
                 toast({
                     title: "Error",
-                    description: "Failed to delete question",
+                    description: errorData.error || "Gagal menghapus soal",
                     variant: "destructive",
                 });
             }
         } catch (error) {
             console.error("Error deleting question:", error);
+            toast({
+                title: "Error",
+                description: "Terjadi error saat menghapus soal",
+                variant: "destructive",
+            });
+        } finally {
+            setDeleteDialogOpen(false);
+            setQuestionToDelete(null);
         }
     };
 
@@ -509,7 +540,7 @@ export default function QuestionBankDetailPage() {
                                         <Button
                                             variant="ghost"
                                             size="icon"
-                                            onClick={() => handleDelete(question.id)}
+                                            onClick={() => handleDeleteClick(question.id)}
                                         >
                                             <Trash2 className="h-4 w-4 text-destructive" />
                                         </Button>
@@ -641,6 +672,27 @@ export default function QuestionBankDetailPage() {
                 availableTags={availableTags}
                 questionToEdit={editingQuestion || undefined}
             />
+
+            {/* Delete Confirmation Dialog */}
+            <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>Hapus Soal?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            Apakah Anda yakin ingin menghapus soal ini? Tindakan ini tidak dapat dibatalkan.
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel>Batal</AlertDialogCancel>
+                        <AlertDialogAction
+                            onClick={handleDeleteConfirm}
+                            className="bg-destructive hover:bg-destructive/90"
+                        >
+                            Hapus
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
         </div>
     );
 }

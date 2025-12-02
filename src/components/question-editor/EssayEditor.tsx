@@ -23,6 +23,16 @@ import {
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Plus, X, Tag as TagIcon, Trash2 } from "lucide-react";
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 interface QuestionEditorProps {
     open: boolean;
@@ -53,6 +63,8 @@ export function EssayEditor({
     });
     const [newTag, setNewTag] = useState("");
     const [newKeyword, setNewKeyword] = useState("");
+    const [warningDialogOpen, setWarningDialogOpen] = useState(false);
+    const [pendingSubmit, setPendingSubmit] = useState(false);
 
     useEffect(() => {
         if (open) {
@@ -88,12 +100,15 @@ export function EssayEditor({
 
         // Warn if default points doesn't match rubric total
         if (formData.defaultPoints !== totalRubricPoints) {
-            const confirmProceed = confirm(
-                `Perhatian: Poin default (${formData.defaultPoints}) tidak sama dengan total rubrik (${totalRubricPoints}). Lanjutkan?`
-            );
-            if (!confirmProceed) return;
+            setWarningDialogOpen(true);
+            return;
         }
 
+        // Submit if validation passes
+        await submitForm();
+    };
+
+    const submitForm = async () => {
         const content = {
             question: formData.question,
             guidelines: formData.guidelines || undefined,
@@ -136,6 +151,11 @@ export function EssayEditor({
             console.error("Error saving question:", error);
             alert("Failed to save question");
         }
+    };
+
+    const handleWarningConfirm = async () => {
+        setWarningDialogOpen(false);
+        await submitForm();
     };
 
     const resetForm = () => {
@@ -492,6 +512,25 @@ export function EssayEditor({
                     </DialogFooter>
                 </form >
             </DialogContent >
+
+            {/* Warning Dialog for Points Mismatch */}
+            <AlertDialog open={warningDialogOpen} onOpenChange={setWarningDialogOpen}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>Poin Tidak Sesuai</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            Poin default ({formData.defaultPoints}) tidak sama dengan total rubrik ({getTotalRubricPoints()}).
+                            Apakah Anda yakin ingin melanjutkan?
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel>Batal</AlertDialogCancel>
+                        <AlertDialogAction onClick={handleWarningConfirm}>
+                            Lanjutkan
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
         </Dialog >
     );
 }

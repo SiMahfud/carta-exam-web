@@ -29,6 +29,16 @@ import {
 } from "@/components/ui/select";
 import { Plus, Database, ArrowRight, Pencil, Trash2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import Link from "next/link";
 
 interface Subject {
@@ -55,6 +65,8 @@ export default function QuestionBanksPage() {
     const [loading, setLoading] = useState(true);
     const [dialogOpen, setDialogOpen] = useState(false);
     const [selectedSubject, setSelectedSubject] = useState<string>("all");
+    const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+    const [bankToDelete, setBankToDelete] = useState<string | null>(null);
     const { toast } = useToast();
 
     const [formData, setFormData] = useState({
@@ -143,25 +155,29 @@ export default function QuestionBanksPage() {
         }
     };
 
-    const handleDelete = async (id: string) => {
-        if (!confirm("Are you sure? This will delete all questions in this bank."))
-            return;
+    const handleDeleteClick = (id: string) => {
+        setBankToDelete(id);
+        setDeleteDialogOpen(true);
+    };
+
+    const handleDeleteConfirm = async () => {
+        if (!bankToDelete) return;
 
         try {
-            const response = await fetch(`/api/question-banks/${id}`, {
+            const response = await fetch(`/api/question-banks/${bankToDelete}`, {
                 method: "DELETE",
             });
 
             if (response.ok) {
                 toast({
-                    title: "Success",
-                    description: "Question bank deleted successfully",
+                    title: "Berhasil",
+                    description: "Bank soal berhasil dihapus",
                 });
                 fetchQuestionBanks();
             } else {
                 toast({
                     title: "Error",
-                    description: "Failed to delete question bank",
+                    description: "Gagal menghapus bank soal",
                     variant: "destructive",
                 });
             }
@@ -169,9 +185,12 @@ export default function QuestionBanksPage() {
             console.error("Error deleting question bank:", error);
             toast({
                 title: "Error",
-                description: "Failed to delete question bank",
+                description: "Gagal menghapus bank soal",
                 variant: "destructive",
             });
+        } finally {
+            setDeleteDialogOpen(false);
+            setBankToDelete(null);
         }
     };
 
@@ -245,7 +264,7 @@ export default function QuestionBanksPage() {
                                     <Button
                                         variant="ghost"
                                         size="icon"
-                                        onClick={() => handleDelete(bank.id)}
+                                        onClick={() => handleDeleteClick(bank.id)}
                                     >
                                         <Trash2 className="h-4 w-4 text-destructive" />
                                     </Button>
@@ -346,6 +365,28 @@ export default function QuestionBanksPage() {
                     </form>
                 </DialogContent>
             </Dialog>
+
+            {/* Delete Confirmation Dialog */}
+            <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>Hapus Bank Soal?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            Apakah Anda yakin ingin menghapus bank soal ini?
+                            <strong className="text-destructive"> Semua soal di dalam bank ini akan ikut terhapus.</strong> Tindakan ini tidak dapat dibatalkan.
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel>Batal</AlertDialogCancel>
+                        <AlertDialogAction
+                            onClick={handleDeleteConfirm}
+                            className="bg-destructive hover:bg-destructive/90"
+                        >
+                            Hapus
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
         </div>
     );
 }
