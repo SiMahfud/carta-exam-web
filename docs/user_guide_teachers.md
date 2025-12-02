@@ -14,8 +14,9 @@ Selamat datang di Panduan Guru CartaExam. Dokumen ini menjelaskan cara menggunak
 
 ## Ringkasan Dasbor
 Setelah login, Anda akan melihat Dasbor Admin. Ini memberikan gambaran cepat tentang:
-- Sesi Ujian Aktif
-- Pengumpulan Terbaru
+- **Statistik Real-time**: Jumlah siswa, ujian selesai, dan sesi aktif.
+- **Log Aktivitas**: Riwayat tindakan terbaru dalam sistem.
+- **Pengumpulan Terbaru**: Daftar siswa yang baru saja menyelesaikan ujian.
 - Tautan cepat untuk mengelola Kelas, Ujian, dan Bank Soal.
 
 ## Mengelola Mata Pelajaran & Kelas
@@ -94,7 +95,10 @@ Selama sesi aktif, Anda dapat memantau kemajuan siswa.
    - Siapa yang sudah mulai.
    - Kemajuan saat ini (soal terjawab).
    - **Pelanggaran**: Peringatan untuk pindah tab atau perilaku mencurigakan.
-3. Anda dapat menghentikan sesi siswa jika diperlukan.
+3. Anda dapat melakukan aksi terhadap siswa:
+   - **Reset Waktu**: Mengatur ulang sisa waktu siswa.
+   - **Paksa Selesai**: Menghentikan ujian siswa secara paksa.
+   - **Ujian Ulang**: Mengizinkan siswa untuk memulai ulang ujian dari awal.
 
 ## Penilaian & Hasil
 
@@ -103,7 +107,10 @@ Selama sesi aktif, Anda dapat memantau kemajuan siswa.
 
 ### Penilaian Manual (Esai)
 1. Navigasi ke **Penilaian** (Grading).
-2. Anda akan melihat daftar pengumpulan dengan status "Menunggu Penilaian Manual".
+2. Anda akan melihat daftar pengumpulan dengan fitur:
+   - **Filter & Pencarian**: Cari berdasarkan nama siswa atau filter berdasarkan kelas.
+   - **Pengurutan**: Urutkan berdasarkan tanggal, nama, atau sesi.
+   - **Status**: Lihat status "Menunggu Penilaian Manual".
 3. Klik pada pengumpulan untuk membuka antarmuka penilaian.
 4. Tinjau jawaban esai siswa.
 5. Berikan nilai dan tambahkan komentar umpan balik.
