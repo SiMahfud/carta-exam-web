@@ -52,15 +52,39 @@ Aplikasi ini dibangun menggunakan teknologi modern:
 
 ## Dokumentasi
 
-Dokumentasi lengkap tersedia di folder `docs/`:
+Dokumentasi lengkap tersedia untuk membantu Anda memahami dan berkontribusi pada proyek ini:
 
-- [Dokumentasi API](docs/api_documentation.md)
-- [Panduan Pengguna untuk Guru](docs/user_guide_teachers.md)
-- [Skema Database](docs/database_schema.md)
+### 📖 Dokumentasi Pengguna
+- [Dokumentasi API](docs/api_documentation.md) - Referensi lengkap API endpoints
+- [Panduan Pengguna untuk Guru](docs/user_guide_teachers.md) - Cara menggunakan aplikasi
+- [Skema Database](docs/database_schema.md) - Struktur database lengkap
+
+### 🗺️ Pengembangan & Roadmap
+- [ROADMAP.md](ROADMAP.md) - **Roadmap pengembangan lengkap** dengan checklist fitur, spesifikasi teknis, dan prioritas
+- [FEATURES.md](FEATURES.md) - **Status fitur saat ini** - Lihat apa yang sudah, sedang, dan akan dikembangkan
+
+### 🤝 Kontribusi
+- [CONTRIBUTING.md](CONTRIBUTING.md) - **Panduan kontribusi** untuk pengembang dan kontributor
+- [AGENTS.md](AGENTS.md) - **Panduan khusus untuk AI Agents** - Context lengkap untuk AI coding assistants
+
+## 🤝 Berkontribusi
+
+Kami sangat terbuka untuk kontribusi! Lihat [CONTRIBUTING.md](CONTRIBUTING.md) untuk panduan lengkap cara berkontribusi.
+
+**Untuk AI Agents**: Lihat [AGENTS.md](AGENTS.md) untuk context teknis dan panduan pengembangan.
+
+### Area yang Membutuhkan Bantuan
+- 🎨 Dark mode implementation
+- 📊 Advanced analytics & reporting
+- 🧪 Testing infrastructure
+- 📱 Mobile responsiveness
+- 🔒 Security enhancements
+
+Lihat [ROADMAP.md](ROADMAP.md) untuk daftar lengkap fitur yang direncanakan.
 
 ## Future Roadmap
 
-Berikut adalah daftar fitur yang direncanakan untuk pengembangan masa depan:
+Lihat [ROADMAP.md](ROADMAP.md) dan [FEATURES.md](FEATURES.md) untuk roadmap lengkap. Berikut highlight fitur utama:
 
 - [ ] **AI-Powered Question Generation**: Membuat soal otomatis menggunakan AI berdasarkan materi pelajaran.
 - [ ] **Analitik Lanjutan**: Laporan mendalam tentang performa siswa dan analisis butir soal.
@@ -68,3 +92,17 @@ Berikut adalah daftar fitur yang direncanakan untuk pengembangan masa depan:
 - [ ] **Integrasi LMS**: Sinkronisasi nilai dan data siswa dengan Google Classroom atau Moodle.
 - [ ] **Dark Mode**: Dukungan tema gelap untuk kenyamanan mata.
 - [ ] **Notifikasi Real-time**: Pemberitahuan instan untuk guru saat ada pelanggaran atau ujian selesai.
+
+## 📄 License
+
+[Specify your license here]
+
+## 🙏 Acknowledgments
+
+Dikembangkan untuk SMAN 1 Campurdarat dengan tujuan meningkatkan kualitas dan efisiensi pelaksanaan ujian.
+
+---
+
+**Status Proyek**: 🟡 Beta - Menuju Production Ready  
+**Versi**: 0.1.0  
+**Last Updated**: December 2, 2025
