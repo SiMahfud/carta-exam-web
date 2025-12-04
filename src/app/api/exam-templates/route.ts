@@ -131,14 +131,35 @@ export async function POST(request: Request) {
         }
 
         // TODO: Get actual user ID from session
-        // For now, we'll use the provided createdBy or a default/placeholder if needed
-        // But strictly speaking, the frontend should pass it or we fetch it here.
-        // Let's assume the frontend sends a valid user ID for now.
-        if (!createdBy) {
-            return NextResponse.json(
-                { error: "User ID is required" },
-                { status: 400 }
-            );
+        // For now, we'll use the provided createdBy or fetch the first admin user
+        let validCreatedBy = createdBy;
+
+        if (!validCreatedBy) {
+            // Fallback: Get the first admin user
+            const adminUser = await db.select().from(users).where(eq(users.username, "admin")).limit(1);
+            if (adminUser.length > 0) {
+                validCreatedBy = adminUser[0].id;
+            } else {
+                return NextResponse.json(
+                    { error: "User ID is required and no default admin found" },
+                    { status: 400 }
+                );
+            }
+        } else {
+            // Verify user exists
+            const userExists = await db.select().from(users).where(eq(users.id, validCreatedBy)).limit(1);
+            if (userExists.length === 0) {
+                // If provided ID doesn't exist, try fallback to admin
+                const adminUser = await db.select().from(users).where(eq(users.username, "admin")).limit(1);
+                if (adminUser.length > 0) {
+                    validCreatedBy = adminUser[0].id;
+                } else {
+                    return NextResponse.json(
+                        { error: "Invalid User ID and no default admin found" },
+                        { status: 400 }
+                    );
+                }
+            }
         }
 
         const id = crypto.randomUUID();
@@ -171,7 +192,7 @@ export async function POST(request: Request) {
             randomizationRules,
             targetType,
             targetIds,
-            createdBy,
+            createdBy: validCreatedBy,
         };
 
         await db.insert(examTemplates).values(newTemplateValues);

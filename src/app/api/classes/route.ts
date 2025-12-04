@@ -42,13 +42,21 @@ export async function POST(request: Request) {
             );
         }
 
+        let validTeacherId = teacherId;
+        if (validTeacherId) {
+            const userExists = await db.select().from(users).where(eq(users.id, validTeacherId)).limit(1);
+            if (userExists.length === 0) {
+                validTeacherId = null;
+            }
+        }
+
         const id = crypto.randomUUID();
         const newClassValues = {
             id,
             name,
             grade,
             academicYear,
-            teacherId,
+            teacherId: validTeacherId || null,
         };
 
         await db.insert(classes).values(newClassValues);

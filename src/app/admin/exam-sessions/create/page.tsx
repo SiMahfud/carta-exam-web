@@ -13,10 +13,11 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@/components/ui/select";
-import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
-import { ArrowLeft, Loader2, Calendar as CalendarIcon } from "lucide-react";
+import { ArrowLeft, Loader2 } from "lucide-react";
 import Link from "next/link";
+import { ClassSelector } from "@/components/exam/ClassSelector";
+import { StudentSelector } from "@/components/exam/StudentSelector";
 
 interface ExamTemplate {
     id: string;
@@ -31,6 +32,13 @@ interface Class {
     grade: number;
 }
 
+interface Student {
+    id: string;
+    name: string;
+    username: string;
+    classes: Array<{ id: string; name: string }>;
+}
+
 export default function CreateExamSessionPage() {
     const router = useRouter();
     const { toast } = useToast();
@@ -40,6 +48,7 @@ export default function CreateExamSessionPage() {
     // Data
     const [templates, setTemplates] = useState<ExamTemplate[]>([]);
     const [classes, setClasses] = useState<Class[]>([]);
+    const [students, setStudents] = useState<Student[]>([]);
 
     // Form State
     const [formData, setFormData] = useState({
@@ -58,9 +67,10 @@ export default function CreateExamSessionPage() {
     const fetchInitialData = async () => {
         setLoading(true);
         try {
-            const [templatesRes, classesRes] = await Promise.all([
+            const [templatesRes, classesRes, studentsRes] = await Promise.all([
                 fetch("/api/exam-templates?limit=100"), // Fetch all for now
-                fetch("/api/classes")
+                fetch("/api/classes"),
+                fetch("/api/users?role=student")
             ]);
 
             if (templatesRes.ok) {
@@ -70,6 +80,10 @@ export default function CreateExamSessionPage() {
             if (classesRes.ok) {
                 const data = await classesRes.json();
                 setClasses(data);
+            }
+            if (studentsRes.ok) {
+                const data = await studentsRes.json();
+                setStudents(data);
             }
         } catch (error) {
             console.error("Error fetching data:", error);
@@ -83,14 +97,26 @@ export default function CreateExamSessionPage() {
         }
     };
 
-    const handleClassToggle = (classId: string) => {
+    const handleTargetToggle = (targetId: string) => {
         setFormData(prev => {
             const current = prev.targetIds;
-            const updated = current.includes(classId)
-                ? current.filter(id => id !== classId)
-                : [...current, classId];
+            const updated = current.includes(targetId)
+                ? current.filter(id => id !== targetId)
+                : [...current, targetId];
             return { ...prev, targetIds: updated };
         });
+    };
+
+    const handleSelectAll = (ids: string[]) => {
+        setFormData(prev => ({ ...prev, targetIds: ids }));
+    };
+
+    const handleTargetTypeChange = (newType: string) => {
+        setFormData(prev => ({
+            ...prev,
+            targetType: newType,
+            targetIds: [] // Reset selected targets when changing type
+        }));
     };
 
     const handleSubmit = async (e: React.FormEvent) => {
@@ -217,27 +243,42 @@ export default function CreateExamSessionPage() {
                             </div>
                         </div>
 
-                        <div className="space-y-4">
-                            <Label>Target Peserta (Kelas)</Label>
-                            <div className="grid grid-cols-2 md:grid-cols-3 gap-4 border rounded-lg p-4">
-                                {classes.map(cls => (
-                                    <div key={cls.id} className="flex items-center space-x-2">
-                                        <Checkbox
-                                            id={cls.id}
-                                            checked={formData.targetIds.includes(cls.id)}
-                                            onCheckedChange={() => handleClassToggle(cls.id)}
-                                        />
-                                        <label
-                                            htmlFor={cls.id}
-                                            className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
-                                        >
-                                            {cls.name}
-                                        </label>
-                                    </div>
-                                ))}
-                                {classes.length === 0 && <p className="text-sm text-muted-foreground col-span-full">Belum ada data kelas</p>}
-                            </div>
+                        <div className="space-y-2">
+                            <Label>Tipe Target</Label>
+                            <Select value={formData.targetType} onValueChange={handleTargetTypeChange}>
+                                <SelectTrigger>
+                                    <SelectValue placeholder="Pilih Tipe Target" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="class">Kelas Tertentu</SelectItem>
+                                    <SelectItem value="individual">Siswa Tertentu</SelectItem>
+                                </SelectContent>
+                            </Select>
                         </div>
+
+                        {formData.targetType === "class" && (
+                            <div className="space-y-2">
+                                <Label>Pilih Kelas</Label>
+                                <ClassSelector
+                                    classes={classes}
+                                    selectedIds={formData.targetIds}
+                                    onToggle={handleTargetToggle}
+                                    onSelectAll={handleSelectAll}
+                                />
+                            </div>
+                        )}
+
+                        {formData.targetType === "individual" && (
+                            <div className="space-y-2">
+                                <Label>Pilih Siswa</Label>
+                                <StudentSelector
+                                    students={students}
+                                    selectedIds={formData.targetIds}
+                                    onToggle={handleTargetToggle}
+                                    onSelectAll={handleSelectAll}
+                                />
+                            </div>
+                        )}
 
                         <div className="flex justify-end gap-4 pt-4">
                             <Link href="/admin/exam-sessions">

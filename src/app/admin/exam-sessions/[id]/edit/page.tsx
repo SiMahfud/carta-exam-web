@@ -13,11 +13,12 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@/components/ui/select";
-import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
 import { ArrowLeft, Loader2 } from "lucide-react";
 import Link from "next/link";
 import { toDateTimeLocalString } from "@/lib/date-utils";
+import { ClassSelector } from "@/components/exam/ClassSelector";
+import { StudentSelector } from "@/components/exam/StudentSelector";
 
 interface ExamSession {
     id: string;
@@ -36,6 +37,13 @@ interface Class {
     grade: number;
 }
 
+interface Student {
+    id: string;
+    name: string;
+    username: string;
+    classes: Array<{ id: string; name: string }>;
+}
+
 export default function EditExamSessionPage() {
     const router = useRouter();
     const params = useParams();
@@ -46,12 +54,14 @@ export default function EditExamSessionPage() {
 
     // Data
     const [classes, setClasses] = useState<Class[]>([]);
+    const [students, setStudents] = useState<Student[]>([]);
 
     // Form State
     const [formData, setFormData] = useState<Partial<ExamSession>>({
         sessionName: "",
         startTime: "",
         endTime: "",
+        targetType: "class",
         targetIds: [],
         status: "scheduled"
     });
@@ -63,9 +73,10 @@ export default function EditExamSessionPage() {
     const fetchData = async () => {
         setLoading(true);
         try {
-            const [sessionRes, classesRes] = await Promise.all([
+            const [sessionRes, classesRes, studentsRes] = await Promise.all([
                 fetch(`/api/exam-sessions/${sessionId}`),
-                fetch("/api/classes")
+                fetch("/api/classes"),
+                fetch("/api/users?role=student")
             ]);
 
             if (sessionRes.ok) {
@@ -79,6 +90,7 @@ export default function EditExamSessionPage() {
                     templateId: session.templateId,
                     startTime,
                     endTime,
+                    targetType: session.targetType || "class",
                     targetIds: session.targetIds || [],
                     status: session.status
                 });
@@ -86,6 +98,10 @@ export default function EditExamSessionPage() {
             if (classesRes.ok) {
                 const data = await classesRes.json();
                 setClasses(data);
+            }
+            if (studentsRes.ok) {
+                const data = await studentsRes.json();
+                setStudents(data);
             }
         } catch (error) {
             console.error("Error fetching data:", error);
@@ -99,14 +115,26 @@ export default function EditExamSessionPage() {
         }
     };
 
-    const handleClassToggle = (classId: string) => {
+    const handleTargetToggle = (targetId: string) => {
         setFormData(prev => {
             const current = prev.targetIds || [];
-            const updated = current.includes(classId)
-                ? current.filter(id => id !== classId)
-                : [...current, classId];
+            const updated = current.includes(targetId)
+                ? current.filter(id => id !== targetId)
+                : [...current, targetId];
             return { ...prev, targetIds: updated };
         });
+    };
+
+    const handleSelectAll = (ids: string[]) => {
+        setFormData(prev => ({ ...prev, targetIds: ids }));
+    };
+
+    const handleTargetTypeChange = (newType: string) => {
+        setFormData(prev => ({
+            ...prev,
+            targetType: newType,
+            targetIds: [] // Reset selected targets when changing type
+        }));
     };
 
     const handleSubmit = async (e: React.FormEvent) => {
@@ -130,6 +158,7 @@ export default function EditExamSessionPage() {
                     sessionName: formData.sessionName,
                     startTime: formData.startTime,
                     endTime: formData.endTime,
+                    targetType: formData.targetType,
                     targetIds: formData.targetIds,
                     status: formData.status
                 }),
@@ -209,27 +238,42 @@ export default function EditExamSessionPage() {
                             </div>
                         </div>
 
-                        <div className="space-y-4">
-                            <Label>Target Peserta (Kelas)</Label>
-                            <div className="grid grid-cols-2 md:grid-cols-3 gap-4 border rounded-lg p-4">
-                                {classes.map(cls => (
-                                    <div key={cls.id} className="flex items-center space-x-2">
-                                        <Checkbox
-                                            id={cls.id}
-                                            checked={formData.targetIds?.includes(cls.id)}
-                                            onCheckedChange={() => handleClassToggle(cls.id)}
-                                        />
-                                        <label
-                                            htmlFor={cls.id}
-                                            className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
-                                        >
-                                            {cls.name}
-                                        </label>
-                                    </div>
-                                ))}
-                                {classes.length === 0 && <p className="text-sm text-muted-foreground col-span-full">Belum ada data kelas</p>}
-                            </div>
+                        <div className="space-y-2">
+                            <Label>Tipe Target</Label>
+                            <Select value={formData.targetType} onValueChange={handleTargetTypeChange}>
+                                <SelectTrigger>
+                                    <SelectValue placeholder="Pilih Tipe Target" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="class">Kelas Tertentu</SelectItem>
+                                    <SelectItem value="individual">Siswa Tertentu</SelectItem>
+                                </SelectContent>
+                            </Select>
                         </div>
+
+                        {formData.targetType === "class" && (
+                            <div className="space-y-2">
+                                <Label>Pilih Kelas</Label>
+                                <ClassSelector
+                                    classes={classes}
+                                    selectedIds={formData.targetIds || []}
+                                    onToggle={handleTargetToggle}
+                                    onSelectAll={handleSelectAll}
+                                />
+                            </div>
+                        )}
+
+                        {formData.targetType === "individual" && (
+                            <div className="space-y-2">
+                                <Label>Pilih Siswa</Label>
+                                <StudentSelector
+                                    students={students}
+                                    selectedIds={formData.targetIds || []}
+                                    onToggle={handleTargetToggle}
+                                    onSelectAll={handleSelectAll}
+                                />
+                            </div>
+                        )}
 
                         <div className="space-y-2">
                             <Label>Status</Label>

@@ -53,13 +53,21 @@ export async function POST(request: Request) {
             );
         }
 
+        let validCreatedBy = createdBy;
+        if (validCreatedBy) {
+            const userExists = await db.select().from(users).where(eq(users.id, validCreatedBy)).limit(1);
+            if (userExists.length === 0) {
+                validCreatedBy = null;
+            }
+        }
+
         const id = crypto.randomUUID();
         const newBankValues = {
             id,
             name,
             description,
             subjectId,
-            createdBy: createdBy || null, // Optional - set to null if not provided
+            createdBy: validCreatedBy || null,
         };
 
         await db.insert(questionBanks).values(newBankValues);
