@@ -8,12 +8,25 @@ export async function DELETE(
     { params }: { params: { id: string; studentId: string } }
 ) {
     try {
-        const deleted = await db.delete(classStudents)
+        const deleted = await db.select().from(classStudents)
             .where(and(
                 eq(classStudents.classId, params.id),
                 eq(classStudents.studentId, params.studentId)
             ))
-            .returning();
+            .limit(1);
+
+        if (deleted.length === 0) {
+            return NextResponse.json(
+                { error: "Student not found in this class" },
+                { status: 404 }
+            );
+        }
+
+        await db.delete(classStudents)
+            .where(and(
+                eq(classStudents.classId, params.id),
+                eq(classStudents.studentId, params.studentId)
+            ));
 
         if (deleted.length === 0) {
             return NextResponse.json(

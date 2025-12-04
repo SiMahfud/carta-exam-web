@@ -54,10 +54,11 @@ export async function PUT(
         const body = await request.json();
         const { name, grade, academicYear, teacherId } = body;
 
-        const updated = await db.update(classes)
+        await db.update(classes)
             .set({ name, grade, academicYear, teacherId })
-            .where(eq(classes.id, params.id))
-            .returning();
+            .where(eq(classes.id, params.id));
+
+        const updated = await db.select().from(classes).where(eq(classes.id, params.id)).limit(1);
 
         if (updated.length === 0) {
             return NextResponse.json(
@@ -82,9 +83,16 @@ export async function DELETE(
     { params }: { params: { id: string } }
 ) {
     try {
-        const deleted = await db.delete(classes)
-            .where(eq(classes.id, params.id))
-            .returning();
+        const deleted = await db.select().from(classes).where(eq(classes.id, params.id)).limit(1);
+
+        if (deleted.length === 0) {
+            return NextResponse.json(
+                { error: "Class not found" },
+                { status: 404 }
+            );
+        }
+
+        await db.delete(classes).where(eq(classes.id, params.id));
 
         if (deleted.length === 0) {
             return NextResponse.json(

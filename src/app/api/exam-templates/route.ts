@@ -141,7 +141,9 @@ export async function POST(request: Request) {
             );
         }
 
-        const newTemplate = await db.insert(examTemplates).values({
+        const id = crypto.randomUUID();
+        const newTemplateValues = {
+            id,
             name,
             description,
             subjectId,
@@ -170,9 +172,11 @@ export async function POST(request: Request) {
             targetType,
             targetIds,
             createdBy,
-        }).returning();
+        };
 
-        return NextResponse.json(newTemplate[0], { status: 201 });
+        await db.insert(examTemplates).values(newTemplateValues);
+
+        return NextResponse.json(newTemplateValues, { status: 201 });
     } catch (error) {
         console.error("Error creating exam template:", error);
         return NextResponse.json(

@@ -133,7 +133,10 @@ export async function POST(request: Request) {
         }
 
         // Create session
-        const newSession = await db.insert(examSessions).values({
+        // Create session
+        const id = crypto.randomUUID();
+        const newSessionValues = {
+            id,
             templateId,
             sessionName,
             startTime: start,
@@ -142,16 +145,18 @@ export async function POST(request: Request) {
             targetType,
             targetIds,
             createdBy: userId,
-        }).returning();
+        };
+
+        await db.insert(examSessions).values(newSessionValues);
 
         // Log activity
         await ActivityLogger.examSession.created(
             userId,
-            newSession[0].id,
+            id,
             sessionName
         );
 
-        return NextResponse.json(newSession[0], { status: 201 });
+        return NextResponse.json(newSessionValues, { status: 201 });
     } catch (error) {
         console.error("Error creating exam session:", error);
         return NextResponse.json(

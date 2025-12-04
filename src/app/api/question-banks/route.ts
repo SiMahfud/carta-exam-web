@@ -53,14 +53,18 @@ export async function POST(request: Request) {
             );
         }
 
-        const newBank = await db.insert(questionBanks).values({
+        const id = crypto.randomUUID();
+        const newBankValues = {
+            id,
             name,
             description,
             subjectId,
             createdBy: createdBy || null, // Optional - set to null if not provided
-        }).returning();
+        };
 
-        return NextResponse.json(newBank[0], { status: 201 });
+        await db.insert(questionBanks).values(newBankValues);
+
+        return NextResponse.json(newBankValues, { status: 201 });
     } catch (error) {
         console.error("Error creating question bank:", error);
         return NextResponse.json(

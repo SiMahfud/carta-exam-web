@@ -95,7 +95,9 @@ export async function POST(
             );
         }
 
-        const newQuestion = await db.insert(bankQuestions).values({
+        const id = crypto.randomUUID();
+        const newQuestionValues = {
+            id,
             bankId: params.id,
             type,
             content,
@@ -105,9 +107,11 @@ export async function POST(
             defaultPoints,
             metadata,
             createdBy: createdBy || null, // Optional - set to null if not provided
-        }).returning();
+        };
 
-        return NextResponse.json(newQuestion[0], { status: 201 });
+        await db.insert(bankQuestions).values(newQuestionValues);
+
+        return NextResponse.json(newQuestionValues, { status: 201 });
     } catch (error) {
         console.error("Error creating question:", error);
         return NextResponse.json(

@@ -50,7 +50,7 @@ export async function PUT(
             metadata,
         } = body;
 
-        const updated = await db.update(bankQuestions)
+        await db.update(bankQuestions)
             .set({
                 type,
                 content,
@@ -61,8 +61,9 @@ export async function PUT(
                 metadata,
                 updatedAt: new Date(),
             })
-            .where(eq(bankQuestions.id, params.questionId))
-            .returning();
+            .where(eq(bankQuestions.id, params.questionId));
+
+        const updated = await db.select().from(bankQuestions).where(eq(bankQuestions.id, params.questionId)).limit(1);
 
         if (updated.length === 0) {
             return NextResponse.json(
@@ -88,9 +89,16 @@ export async function DELETE(
 ) {
     try {
         const params = await context.params;
-        const deleted = await db.delete(bankQuestions)
-            .where(eq(bankQuestions.id, params.questionId))
-            .returning();
+        const deleted = await db.select().from(bankQuestions).where(eq(bankQuestions.id, params.questionId)).limit(1);
+
+        if (deleted.length === 0) {
+            return NextResponse.json(
+                { error: "Question not found" },
+                { status: 404 }
+            );
+        }
+
+        await db.delete(bankQuestions).where(eq(bankQuestions.id, params.questionId));
 
         if (deleted.length === 0) {
             return NextResponse.json(

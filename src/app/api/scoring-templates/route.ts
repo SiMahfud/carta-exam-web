@@ -33,15 +33,19 @@ export async function POST(request: Request) {
             );
         }
 
-        const newTemplate = await db.insert(scoringTemplates).values({
+        const id = crypto.randomUUID();
+        const newTemplateValues = {
+            id,
             name,
             description,
             defaultWeights,
             allowPartialCredit: allowPartialCredit ?? true,
             partialCreditRules,
-        }).returning();
+        };
 
-        return NextResponse.json(newTemplate[0], { status: 201 });
+        await db.insert(scoringTemplates).values(newTemplateValues);
+
+        return NextResponse.json(newTemplateValues, { status: 201 });
     } catch (error) {
         console.error("Error creating scoring template:", error);
         return NextResponse.json(

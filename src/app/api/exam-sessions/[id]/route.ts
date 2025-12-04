@@ -77,10 +77,11 @@ export async function PATCH(
             updateData.targetIds = targetIds;
         }
 
-        const updatedSession = await db.update(examSessions)
+        await db.update(examSessions)
             .set(updateData)
-            .where(eq(examSessions.id, params.id))
-            .returning();
+            .where(eq(examSessions.id, params.id));
+
+        const updatedSession = await db.select().from(examSessions).where(eq(examSessions.id, params.id)).limit(1);
 
         if (updatedSession.length === 0) {
             return NextResponse.json(

@@ -103,7 +103,7 @@ export async function PUT(
             displaySettings,
         } = body;
 
-        const updated = await db.update(examTemplates)
+        await db.update(examTemplates)
             .set({
                 name,
                 description,
@@ -134,8 +134,9 @@ export async function PUT(
                 displaySettings,
                 updatedAt: new Date(),
             })
-            .where(eq(examTemplates.id, params.id))
-            .returning();
+            .where(eq(examTemplates.id, params.id));
+
+        const updated = await db.select().from(examTemplates).where(eq(examTemplates.id, params.id)).limit(1);
 
         if (updated.length === 0) {
             return NextResponse.json(
@@ -160,9 +161,16 @@ export async function DELETE(
     { params }: { params: { id: string } }
 ) {
     try {
-        const deleted = await db.delete(examTemplates)
-            .where(eq(examTemplates.id, params.id))
-            .returning();
+        const deleted = await db.select().from(examTemplates).where(eq(examTemplates.id, params.id)).limit(1);
+
+        if (deleted.length === 0) {
+            return NextResponse.json(
+                { error: "Template not found" },
+                { status: 404 }
+            );
+        }
+
+        await db.delete(examTemplates).where(eq(examTemplates.id, params.id));
 
         if (deleted.length === 0) {
             return NextResponse.json(

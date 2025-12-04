@@ -35,12 +35,16 @@ export async function POST(
             );
         }
 
-        const enrollment = await db.insert(classStudents).values({
+        const id = crypto.randomUUID();
+        const enrollmentValues = {
+            id,
             classId: params.id,
             studentId,
-        }).returning();
+        };
 
-        return NextResponse.json(enrollment[0], { status: 201 });
+        await db.insert(classStudents).values(enrollmentValues);
+
+        return NextResponse.json(enrollmentValues, { status: 201 });
     } catch (error) {
         console.error("Error adding student to class:", error);
         return NextResponse.json(

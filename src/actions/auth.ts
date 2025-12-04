@@ -14,7 +14,7 @@ export async function login(formData: FormData) {
         return
     }
 
-    const user = await db.select().from(users).where(eq(users.username, username)).get()
+    const [user] = await db.select().from(users).where(eq(users.username, username)).limit(1)
 
     if (user && user.password === password) {
         // Set session cookie

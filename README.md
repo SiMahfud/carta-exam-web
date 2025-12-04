@@ -31,6 +31,15 @@ Aplikasi ini dibangun menggunakan teknologi modern:
 - **Styling**: [Tailwind CSS](https://tailwindcss.com/)
 - **UI Components**: [Shadcn/UI](https://ui.shadcn.com/)
 
+## Konfigurasi Database
+
+Aplikasi ini mendukung beberapa provider database:
+- **SQLite** (Default)
+- **MySQL** / **MariaDB**
+- **PostgreSQL**
+
+Anda dapat mengatur provider database melalui environment variable `DATABASE_PROVIDER` dan `DATABASE_URL` di file `.env`. Lihat `.env.example` untuk contoh konfigurasi.
+
 ## Memulai (Getting Started)
 
 1.  **Clone repository**

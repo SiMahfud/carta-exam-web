@@ -12,14 +12,16 @@ export async function createExam(formData: FormData) {
     const randomizeQuestions = formData.get("randomizeQuestions") === "on"
     const randomizeAnswers = formData.get("randomizeAnswers") === "on"
 
-    const [newExam] = await db.insert(exams).values({
+    const id = crypto.randomUUID()
+    await db.insert(exams).values({
+        id,
         title,
         description,
         durationMinutes,
         minDurationMinutes,
         randomizeQuestions,
         randomizeAnswers,
-    }).returning()
+    })
 
-    redirect(`/admin/exams/${newExam.id}/questions`)
+    redirect(`/admin/exams/${id}/questions`)
 }

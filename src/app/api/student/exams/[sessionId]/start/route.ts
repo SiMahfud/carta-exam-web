@@ -107,7 +107,10 @@ export async function POST(
         }
 
         // Create submission
-        const newSubmission = await db.insert(submissions).values({
+        // Create submission
+        const submissionId = crypto.randomUUID();
+        await db.insert(submissions).values({
+            id: submissionId,
             userId: studentId,
             sessionId: params.sessionId,
             status: "in_progress",
@@ -116,10 +119,10 @@ export async function POST(
             violationCount: 0,
             violationLog: [],
             gradingStatus: "auto",
-        }).returning();
+        });
 
         return NextResponse.json({
-            submissionId: newSubmission[0].id,
+            submissionId: submissionId,
             questionOrder,
             message: "Exam started successfully"
         }, { status: 201 });

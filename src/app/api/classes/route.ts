@@ -42,14 +42,18 @@ export async function POST(request: Request) {
             );
         }
 
-        const newClass = await db.insert(classes).values({
+        const id = crypto.randomUUID();
+        const newClassValues = {
+            id,
             name,
             grade,
             academicYear,
             teacherId,
-        }).returning();
+        };
 
-        return NextResponse.json(newClass[0], { status: 201 });
+        await db.insert(classes).values(newClassValues);
+
+        return NextResponse.json(newClassValues, { status: 201 });
     } catch (error) {
         console.error("Error creating class:", error);
         return NextResponse.json(

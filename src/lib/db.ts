@@ -1,7 +1,28 @@
-import { drizzle } from 'drizzle-orm/better-sqlite3';
+import { drizzle as drizzleSqlite } from 'drizzle-orm/better-sqlite3';
+import { drizzle as drizzleMysql } from 'drizzle-orm/mysql2';
+import { drizzle as drizzlePg } from 'drizzle-orm/postgres-js';
 import Database from 'better-sqlite3';
+import mysql from 'mysql2/promise';
+import postgres from 'postgres';
 import path from 'path';
+import * as schema from './schema';
 
-const dbPath = path.join(process.cwd(), 'local.db');
-const sqlite = new Database(dbPath);
-export const db = drizzle(sqlite);
+const provider = process.env.DATABASE_PROVIDER || 'sqlite';
+const dbUrl = process.env.DATABASE_URL || 'file:local.db';
+
+let db: any;
+
+if (provider === 'mysql') {
+    const connection = mysql.createPool(dbUrl);
+    db = drizzleMysql(connection, { schema, mode: 'default' });
+} else if (provider === 'postgres') {
+    const client = postgres(dbUrl);
+    db = drizzlePg(client, { schema });
+} else {
+    // Default to SQLite
+    const dbPath = dbUrl.startsWith('file:') ? dbUrl.slice(5) : 'local.db';
+    const sqlite = new Database(path.resolve(process.cwd(), dbPath));
+    db = drizzleSqlite(sqlite, { schema });
+}
+
+export { db };

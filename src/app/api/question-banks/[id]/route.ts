@@ -58,14 +58,15 @@ export async function PUT(
         const body = await request.json();
         const { name, description } = body;
 
-        const updated = await db.update(questionBanks)
+        await db.update(questionBanks)
             .set({
                 name,
                 description,
                 updatedAt: new Date(),
             })
-            .where(eq(questionBanks.id, params.id))
-            .returning();
+            .where(eq(questionBanks.id, params.id));
+
+        const updated = await db.select().from(questionBanks).where(eq(questionBanks.id, params.id)).limit(1);
 
         if (updated.length === 0) {
             return NextResponse.json(
@@ -90,9 +91,7 @@ export async function DELETE(
     { params }: { params: { id: string } }
 ) {
     try {
-        const deleted = await db.delete(questionBanks)
-            .where(eq(questionBanks.id, params.id))
-            .returning();
+        const deleted = await db.select().from(questionBanks).where(eq(questionBanks.id, params.id)).limit(1);
 
         if (deleted.length === 0) {
             return NextResponse.json(
@@ -100,6 +99,8 @@ export async function DELETE(
                 { status: 404 }
             );
         }
+
+        await db.delete(questionBanks).where(eq(questionBanks.id, params.id));
 
         return NextResponse.json({ message: "Question bank deleted successfully" });
     } catch (error) {

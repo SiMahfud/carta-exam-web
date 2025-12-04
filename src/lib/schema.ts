@@ -62,7 +62,7 @@ export const bankQuestions = sqliteTable("bank_questions", {
     type: text("type", { enum: ["mc", "complex_mc", "matching", "short", "essay"] }).notNull(),
     content: text("content", { mode: "json" }).notNull(), // { question: "...", options: [...] }
     answerKey: text("answer_key", { mode: "json" }).notNull(), // { correct: ... }
-    tags: text("tags", { mode: "json" }).$type<string[]>().default(sql`'[]'`), // ["Bab 1", "Trigonometri", "Sulit"]
+    tags: text("tags", { mode: "json" }).$type<string[]>().$defaultFn(() => []), // ["Bab 1", "Trigonometri", "Sulit"]
     difficulty: text("difficulty", { enum: ["easy", "medium", "hard"] }).default("medium"),
     defaultPoints: integer("default_points").notNull().default(1),
     metadata: text("metadata", { mode: "json" }).$type<Record<string, unknown>>(), // Additional metadata
@@ -82,7 +82,7 @@ export const scoringTemplates = sqliteTable("scoring_templates", {
     description: text("description"),
     defaultWeights: text("default_weights", { mode: "json" }).notNull()
         .$type<{ mc: number; complex_mc: number; matching: number; short: number; essay: number }>()
-        .default(sql`'{"mc":1,"complex_mc":2,"matching":3,"short":2,"essay":5}'`),
+        .$defaultFn(() => ({ mc: 1, complex_mc: 2, matching: 3, short: 2, essay: 5 })),
     allowPartialCredit: integer("allow_partial_credit", { mode: "boolean" }).default(true),
     partialCreditRules: text("partial_credit_rules", { mode: "json" })
         .$type<{ complex_mc?: number; matching?: number }>(), // Percentage for partial credit
@@ -132,11 +132,11 @@ export const examTemplates = sqliteTable("exam_templates", {
             excludeTypes?: ('mc' | 'complex_mc' | 'matching' | 'short' | 'essay')[];
             questionNumbers?: number[];
         }>()
-        .default(sql`'{"mode":"all"}'`),
+        .$defaultFn(() => ({ mode: "all" })),
 
     // Target Selection
     targetType: text("target_type").$type<'all' | 'classes' | 'grades' | 'students'>().default('all'),
-    targetIds: text("target_ids", { mode: "json" }).$type<string[]>().default(sql`'[]'`),
+    targetIds: text("target_ids", { mode: "json" }).$type<string[]>().$defaultFn(() => []),
 
     // Security & Rules
     enableLockdown: integer("enable_lockdown", { mode: "boolean" }).default(true),
@@ -150,7 +150,7 @@ export const examTemplates = sqliteTable("exam_templates", {
     // Display
     displaySettings: text("display_settings", { mode: "json" })
         .$type<{ showQuestionNumber?: boolean; showRemainingTime?: boolean; showNavigation?: boolean }>()
-        .default(sql`'{"showQuestionNumber":true,"showRemainingTime":true,"showNavigation":true}'`),
+        .$defaultFn(() => ({ showQuestionNumber: true, showRemainingTime: true, showNavigation: true })),
 
     createdBy: text("created_by").notNull().references(() => users.id, { onDelete: "cascade" }),
     createdAt: integer("created_at", { mode: "timestamp" }).default(sql`(unixepoch())`),

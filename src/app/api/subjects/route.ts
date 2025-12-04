@@ -31,11 +31,13 @@ export async function POST(request: Request) {
             );
         }
 
-        const newSubject = await db.insert(subjects).values({
+        await db.insert(subjects).values({
             name,
             code: code.toUpperCase(),
             description,
-        }).returning();
+        });
+
+        const newSubject = await db.select().from(subjects).where(eq(subjects.code, code.toUpperCase())).limit(1);
 
         // Log activity (get first admin for now)
         const admin = await db.select({ id: users.id }).from(users).where(eq(users.role, "admin")).limit(1);
