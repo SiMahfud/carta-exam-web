@@ -1,7 +1,7 @@
 # ✅ CartaExam Feature Status
 
 > **Quick Reference**: Current implementation status of all features  
-> **Last Updated**: December 2, 2025
+> **Last Updated**: December 4, 2025
 
 ---
 
@@ -297,12 +297,13 @@
 ### Performance
 | Feature | Status | Notes |
 |---------|--------|-------|
-| Code splitting | 🚧 | Basic implementation |
-| Lazy loading | 🚧 | Some components |
+| Code splitting | ✅ | **Completed Dec 4, 2025** - ExamTemplateWizard & TakeExamPage refactored |
+| Lazy loading | 🚧 | Basic implementation, room for improvement |
 | Image optimization | ❌ | Planned for Phase 1 |
 | API caching | ❌ | Planned for Phase 1 |
-| Database indexing | 🚧 | Partial |
-| Query optimization | 📋 | Planned for Phase 1 |
+| Database indexing | ✅ | **Completed Dec 4, 2025** - 13 tables optimized |
+| Query optimization | 🚧 | Ongoing improvements |
+| API standardization | ✅ | **Completed Dec 4, 2025** - Centralized handler |
 | Multi-database support | ✅ | SQLite, MySQL, Postgres |
 
 ### Security
@@ -421,4 +422,4 @@
 
 ---
 
-**Last Updated**: December 4, 2025 | **Version**: 1.0.0
+**Last Updated**: December 4, 2025 | **Version**: 1.0.1

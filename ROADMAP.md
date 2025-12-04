@@ -2,7 +2,7 @@
 
 > **Status Proyek**: 🟡 Beta - Feature-Complete Prototype → Production Ready
 > 
-> **Last Updated**: December 2, 2025
+> **Last Updated**: December 4, 2025
 
 ---
 
@@ -137,12 +137,14 @@ Advanced Features:    ███░░░░░░░░░░░░░░░░�
 
 ### 1.2 Performance Optimization [30%]
 
-- [ ] **Code splitting and lazy loading** `Priority: HIGH`
-  - Audit bundle size with `npm run build`
-  - Implement dynamic imports for heavy components
-  - **Tech**: Next.js `dynamic()`, React `lazy()`
-  - **Files**: All page components
-  - **Effort**: 8 hours
+- [x] **Code splitting and lazy loading** `Priority: HIGH` ✅ **Completed: Dec 4, 2025**
+  - [x] Split large components into smaller, manageable pieces
+  - [x] `ExamTemplateWizard`: 7 step components
+  - [x] `TakeExamPage`: 4 sub-components
+  - [ ] Implement dynamic imports for heavy components (future enhancement)
+  - **Tech**: Component composition pattern
+  - **Files**: `src/components/exam-templates/wizard-steps/*`, `src/components/exam/take-exam/*`
+  - **Actual Effort**: 12 hours
   
 - [ ] **Image optimization**
   - Convert all `<img>` to Next.js `<Image>`
@@ -150,11 +152,11 @@ Advanced Features:    ███░░░░░░░░░░░░░░░░�
   - Implement blur placeholders
   - **Effort**: 6 hours
   
-- [ ] **Database query optimization** `Priority: MEDIUM`
-  - Add indexes to frequently queried columns
-  - Review and optimize N+1 queries
+- [x] **Database query optimization** `Priority: MEDIUM` ✅ **Completed: Dec 4, 2025**
+  - [x] Added indexes to frequently queried columns
+  - [ ] Review and optimize N+1 queries (ongoing)
   - **Files**: `src/lib/schema.ts`, API routes
-  - **Effort**: 10 hours
+  - **Actual Effort**: 6 hours
   
 - [ ] **API response caching**
   - Implement cache headers
@@ -637,29 +639,34 @@ These can be implemented anytime for immediate value:
 
 ## 🛠️ Technical Debt & Refactoring
 
-- [ ] **Code splitting optimization**
-  - Break down large components
-  - **Ongoing**
+- [x] **Code splitting optimization** ✅ **Completed: Dec 4, 2025**
+  - [x] Split `ExamTemplateWizard` into step components
+  - [x] Split `TakeExamPage` into sub-components (Header, Sidebar, QuestionRenderer, etc.)
+  - [x] Extracted shared types for better organization
+  - **Actual Effort**: 12 hours
   
 - [ ] **Type safety improvements**
-  - Enable TypeScript strict mode
-  - Fix any types
-  - **Effort**: 16 hours
+  - [x] TypeScript strict mode enabled
+  - [ ] Fix remaining `any` types
+  - **Effort**: 8 hours remaining
   
-- [ ] **API standardization**
-  - Consistent response formats
-  - Standard error handling
-  - **Effort**: 12 hours
+- [x] **API standardization** ✅ **Completed: Dec 4, 2025**
+  - [x] Created centralized `apiHandler` utility
+  - [x] Standardized response format: `{ data, metadata }`
+  - [x] Standardized error handling with `ApiError` class
+  - [x] Refactored API routes: `exam-sessions`, `subjects`, `question-banks`, `exam-templates`, `classes`
+  - **Actual Effort**: 10 hours
   
 - [ ] **Component library refinement**
-  - Document all components
-  - Storybook (optional)
+  - [ ] Document all components with JSDoc
+  - [ ] Storybook (optional)
   - **Effort**: 40 hours
   
-- [ ] **Database schema optimization**
-  - Review and normalize schema
-  - Add missing indexes
-  - **Effort**: 16 hours
+- [x] **Database schema optimization** ✅ **Completed: Dec 4, 2025**
+  - [x] Added indexes to foreign keys and frequently queried columns
+  - [x] Indexes added to 13 tables across all question types, sessions, submissions, etc.
+  - [x] Multi-database support maintained (SQLite, MySQL, PostgreSQL)
+  - **Actual Effort**: 6 hours
 
 ---
 

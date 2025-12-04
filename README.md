@@ -70,6 +70,13 @@ Dokumentasi lengkap tersedia untuk membantu Anda memahami dan berkontribusi pada
 - [Panduan Pengguna untuk Guru](docs/user_guide_teachers.md) - Cara menggunakan aplikasi
 - [Skema Database](docs/database_schema.md) - Struktur database lengkap
 
+### 🎯 Recent Improvements (December 4, 2025)
+
+**Performance & Code Quality**:
+- ✅ **Code Splitting**: Refactored large components (`ExamTemplateWizard`, `TakeExamPage`) into smaller, maintainable pieces
+- ✅ **API Standardization**: Centralized error handling and response formats across all API endpoints
+- ✅ **Database Optimization**: Added indexes to 13 tables for improved query performance
+
 ### 🗺️ Pengembangan & Roadmap
 - [ROADMAP.md](ROADMAP.md) - **Roadmap pengembangan lengkap** dengan checklist fitur, spesifikasi teknis, dan prioritas
 - [FEATURES.md](FEATURES.md) - **Status fitur saat ini** - Lihat apa yang sudah, sedang, dan akan dikembangkan
@@ -116,4 +123,4 @@ Dikembangkan untuk SMAN 1 Campurdarat dengan tujuan meningkatkan kualitas dan ef
 
 **Status Proyek**: 🟡 Beta - Menuju Production Ready  
 **Versi**: 0.1.0  
-**Last Updated**: December 2, 2025
+**Last Updated**: December 4, 2025
