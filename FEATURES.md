@@ -286,7 +286,7 @@
 | Basic filtering | ✅ | Available |
 | Status filters | ✅ | Working |
 | **Advanced Features** | | |
-| → Global search | 📋 | Planned for Phase 2 |
+| → Global search (Cmd+K) | ✅ | **Dec 4, 2025** - Search all entities with keyboard nav |
 | → Saved filters | ❌ | Planned for Phase 2 |
 | → Advanced filter builder | ❌ | Planned for Phase 2 |
 
