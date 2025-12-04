@@ -5,6 +5,7 @@ import { users } from "@/lib/schema"
 import { eq } from "drizzle-orm"
 import { cookies } from "next/headers"
 import { redirect } from "next/navigation"
+import bcrypt from "bcryptjs"
 
 export async function login(formData: FormData) {
     const username = formData.get("username") as string
@@ -16,7 +17,15 @@ export async function login(formData: FormData) {
 
     const [user] = await db.select().from(users).where(eq(users.username, username)).limit(1)
 
-    if (user && user.password === password) {
+    if (!user) {
+        console.log("Invalid credentials - user not found")
+        return
+    }
+
+    // Compare password with bcrypt hash
+    const isPasswordValid = await bcrypt.compare(password, user.password)
+
+    if (isPasswordValid) {
         // Set session cookie
         cookies().set("user_session", JSON.stringify({ id: user.id, role: user.role, name: user.name }), {
             httpOnly: true,
@@ -34,7 +43,7 @@ export async function login(formData: FormData) {
         }
     } else {
         // Handle error (todo: return error state)
-        console.log("Invalid credentials")
+        console.log("Invalid credentials - wrong password")
     }
 }
 

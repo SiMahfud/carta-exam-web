@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { classStudents, users } from "@/lib/schema";
-import { eq, and } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 
 // POST /api/classes/[id]/students - Add student to class
 export async function POST(
@@ -19,18 +19,15 @@ export async function POST(
             );
         }
 
-        // Check if student already enrolled
-        const existing = await db.select()
+        // Check if student is already enrolled in ANY class (single-class rule)
+        const existingEnrollment = await db.select()
             .from(classStudents)
-            .where(and(
-                eq(classStudents.classId, params.id),
-                eq(classStudents.studentId, studentId)
-            ))
+            .where(eq(classStudents.studentId, studentId))
             .limit(1);
 
-        if (existing.length > 0) {
+        if (existingEnrollment.length > 0) {
             return NextResponse.json(
-                { error: "Student already enrolled in this class" },
+                { error: "Siswa sudah terdaftar di kelas lain. Satu siswa hanya dapat terdaftar di satu kelas." },
                 { status: 409 }
             );
         }

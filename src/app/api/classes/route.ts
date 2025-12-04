@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { classes, users } from "@/lib/schema";
-import { eq } from "drizzle-orm";
+import { classes, users, classStudents } from "@/lib/schema";
+import { eq, sql } from "drizzle-orm";
 import { ActivityLogger } from "@/lib/activity-logger";
 import { apiHandler, ApiError } from "@/lib/api-handler";
 
@@ -15,6 +15,7 @@ export const GET = () => apiHandler(async () => {
         teacherId: classes.teacherId,
         teacherName: users.name,
         createdAt: classes.createdAt,
+        studentCount: sql<number>`(SELECT COUNT(*) FROM class_students WHERE class_students.class_id = ${classes.id})`.as('student_count'),
     })
         .from(classes)
         .leftJoin(users, eq(classes.teacherId, users.id))

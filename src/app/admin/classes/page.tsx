@@ -112,7 +112,8 @@ export default function ClassesPage() {
             const response = await fetch(`/api/classes/${classId}`);
             if (response.ok) {
                 const result = await response.json();
-                setClassStudents(result.data?.students || []);
+                // API returns students directly on the object
+                setClassStudents(result.students || []);
             }
         } catch (error) {
             console.error("Error fetching students:", error);
@@ -121,10 +122,12 @@ export default function ClassesPage() {
 
     const fetchAvailableStudents = async () => {
         try {
-            const response = await fetch("/api/users?role=student");
+            // Fetch only students not enrolled in any class
+            const response = await fetch("/api/users?role=student&unassigned=true");
             if (response.ok) {
                 const result = await response.json();
-                setAvailableStudents(result.data || []);
+                // Users API returns array directly, not wrapped in data
+                setAvailableStudents(Array.isArray(result) ? result : result.data || []);
             }
         } catch (error) {
             console.error("Error fetching available students:", error);
@@ -259,6 +262,7 @@ export default function ClassesPage() {
                     description: "Siswa berhasil dihapus dari kelas",
                 });
                 fetchClassStudents(selectedClass.id);
+                fetchAvailableStudents(); // Refresh available students list
             } else {
                 throw new Error("Failed to remove student");
             }

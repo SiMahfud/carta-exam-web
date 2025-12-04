@@ -2,11 +2,13 @@ import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { users, classStudents, classes } from "@/lib/schema";
 import { eq, sql } from "drizzle-orm";
+import bcrypt from "bcryptjs";
 
 export async function GET(request: Request) {
     try {
         const { searchParams } = new URL(request.url);
         const role = searchParams.get("role");
+        const unassigned = searchParams.get("unassigned") === "true";
 
         if (role === "student") {
             // For students, include their class information
@@ -62,6 +64,12 @@ export async function GET(request: Request) {
                 return acc;
             }, []);
 
+            // If unassigned=true, filter to only students without any class
+            if (unassigned) {
+                const unassignedStudents = groupedStudents.filter((s: { classes: Array<{ id: string; name: string }> }) => s.classes.length === 0);
+                return NextResponse.json(unassignedStudents);
+            }
+
             return NextResponse.json(groupedStudents);
         }
 
@@ -70,6 +78,7 @@ export async function GET(request: Request) {
             name: users.name,
             username: users.username,
             role: users.role,
+            createdAt: users.createdAt,
         }).from(users);
 
         if (role) {
@@ -84,6 +93,80 @@ export async function GET(request: Request) {
         console.error("Error fetching users:", error);
         return NextResponse.json(
             { error: "Failed to fetch users" },
+            { status: 500 }
+        );
+    }
+}
+
+export async function POST(request: Request) {
+    try {
+        const body = await request.json();
+        const { name, username, password, role } = body;
+
+        // Validate required fields
+        if (!name || !username || !password) {
+            return NextResponse.json(
+                { error: "Nama, username, dan password wajib diisi" },
+                { status: 400 }
+            );
+        }
+
+        // Validate role
+        const validRoles = ["admin", "teacher", "student"];
+        if (role && !validRoles.includes(role)) {
+            return NextResponse.json(
+                { error: "Role tidak valid" },
+                { status: 400 }
+            );
+        }
+
+        // Check for duplicate username
+        const existingUser = await db
+            .select({ id: users.id })
+            .from(users)
+            .where(eq(users.username, username))
+            .limit(1);
+
+        if (existingUser.length > 0) {
+            return NextResponse.json(
+                { error: "Username sudah digunakan" },
+                { status: 409 }
+            );
+        }
+
+        // Hash password
+        const hashedPassword = await bcrypt.hash(password, 10);
+
+        // Generate ID manually for SQLite compatibility
+        const userId = crypto.randomUUID();
+
+        // Create user
+        await db.insert(users).values({
+            id: userId,
+            name,
+            username,
+            password: hashedPassword,
+            role: role || "student",
+        });
+
+        // Fetch the created user
+        const newUser = await db
+            .select({
+                id: users.id,
+                name: users.name,
+                username: users.username,
+                role: users.role,
+                createdAt: users.createdAt,
+            })
+            .from(users)
+            .where(eq(users.id, userId))
+            .limit(1);
+
+        return NextResponse.json(newUser[0], { status: 201 });
+    } catch (error) {
+        console.error("Error creating user:", error);
+        return NextResponse.json(
+            { error: "Gagal membuat user" },
             { status: 500 }
         );
     }
