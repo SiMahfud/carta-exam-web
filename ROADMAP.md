@@ -21,7 +21,7 @@ Advanced Features:    ███░░░░░░░░░░░░░░░░�
 | Milestone | Target | Status | Progress |
 |-----------|--------|--------|----------|
 | **Phase 1: Stabilization** | Jan 2026 | 🟡 In Progress | 60% |
-| **Phase 2: UX Enhancement** | Mar 2026 | 🔵 Planned | 0% |
+| **Phase 2: UX Enhancement** | Mar 2026 | 🟡 In Progress | 15% |
 | **Phase 3: Advanced Features** | Jun 2026 | 🔵 Planned | 0% |
 | **Phase 4: AI & Scale** | Dec 2026 | 🔵 Planned | 0% |
 
@@ -259,14 +259,15 @@ Advanced Features:    ███░░░░░░░░░░░░░░░░�
   - Record and embed tutorial videos
   - **Effort**: 40 hours (content creation)
 
-### 2.2 Advanced Search & Filtering [0%]
+### 2.2 Advanced Search & Filtering [33%]
 
-- [ ] **Global search** `Priority: HIGH`
-  - Search across questions, exams, students
-  - **Tech**: Implement search API with fuzzy matching
-  - Autocomplete with debouncing
-  - **Files**: Create `src/components/global-search.tsx`
-  - **Effort**: 20 hours
+- [x] **Global search (Cmd+K)** `Priority: HIGH` ✅ **Completed: Dec 4, 2025**
+  - [x] Search across questions, exams, students, classes, subjects
+  - [x] Keyboard shortcut (Ctrl+K / Cmd+K)
+  - [x] Categorized results with keyboard navigation
+  - [x] Recent searches (localStorage)
+  - **Files**: `src/components/global-search/GlobalSearch.tsx`, `src/app/api/search/route.ts`
+  - **Actual Effort**: 4 hours
   
 - [ ] **Saved filters**
   - Save common filter combinations
@@ -279,15 +280,18 @@ Advanced Features:    ███░░░░░░░░░░░░░░░░�
   - Date range pickers
   - **Effort**: 16 hours
 
-### 2.3 Bulk Operations [0%]
+### 2.3 Bulk Operations [50%]
 
-- [ ] **Bulk student import** `Priority: HIGH`
-  - Excel/CSV import with validation
-  - **Tech**: xlsx library (already installed)
-  - Preview before import
-  - Error reporting
-  - **Files**: `src/app/admin/users/page.tsx`
-  - **Effort**: 16 hours
+- [x] **Bulk user management** `Priority: HIGH` ✅ **Completed: Dec 4, 2025**
+  - [x] Excel import with preview and validation
+  - [x] Smart action detection (auto ADD/UPDATE based on ID)
+  - [x] Export users with Petunjuk and Contoh sheets
+  - [x] Auto-create classes during import
+  - [x] Bulk update names, passwords, class assignments
+  - [x] Bulk delete with confirmation
+  - **Tech**: xlsx library
+  - **Files**: `src/components/bulk-import/BulkUserManager.tsx`, `src/app/api/users/bulk-import/route.ts`, `src/app/api/users/bulk-export/route.ts`
+  - **Actual Effort**: 8 hours
   
 - [ ] **Bulk question import**
   - Import questions from templates

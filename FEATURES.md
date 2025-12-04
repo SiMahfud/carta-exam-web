@@ -275,9 +275,9 @@
 | Student enrollment | ✅ | Complete (Single class per student rule) |
 | User management | ✅ | Complete |
 | **Bulk Operations** | | |
-| → Bulk student import | 📋 | Planned for Phase 2 |
+| → Bulk user management | ✅ | **Dec 4, 2025** - Import/Export/Update/Delete with Excel |
 | → Bulk question import | 📋 | Planned for Phase 2 |
-| → Bulk export | 🔜 | High priority |
+| → Bulk export | ✅ | Excel with Petunjuk & Contoh sheets |
 | → Batch actions | 📋 | Planned for Phase 2 |
 
 ### Search & Filter

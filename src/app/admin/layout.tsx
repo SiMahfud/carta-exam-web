@@ -17,10 +17,12 @@ import {
     X,
     LayoutDashboard,
     GraduationCap,
-    Settings
+    Settings,
+    Search
 } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
+import { GlobalSearch } from "@/components/global-search/GlobalSearch";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
     DropdownMenu,
@@ -38,6 +40,19 @@ export default function AdminLayout({
 }) {
     const pathname = usePathname();
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+    const [isSearchOpen, setIsSearchOpen] = useState(false);
+
+    // Keyboard shortcut for search (Ctrl+K / Cmd+K)
+    useEffect(() => {
+        const handleKeyDown = (e: KeyboardEvent) => {
+            if ((e.ctrlKey || e.metaKey) && e.key === "k") {
+                e.preventDefault();
+                setIsSearchOpen(true);
+            }
+        };
+        document.addEventListener("keydown", handleKeyDown);
+        return () => document.removeEventListener("keydown", handleKeyDown);
+    }, []);
 
     const navItems = [
         { href: "/admin", label: "Dashboard", icon: LayoutDashboard },
@@ -151,7 +166,27 @@ export default function AdminLayout({
                         </h2>
                     </div>
 
-                    <div className="flex items-center gap-4">
+                    <div className="flex items-center gap-2">
+                        {/* Search Button */}
+                        <Button
+                            variant="outline"
+                            className="hidden sm:flex items-center gap-2 text-muted-foreground"
+                            onClick={() => setIsSearchOpen(true)}
+                        >
+                            <Search className="h-4 w-4" />
+                            <span className="text-sm">Cari...</span>
+                            <kbd className="ml-2 pointer-events-none inline-flex h-5 select-none items-center gap-1 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium text-muted-foreground">
+                                Ctrl+K
+                            </kbd>
+                        </Button>
+                        <Button
+                            variant="ghost"
+                            size="icon"
+                            className="sm:hidden"
+                            onClick={() => setIsSearchOpen(true)}
+                        >
+                            <Search className="h-5 w-5" />
+                        </Button>
                         <DropdownMenu>
                             <DropdownMenuTrigger asChild>
                                 <Button variant="ghost" className="relative h-9 w-9 rounded-full">
@@ -195,6 +230,9 @@ export default function AdminLayout({
                     </div>
                 </main>
             </div>
+
+            {/* Global Search Dialog */}
+            <GlobalSearch open={isSearchOpen} onOpenChange={setIsSearchOpen} />
         </div>
     )
 }

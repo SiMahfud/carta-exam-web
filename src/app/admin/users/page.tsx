@@ -28,6 +28,7 @@ import {
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Plus, Pencil, Trash2, Users, Shield, GraduationCap, BookOpen } from "lucide-react";
+import { BulkUserManager } from "@/components/bulk-import/BulkUserManager";
 import { useToast } from "@/hooks/use-toast";
 import {
     AlertDialog,
@@ -224,15 +225,18 @@ export default function UsersPage() {
                         Kelola user admin, guru, dan siswa
                     </p>
                 </div>
-                <Button
-                    onClick={() => {
-                        resetForm();
-                        setDialogOpen(true);
-                    }}
-                >
-                    <Plus className="mr-2 h-4 w-4" />
-                    Tambah User
-                </Button>
+                <div className="flex gap-2">
+                    <BulkUserManager onSuccess={fetchUsers} />
+                    <Button
+                        onClick={() => {
+                            resetForm();
+                            setDialogOpen(true);
+                        }}
+                    >
+                        <Plus className="mr-2 h-4 w-4" />
+                        Tambah User
+                    </Button>
+                </div>
             </div>
 
             {loading ? (
