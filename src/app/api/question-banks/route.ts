@@ -2,82 +2,70 @@ import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { questionBanks, subjects, users } from "@/lib/schema";
 import { eq } from "drizzle-orm";
+import { ActivityLogger } from "@/lib/activity-logger";
+import { apiHandler, ApiError } from "@/lib/api-handler";
 
 // GET /api/question-banks - List all question banks
-export async function GET(request: Request) {
-    try {
-        const { searchParams } = new URL(request.url);
-        const subjectId = searchParams.get("subjectId");
+export const GET = (req: Request) => apiHandler(async () => {
+    const { searchParams } = new URL(req.url);
+    const subjectId = searchParams.get("subjectId");
 
-        let query = db.select({
-            id: questionBanks.id,
-            name: questionBanks.name,
-            description: questionBanks.description,
-            subjectId: questionBanks.subjectId,
-            subjectName: subjects.name,
-            createdBy: questionBanks.createdBy,
-            creatorName: users.name,
-            createdAt: questionBanks.createdAt,
-            updatedAt: questionBanks.updatedAt,
-        })
-            .from(questionBanks)
-            .innerJoin(subjects, eq(questionBanks.subjectId, subjects.id))
-            .leftJoin(users, eq(questionBanks.createdBy, users.id));
+    let query = db.select({
+        id: questionBanks.id,
+        name: questionBanks.name,
+        description: questionBanks.description,
+        subjectId: questionBanks.subjectId,
+        subjectName: subjects.name,
+        createdBy: questionBanks.createdBy,
+        creatorName: users.name,
+        createdAt: questionBanks.createdAt,
+        updatedAt: questionBanks.updatedAt,
+    })
+        .from(questionBanks)
+        .innerJoin(subjects, eq(questionBanks.subjectId, subjects.id))
+        .leftJoin(users, eq(questionBanks.createdBy, users.id));
 
-        if (subjectId) {
-            query = query.where(eq(questionBanks.subjectId, subjectId));
-        }
-
-        const banks = await query.orderBy(questionBanks.createdAt);
-
-        return NextResponse.json(banks);
-    } catch (error) {
-        console.error("Error fetching question banks:", error);
-        return NextResponse.json(
-            { error: "Failed to fetch question banks" },
-            { status: 500 }
-        );
+    if (subjectId) {
+        query = query.where(eq(questionBanks.subjectId, subjectId));
     }
-}
+
+    const banks = await query.orderBy(questionBanks.createdAt);
+
+    return banks;
+});
 
 // POST /api/question-banks - Create new question bank
-export async function POST(request: Request) {
-    try {
-        const body = await request.json();
-        const { name, description, subjectId, createdBy } = body;
+export const POST = (req: Request) => apiHandler(async () => {
+    const body = await req.json();
+    const { name, description, subjectId, createdBy } = body;
 
-        if (!name || !subjectId) {
-            return NextResponse.json(
-                { error: "Name and subject ID are required" },
-                { status: 400 }
-            );
-        }
-
-        let validCreatedBy = createdBy;
-        if (validCreatedBy) {
-            const userExists = await db.select().from(users).where(eq(users.id, validCreatedBy)).limit(1);
-            if (userExists.length === 0) {
-                validCreatedBy = null;
-            }
-        }
-
-        const id = crypto.randomUUID();
-        const newBankValues = {
-            id,
-            name,
-            description,
-            subjectId,
-            createdBy: validCreatedBy || null,
-        };
-
-        await db.insert(questionBanks).values(newBankValues);
-
-        return NextResponse.json(newBankValues, { status: 201 });
-    } catch (error) {
-        console.error("Error creating question bank:", error);
-        return NextResponse.json(
-            { error: "Failed to create question bank" },
-            { status: 500 }
-        );
+    if (!name || !subjectId) {
+        throw new ApiError("Name and subject ID are required", 400);
     }
-}
+
+    let validCreatedBy = createdBy;
+    if (validCreatedBy) {
+        const userExists = await db.select().from(users).where(eq(users.id, validCreatedBy)).limit(1);
+        if (userExists.length === 0) {
+            validCreatedBy = null;
+        }
+    }
+
+    const id = crypto.randomUUID();
+    const newBankValues = {
+        id,
+        name,
+        description,
+        subjectId,
+        createdBy: validCreatedBy || null,
+    };
+
+    await db.insert(questionBanks).values(newBankValues);
+
+    // Log activity if user is known
+    if (validCreatedBy) {
+        await ActivityLogger.questionBank.created(validCreatedBy, id, name);
+    }
+
+    return newBankValues;
+});

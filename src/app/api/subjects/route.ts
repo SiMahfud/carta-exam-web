@@ -3,61 +3,43 @@ import { db } from "@/lib/db";
 import { subjects, users } from "@/lib/schema";
 import { eq } from "drizzle-orm";
 import { ActivityLogger } from "@/lib/activity-logger";
+import { apiHandler, ApiError } from "@/lib/api-handler";
 
 // GET /api/subjects - List all subjects
-export async function GET() {
-    try {
-        const allSubjects = await db.select().from(subjects).orderBy(subjects.name);
-        return NextResponse.json(allSubjects);
-    } catch (error) {
-        console.error("Error fetching subjects:", error);
-        return NextResponse.json(
-            { error: "Failed to fetch subjects" },
-            { status: 500 }
-        );
-    }
-}
+export const GET = () => apiHandler(async () => {
+    const allSubjects = await db.select().from(subjects).orderBy(subjects.name);
+    return allSubjects;
+});
 
 // POST /api/subjects - Create new subject
-export async function POST(request: Request) {
+export const POST = (req: Request) => apiHandler(async () => {
+    const body = await req.json();
+    const { name, code, description } = body;
+
+    if (!name || !code) {
+        throw new ApiError("Name and code are required", 400);
+    }
+
     try {
-        const body = await request.json();
-        const { name, code, description } = body;
-
-        if (!name || !code) {
-            return NextResponse.json(
-                { error: "Name and code are required" },
-                { status: 400 }
-            );
-        }
-
         await db.insert(subjects).values({
             name,
             code: code.toUpperCase(),
             description,
         });
-
-        const newSubject = await db.select().from(subjects).where(eq(subjects.code, code.toUpperCase())).limit(1);
-
-        // Log activity (get first admin for now)
-        const admin = await db.select({ id: users.id }).from(users).where(eq(users.role, "admin")).limit(1);
-        if (admin.length > 0) {
-            await ActivityLogger.subject.created(admin[0].id, newSubject[0].id, name);
-        }
-
-        return NextResponse.json(newSubject[0], { status: 201 });
     } catch (error: unknown) {
-        console.error("Error creating subject:", error);
-        // Check for unique constraint violation
         if (error instanceof Error && error.message.includes("UNIQUE")) {
-            return NextResponse.json(
-                { error: "Subject code already exists" },
-                { status: 409 }
-            );
+            throw new ApiError("Subject code already exists", 409);
         }
-        return NextResponse.json(
-            { error: "Failed to create subject" },
-            { status: 500 }
-        );
+        throw error; // Let apiHandler handle other errors
     }
-}
+
+    const newSubject = await db.select().from(subjects).where(eq(subjects.code, code.toUpperCase())).limit(1);
+
+    // Log activity (get first admin for now)
+    const admin = await db.select({ id: users.id }).from(users).where(eq(users.role, "admin")).limit(1);
+    if (admin.length > 0) {
+        await ActivityLogger.subject.created(admin[0].id, newSubject[0].id, name);
+    }
+
+    return newSubject[0];
+});

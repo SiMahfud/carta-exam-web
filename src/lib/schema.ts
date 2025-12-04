@@ -1,4 +1,4 @@
-import { sqliteTable, text, integer } from "drizzle-orm/sqlite-core";
+import { sqliteTable, text, integer, index } from "drizzle-orm/sqlite-core";
 import { sql } from "drizzle-orm";
 
 // ============================================================================
@@ -12,7 +12,9 @@ export const users = sqliteTable("users", {
     password: text("password").notNull(),
     role: text("role", { enum: ["admin", "teacher", "student"] }).notNull().default("student"),
     createdAt: integer("created_at", { mode: "timestamp" }).default(sql`(unixepoch())`),
-});
+}, (table) => ({
+    roleIdx: index("users_role_idx").on(table.role),
+}));
 
 // ============================================================================
 // SUBJECT & CLASS MANAGEMENT
@@ -33,14 +35,20 @@ export const classes = sqliteTable("classes", {
     academicYear: text("academic_year").notNull(), // e.g., "2025/2026"
     teacherId: text("teacher_id").references(() => users.id, { onDelete: "set null" }), // Wali kelas
     createdAt: integer("created_at", { mode: "timestamp" }).default(sql`(unixepoch())`),
-});
+}, (table) => ({
+    teacherIdx: index("classes_teacher_idx").on(table.teacherId),
+    gradeIdx: index("classes_grade_idx").on(table.grade),
+}));
 
 export const classStudents = sqliteTable("class_students", {
     id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
     classId: text("class_id").notNull().references(() => classes.id, { onDelete: "cascade" }),
     studentId: text("student_id").notNull().references(() => users.id, { onDelete: "cascade" }),
     enrolledAt: integer("enrolled_at", { mode: "timestamp" }).default(sql`(unixepoch())`),
-});
+}, (table) => ({
+    classIdx: index("class_students_class_idx").on(table.classId),
+    studentIdx: index("class_students_student_idx").on(table.studentId),
+}));
 
 // ============================================================================
 // QUESTION BANK MANAGEMENT
@@ -54,7 +62,10 @@ export const questionBanks = sqliteTable("question_banks", {
     createdBy: text("created_by").references(() => users.id, { onDelete: "set null" }), // Nullable until auth is fully implemented
     createdAt: integer("created_at", { mode: "timestamp" }).default(sql`(unixepoch())`),
     updatedAt: integer("updated_at", { mode: "timestamp" }).default(sql`(unixepoch())`),
-});
+}, (table) => ({
+    subjectIdx: index("question_banks_subject_idx").on(table.subjectId),
+    createdByIdx: index("question_banks_created_by_idx").on(table.createdBy),
+}));
 
 export const bankQuestions = sqliteTable("bank_questions", {
     id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
@@ -70,7 +81,10 @@ export const bankQuestions = sqliteTable("bank_questions", {
     createdAt: integer("created_at", { mode: "timestamp" }).default(sql`(unixepoch())`),
     updatedAt: integer("updated_at", { mode: "timestamp" }).default(sql`(unixepoch())`),
     lastUsed: integer("last_used", { mode: "timestamp" }), // Track usage
-});
+}, (table) => ({
+    bankIdx: index("bank_questions_bank_idx").on(table.bankId),
+    typeIdx: index("bank_questions_type_idx").on(table.type),
+}));
 
 // ============================================================================
 // SCORING TEMPLATES
@@ -155,7 +169,10 @@ export const examTemplates = sqliteTable("exam_templates", {
     createdBy: text("created_by").notNull().references(() => users.id, { onDelete: "cascade" }),
     createdAt: integer("created_at", { mode: "timestamp" }).default(sql`(unixepoch())`),
     updatedAt: integer("updated_at", { mode: "timestamp" }).default(sql`(unixepoch())`),
-});
+}, (table) => ({
+    subjectIdx: index("exam_templates_subject_idx").on(table.subjectId),
+    createdByIdx: index("exam_templates_created_by_idx").on(table.createdBy),
+}));
 
 export const examSessions = sqliteTable("exam_sessions", {
     id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
@@ -179,7 +196,11 @@ export const examSessions = sqliteTable("exam_sessions", {
 
     createdBy: text("created_by").notNull().references(() => users.id, { onDelete: "cascade" }),
     createdAt: integer("created_at", { mode: "timestamp" }).default(sql`(unixepoch())`),
-});
+}, (table) => ({
+    templateIdx: index("exam_sessions_template_idx").on(table.templateId),
+    statusIdx: index("exam_sessions_status_idx").on(table.status),
+    createdByIdx: index("exam_sessions_created_by_idx").on(table.createdBy),
+}));
 
 export const questionPools = sqliteTable("question_pools", {
     id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
@@ -188,7 +209,10 @@ export const questionPools = sqliteTable("question_pools", {
     selectedQuestions: text("selected_questions", { mode: "json" }).$type<string[]>().notNull(), // Array of bankQuestion IDs
     questionOrder: text("question_order", { mode: "json" }).$type<string[]>().notNull(), // Ordered array
     generatedAt: integer("generated_at", { mode: "timestamp" }).default(sql`(unixepoch())`),
-});
+}, (table) => ({
+    sessionIdx: index("question_pools_session_idx").on(table.sessionId),
+    studentIdx: index("question_pools_student_idx").on(table.studentId),
+}));
 
 // ============================================================================
 // LEGACY TABLES (Updated for integration)
@@ -228,7 +252,9 @@ export const questions = sqliteTable("questions", {
 
     // Custom points for this specific question in this exam
     points: integer("points").default(1),
-});
+}, (table) => ({
+    examIdx: index("questions_exam_idx").on(table.examId),
+}));
 
 export const submissions = sqliteTable("submissions", {
     id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
@@ -254,7 +280,12 @@ export const submissions = sqliteTable("submissions", {
     // Grading status
     gradingStatus: text("grading_status", { enum: ["auto", "pending_manual", "manual", "completed", "published"] }).default("auto"),
     createdAt: integer("created_at", { mode: "timestamp" }).$defaultFn(() => new Date()),
-});
+}, (table) => ({
+    examIdx: index("submissions_exam_idx").on(table.examId),
+    userIdx: index("submissions_user_idx").on(table.userId),
+    sessionIdx: index("submissions_session_idx").on(table.sessionId),
+    statusIdx: index("submissions_status_idx").on(table.status),
+}));
 
 export const answers = sqliteTable("answers", {
     id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
@@ -275,7 +306,10 @@ export const answers = sqliteTable("answers", {
     gradedBy: text("graded_by").references(() => users.id, { onDelete: "set null" }), // Teacher who graded
     gradedAt: integer("graded_at", { mode: "timestamp" }),
     gradingNotes: text("grading_notes"), // Teacher's notes/feedback
-});
+}, (table) => ({
+    submissionIdx: index("answers_submission_idx").on(table.submissionId),
+    questionIdx: index("answers_question_idx").on(table.questionId),
+}));
 
 export const activityLogs = sqliteTable("activity_logs", {
     id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
@@ -285,7 +319,11 @@ export const activityLogs = sqliteTable("activity_logs", {
     entityId: text("entity_id"), // ID of the entity affected
     details: text("details", { mode: "json" }).$type<Record<string, unknown>>(), // Additional context
     createdAt: integer("created_at", { mode: "timestamp" }).default(sql`(unixepoch())`),
-});
+}, (table) => ({
+    userIdx: index("activity_logs_user_idx").on(table.userId),
+    entityTypeIdx: index("activity_logs_entity_type_idx").on(table.entityType),
+    createdAtIdx: index("activity_logs_created_at_idx").on(table.createdAt),
+}));
 
 export const examTokens = sqliteTable("exam_tokens", {
     id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
@@ -295,4 +333,7 @@ export const examTokens = sqliteTable("exam_tokens", {
     validUntil: integer("valid_until", { mode: "timestamp" }).notNull(),
     isActive: integer("is_active", { mode: "boolean" }).default(true),
     createdAt: integer("created_at", { mode: "timestamp" }).default(sql`(unixepoch())`),
-});
+}, (table) => ({
+    examIdx: index("exam_tokens_exam_idx").on(table.examId),
+    tokenIdx: index("exam_tokens_token_idx").on(table.token),
+}));
