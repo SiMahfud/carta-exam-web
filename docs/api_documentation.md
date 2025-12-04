@@ -20,6 +20,9 @@ Mengelola kelas dan pendaftaran siswa.
   - Memperbarui kelas tertentu.
 - **DELETE** `/api/classes/[id]`
   - Menghapus kelas tertentu.
+- **POST** `/api/classes/[id]/students`
+  - Menambahkan siswa ke kelas.
+  - Validasi: Siswa tidak boleh terdaftar di kelas lain (aturan 1 siswa = 1 kelas).
 
 ### Mata Pelajaran (Subjects)
 Mengelola mata pelajaran.
@@ -100,8 +103,17 @@ Mengelola pengguna (siswa, guru, admin).
 
 - **GET** `/api/users`
   - Menampilkan daftar pengguna.
+  - Query Params:
+    - `role`: Filter berdasarkan role (`admin`, `teacher`, `student`).
+    - `unassigned`: Jika `true`, hanya menampilkan siswa yang belum terdaftar di kelas manapun.
 - **POST** `/api/users`
   - Membuat pengguna baru.
+- **GET** `/api/users/[id]`
+  - Mengambil detail pengguna tertentu.
+- **PUT** `/api/users/[id]`
+  - Memperbarui data pengguna.
+- **DELETE** `/api/users/[id]`
+  - Menghapus pengguna.
 
 ### Siswa (Student)
 Endpoint untuk pelaksanaan ujian siswa.

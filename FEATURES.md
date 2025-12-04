@@ -272,7 +272,7 @@
 |---------|--------|-------|
 | Subject management | ✅ | Complete |
 | Class management | ✅ | Complete |
-| Student enrollment | ✅ | Complete |
+| Student enrollment | ✅ | Complete (Single class per student rule) |
 | User management | ✅ | Complete |
 | **Bulk Operations** | | |
 | → Bulk student import | 📋 | Planned for Phase 2 |
