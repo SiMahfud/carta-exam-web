@@ -138,25 +138,37 @@ export default function ExamResultsPage() {
         return "destructive";
     };
 
-    const handleExport = () => {
-        if (!session || !statistics) {
-            toast({
-                title: "Error",
-                description: "Data tidak tersedia untuk di-export",
-                variant: "destructive",
-            });
-            return;
-        }
-
+    const handleExport = async () => {
         try {
-            exportToExcel({
-                session: {
-                    name: session.name,
-                    templateName: session.templateName,
-                },
-                statistics,
-                results,
+            toast({
+                title: "Memproses...",
+                description: "Menyiapkan file Excel",
             });
+
+            const response = await fetch(`/api/exam-sessions/${params.id}/export`);
+
+            if (!response.ok) {
+                throw new Error("Failed to export");
+            }
+
+            // Get filename from Content-Disposition header if available
+            const contentDisposition = response.headers.get('Content-Disposition');
+            let filename = `Hasil_Ujian_${session?.name || 'export'}.xlsx`;
+            if (contentDisposition) {
+                const match = contentDisposition.match(/filename="(.+)"/);
+                if (match) filename = match[1];
+            }
+
+            // Download the file
+            const blob = await response.blob();
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            window.URL.revokeObjectURL(url);
+            document.body.removeChild(a);
 
             toast({
                 title: "Berhasil",

@@ -277,7 +277,7 @@
 | **Bulk Operations** | | |
 | → Bulk user management | ✅ | **Dec 4, 2025** - Import/Export/Update/Delete with Excel |
 | → Bulk question import | 📋 | Planned for Phase 2 |
-| → Bulk export | ✅ | Excel with Petunjuk & Contoh sheets |
+| → Bulk export | ✅ | **Dec 4, 2025** - Export exam results to Excel |
 | → Batch actions | 📋 | Planned for Phase 2 |
 
 ### Search & Filter

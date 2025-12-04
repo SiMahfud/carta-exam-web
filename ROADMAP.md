@@ -299,10 +299,11 @@ Advanced Features:    ███░░░░░░░░░░░░░░░░�
   - **Tech**: Consider AI-powered parsing
   - **Effort**: 24 hours
   
-- [ ] **Bulk export features**
-  - Export exam results to Excel
-  - Custom export templates
-  - **Effort**: 12 hours
+- [x] **Bulk export features** ✅ **Completed: Dec 4, 2025**
+  - [x] Export exam results to Excel (per session)
+  - [x] 3 sheets: Rekap Nilai, Jawaban Essay, Statistik
+  - **Files**: `src/app/api/exam-sessions/[id]/export/route.ts`
+  - **Actual Effort**: 2 hours
   
 - [ ] **Batch actions**
   - Multi-select interface
