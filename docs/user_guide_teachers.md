@@ -58,6 +58,7 @@ Bank Soal memungkinkan Anda membuat dan menggunakan kembali soal untuk berbagai 
    - **Menjodohkan**: Mencocokkan pasangan item.
    - **Isian Singkat**: Input teks dengan kata kunci penilaian otomatis.
    - **Esai**: Input teks panjang yang memerlukan penilaian manual.
+   - **Benar/Salah**: Soal dengan pilihan jawaban Benar atau Salah.
 4. Isi konten soal, opsi, dan jawaban benar.
 5. Atur **Tingkat Kesulitan** dan **Tag** (opsional).
 6. Klik **Simpan Soal** (Save Question).
@@ -103,7 +104,7 @@ Selama sesi aktif, Anda dapat memantau kemajuan siswa.
 ## Penilaian & Hasil
 
 ### Penilaian Otomatis
-- Soal Pilihan Ganda, Menjodohkan, dan Isian Singkat dinilai secara otomatis setelah pengumpulan.
+- Soal Pilihan Ganda, Benar/Salah, Menjodohkan, dan Isian Singkat dinilai secara otomatis setelah pengumpulan.
 
 ### Penilaian Manual (Esai)
 1. Navigasi ke **Penilaian** (Grading).

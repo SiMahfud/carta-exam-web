@@ -52,6 +52,7 @@
 | → Matching | ✅ | Complete with visualization |
 | → Short Answer | ✅ | Complete |
 | → Essay | ✅ | Complete |
+| → True/False | ✅ | Complete |
 | **Rich Text Support** | | |
 | → Text formatting | ✅ | Bold, italic, lists, etc. |
 | → Image insertion | ✅ | Working |
@@ -94,11 +95,16 @@
 |---------|--------|-------|
 | Session scheduling | ✅ | Complete |
 | Session status tracking | ✅ | Scheduled/Active/Completed |
-| Student assignment | ✅ | Class & individual |
+| Student assignment | ✅ | **Enhanced** - Class & individual with DataTables UI |
 | Session monitoring | ✅ | Real-time status |
-| Session editing | ✅ | Working |
+| Session editing | ✅ | Working with enhanced UI |
 | Session deletion | ✅ | Fixed recently |
 | Quick actions | ✅ | Reset/Force/Retake |
+| **Advanced Filtering** | | |
+| → Search participants | ✅ | Real-time search by name |
+| → Filter by class | ✅ | For individual student selection |
+| → Bulk selection | ✅ | Select all/deselect all |
+| → Table view | ✅ | DataTables-like interface |
 | Session analytics | 📋 | Planned for Phase 3 |
 | Recurring sessions | ❌ | Future |
 
@@ -156,6 +162,7 @@
 | Complex Multiple Choice | ✅ | Partial credit |
 | Matching | ✅ | Complete |
 | Short Answer | ✅ | Exact match |
+| True/False | ✅ | Complete |
 | Essay | ➖ | Manual only |
 
 ### Manual Grading
@@ -414,4 +421,4 @@
 
 ---
 
-**Last Updated**: December 2, 2025 | **Version**: 1.0.0
+**Last Updated**: December 4, 2025 | **Version**: 1.0.0

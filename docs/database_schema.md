@@ -85,7 +85,7 @@ Butir soal individu dalam bank soal.
 | :--- | :--- | :--- |
 | `id` | TEXT | Primary Key (UUID) |
 | `bank_id` | TEXT | Foreign Key -> `question_banks.id` |
-| `type` | TEXT | Enum: `mc` (PG), `complex_mc` (PG Kompleks), `matching` (Menjodohkan), `short` (Isian Singkat), `essay` (Esai) |
+| `type` | TEXT | Enum: `mc` (PG), `complex_mc` (PG Kompleks), `matching` (Menjodohkan), `short` (Isian Singkat), `essay` (Esai), `true_false` (Benar/Salah) |
 | `content` | JSON | Konten soal dan opsi jawaban |
 | `answer_key` | JSON | Data kunci jawaban |
 | `tags` | JSON | Array tag |

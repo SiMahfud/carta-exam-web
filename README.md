@@ -13,6 +13,7 @@ CartaExam adalah aplikasi ujian berbasis web yang dirancang untuk memberikan pen
   - Menjodohkan (Matching)
   - Isian Singkat (Short Answer)
   - Esai (Essay)
+  - Benar/Salah (True/False)
   - **Rich Text Support**: Dukungan gambar dan format teks pada soal dan jawaban.
 - **Manajemen Ujian**: Penjadwalan sesi ujian, pengacakan soal dan jawaban, serta pengaturan durasi.
 - **Monitoring Real-time**: Guru dapat memantau status pengerjaan siswa, pelanggaran, dan melakukan aksi (Reset Waktu, Paksa Selesai, Ujian Ulang) secara langsung.
@@ -26,7 +27,7 @@ CartaExam adalah aplikasi ujian berbasis web yang dirancang untuk memberikan pen
 
 Aplikasi ini dibangun menggunakan teknologi modern:
 - **Framework**: [Next.js](https://nextjs.org/) (App Router)
-- **Database**: SQLite
+- **Database**: SQLite (default), MySQL, atau PostgreSQL
 - **ORM**: [Drizzle ORM](https://orm.drizzle.team/)
 - **Styling**: [Tailwind CSS](https://tailwindcss.com/)
 - **UI Components**: [Shadcn/UI](https://ui.shadcn.com/)
@@ -47,16 +48,17 @@ Anda dapat mengatur provider database melalui environment variable `DATABASE_PRO
     ```bash
     npm install
     ```
-3.  **Setup Database**:
-    ```bash
-    npm run db:push
-    # atau
-    npx drizzle-kit push
-    ```
+3.  **Setup Environment** (Opsional):
+    - Salin `.env.example` menjadi `.env`
+    - Sesuaikan `DATABASE_PROVIDER` dan `DATABASE_URL` jika perlu
+    - Default: SQLite dengan file `local.db`
 4.  **Jalankan server development**:
     ```bash
     npm run dev
     ```
+    > **Note**: Database akan diinisialisasi secara otomatis pada startup pertama:
+    > - Membuat semua tabel yang diperlukan
+    > - Menyediakan user default: `admin`/`password123` dan `siswa`/`password123`
 5.  Buka [http://localhost:3000](http://localhost:3000) di browser.
 
 ## Dokumentasi
