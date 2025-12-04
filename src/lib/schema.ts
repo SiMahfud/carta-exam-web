@@ -59,7 +59,7 @@ export const questionBanks = sqliteTable("question_banks", {
 export const bankQuestions = sqliteTable("bank_questions", {
     id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
     bankId: text("bank_id").notNull().references(() => questionBanks.id, { onDelete: "cascade" }),
-    type: text("type", { enum: ["mc", "complex_mc", "matching", "short", "essay"] }).notNull(),
+    type: text("type", { enum: ["mc", "complex_mc", "matching", "short", "essay", "true_false"] }).notNull(),
     content: text("content", { mode: "json" }).notNull(), // { question: "...", options: [...] }
     answerKey: text("answer_key", { mode: "json" }).notNull(), // { correct: ... }
     tags: text("tags", { mode: "json" }).$type<string[]>().$defaultFn(() => []), // ["Bab 1", "Trigonometri", "Sulit"]
@@ -81,8 +81,8 @@ export const scoringTemplates = sqliteTable("scoring_templates", {
     name: text("name").notNull(), // e.g., "Standard UTS", "Ujian Akhir"
     description: text("description"),
     defaultWeights: text("default_weights", { mode: "json" }).notNull()
-        .$type<{ mc: number; complex_mc: number; matching: number; short: number; essay: number }>()
-        .$defaultFn(() => ({ mc: 1, complex_mc: 2, matching: 3, short: 2, essay: 5 })),
+        .$type<{ mc: number; complex_mc: number; matching: number; short: number; essay: number; true_false: number }>()
+        .$defaultFn(() => ({ mc: 1, complex_mc: 2, matching: 3, short: 2, essay: 5, true_false: 1 })),
     allowPartialCredit: integer("allow_partial_credit", { mode: "boolean" }).default(true),
     partialCreditRules: text("partial_credit_rules", { mode: "json" })
         .$type<{ complex_mc?: number; matching?: number }>(), // Percentage for partial credit
@@ -103,7 +103,7 @@ export const examTemplates = sqliteTable("exam_templates", {
     bankIds: text("bank_ids", { mode: "json" }).$type<string[]>().notNull(), // Array of bank IDs
     filterTags: text("filter_tags", { mode: "json" }).$type<string[]>(), // Optional tag filters
     questionComposition: text("question_composition", { mode: "json" }).notNull()
-        .$type<{ mc?: number; complex_mc?: number; matching?: number; short?: number; essay?: number }>(),
+        .$type<{ mc?: number; complex_mc?: number; matching?: number; short?: number; essay?: number; true_false?: number }>(),
 
     // Question pool for randomization
     useQuestionPool: integer("use_question_pool", { mode: "boolean" }).default(false),
@@ -112,7 +112,7 @@ export const examTemplates = sqliteTable("exam_templates", {
     // Scoring
     scoringTemplateId: text("scoring_template_id").references(() => scoringTemplates.id, { onDelete: "set null" }),
     customWeights: text("custom_weights", { mode: "json" })
-        .$type<{ mc?: number; complex_mc?: number; matching?: number; short?: number; essay?: number }>(),
+        .$type<{ mc?: number; complex_mc?: number; matching?: number; short?: number; essay?: number; true_false?: number }>(),
     totalScore: integer("total_score").default(100), // Auto-scale to this value
 
     // Timing
@@ -128,8 +128,8 @@ export const examTemplates = sqliteTable("exam_templates", {
     randomizationRules: text("randomization_rules", { mode: "json" })
         .$type<{
             mode: 'all' | 'by_type' | 'exclude_type' | 'specific_numbers';
-            types?: ('mc' | 'complex_mc' | 'matching' | 'short' | 'essay')[];
-            excludeTypes?: ('mc' | 'complex_mc' | 'matching' | 'short' | 'essay')[];
+            types?: ('mc' | 'complex_mc' | 'matching' | 'short' | 'essay' | 'true_false')[];
+            excludeTypes?: ('mc' | 'complex_mc' | 'matching' | 'short' | 'essay' | 'true_false')[];
             questionNumbers?: number[];
         }>()
         .$defaultFn(() => ({ mode: "all" })),
@@ -221,7 +221,7 @@ export const questions = sqliteTable("questions", {
     // Link to bank question (nullable for backward compatibility)
     bankQuestionId: text("bank_question_id").references(() => bankQuestions.id, { onDelete: "set null" }),
 
-    type: text("type", { enum: ["mc", "complex_mc", "matching", "short", "essay"] }).notNull(),
+    type: text("type", { enum: ["mc", "complex_mc", "matching", "short", "essay", "true_false"] }).notNull(),
     content: text("content", { mode: "json" }).notNull(), // { question: "...", options: [...] }
     answerKey: text("answer_key", { mode: "json" }).notNull(), // { correct: ... }
     order: integer("order").notNull().default(0),

@@ -18,6 +18,7 @@ export default function QuestionForm({ examId }: { examId: string }) {
     const [correctComplex, setCorrectComplex] = useState<number[]>([])
     const [pairs, setPairs] = useState([{ left: "", right: "" }])
     const [shortAnswers, setShortAnswers] = useState([""])
+    const [correctTrueFalse, setCorrectTrueFalse] = useState("true")
 
     const handleOptionChange = (index: number, value: string) => {
         const newOptions = [...options]
@@ -53,6 +54,7 @@ export default function QuestionForm({ examId }: { examId: string }) {
                     <input type="hidden" name="correctComplex" value={JSON.stringify(correctComplex)} />
                     <input type="hidden" name="pairs" value={JSON.stringify(pairs)} />
                     <input type="hidden" name="shortAnswers" value={JSON.stringify(shortAnswers)} />
+                    <input type="hidden" name="correctTrueFalse" value={correctTrueFalse} />
 
                     <div className="space-y-2">
                         <Label>Tipe Soal</Label>
@@ -66,6 +68,7 @@ export default function QuestionForm({ examId }: { examId: string }) {
                                 <SelectItem value="matching">Menjodohkan</SelectItem>
                                 <SelectItem value="short">Isian Singkat</SelectItem>
                                 <SelectItem value="essay">Uraian</SelectItem>
+                                <SelectItem value="true_false">Benar - Salah</SelectItem>
                             </SelectContent>
                         </Select>
                     </div>
@@ -154,9 +157,25 @@ export default function QuestionForm({ examId }: { examId: string }) {
                         </div>
                     )}
 
+                    {type === "true_false" && (
+                        <div className="space-y-4">
+                            <Label>Kunci Jawaban</Label>
+                            <RadioGroup value={correctTrueFalse} onValueChange={setCorrectTrueFalse}>
+                                <div className="flex items-center space-x-2">
+                                    <RadioGroupItem value="true" id="tf-true" />
+                                    <Label htmlFor="tf-true">Benar (True)</Label>
+                                </div>
+                                <div className="flex items-center space-x-2">
+                                    <RadioGroupItem value="false" id="tf-false" />
+                                    <Label htmlFor="tf-false">Salah (False)</Label>
+                                </div>
+                            </RadioGroup>
+                        </div>
+                    )}
+
                     <Button type="submit" className="w-full">Simpan Soal</Button>
                 </form>
-            </CardContent>
-        </Card>
+            </CardContent >
+        </Card >
     )
 }

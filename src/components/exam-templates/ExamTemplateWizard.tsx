@@ -44,6 +44,7 @@ export interface ExamTemplateFormData {
         matching: number;
         short: number;
         essay: number;
+        true_false: number;
     };
     durationMinutes: number;
     totalScore: number;
@@ -60,8 +61,8 @@ export interface ExamTemplateFormData {
     targetIds: string[];
     randomizationRules: {
         mode: 'all' | 'by_type' | 'exclude_type' | 'specific_numbers';
-        types?: ('mc' | 'complex_mc' | 'matching' | 'short' | 'essay')[];
-        excludeTypes?: ('mc' | 'complex_mc' | 'matching' | 'short' | 'essay')[];
+        types?: ('mc' | 'complex_mc' | 'matching' | 'short' | 'essay' | 'true_false')[];
+        excludeTypes?: ('mc' | 'complex_mc' | 'matching' | 'short' | 'essay' | 'true_false')[];
         questionNumbers?: number[];
     };
 }
@@ -93,6 +94,7 @@ export default function ExamTemplateWizard({ initialData, onSubmit, isEditMode =
             matching: 0,
             short: 0,
             essay: 0,
+            true_false: 0,
         },
         durationMinutes: 60,
         totalScore: 100,
@@ -440,6 +442,26 @@ export default function ExamTemplateWizard({ initialData, onSubmit, isEditMode =
                                         />
                                     </div>
 
+                                    <div className="flex items-center justify-between p-4 border rounded-lg">
+                                        <div className="space-y-0.5">
+                                            <Label className="text-base">Benar - Salah</Label>
+                                            <p className="text-xs text-muted-foreground">True / False</p>
+                                        </div>
+                                        <Input
+                                            type="number"
+                                            min="0"
+                                            className="w-24 text-right"
+                                            value={formData.questionComposition.true_false}
+                                            onChange={(e) => setFormData({
+                                                ...formData,
+                                                questionComposition: {
+                                                    ...formData.questionComposition,
+                                                    true_false: parseInt(e.target.value) || 0
+                                                }
+                                            })}
+                                        />
+                                    </div>
+
                                     <div className="p-4 bg-secondary/20 rounded-lg">
                                         <div className="flex justify-between items-center font-semibold">
                                             <span>Total Soal:</span>
@@ -645,6 +667,7 @@ export default function ExamTemplateWizard({ initialData, onSubmit, isEditMode =
                                             { value: 'matching', label: 'Menjodohkan' },
                                             { value: 'short', label: 'Isian Singkat' },
                                             { value: 'essay', label: 'Uraian/Esai' },
+                                            { value: 'true_false', label: 'Benar - Salah' },
                                         ].map(type => (
                                             <div key={type.value} className="flex items-center space-x-2">
                                                 <Checkbox
@@ -683,6 +706,7 @@ export default function ExamTemplateWizard({ initialData, onSubmit, isEditMode =
                                             { value: 'matching', label: 'Menjodohkan' },
                                             { value: 'short', label: 'Isian Singkat' },
                                             { value: 'essay', label: 'Uraian/Esai' },
+                                            { value: 'true_false', label: 'Benar - Salah' },
                                         ].map(type => (
                                             <div key={type.value} className="flex items-center space-x-2">
                                                 <Checkbox
@@ -787,6 +811,9 @@ export default function ExamTemplateWizard({ initialData, onSubmit, isEditMode =
                                         )}
                                         {formData.questionComposition.essay > 0 && (
                                             <Badge variant="outline">Esai: {formData.questionComposition.essay}</Badge>
+                                        )}
+                                        {formData.questionComposition.true_false > 0 && (
+                                            <Badge variant="outline">B/S: {formData.questionComposition.true_false}</Badge>
                                         )}
                                     </div>
                                 </div>

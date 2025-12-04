@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { RichTextEditor } from "@/components/ui/rich-text-editor";
 import {
     Select,
     SelectContent,
@@ -20,9 +21,8 @@ import {
     SelectValue,
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { Plus, X, Tag as TagIcon } from "lucide-react";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { RichTextEditor } from "@/components/ui/rich-text-editor";
+import { Plus, X, Tag as TagIcon } from "lucide-react";
 
 interface QuestionEditorProps {
     open: boolean;
@@ -44,7 +44,7 @@ export function TrueFalseEditor({
     const [formData, setFormData] = useState({
         question: "",
         correctAnswer: "true", // "true" or "false"
-        difficulty: "easy",
+        difficulty: "medium",
         defaultPoints: 1,
         tags: [] as string[],
     });
@@ -53,11 +53,6 @@ export function TrueFalseEditor({
     useEffect(() => {
         if (open) {
             if (questionToEdit) {
-                // Check if it's a legacy MC question used as T/F or a new T/F type
-                // Assuming we store T/F as a specific type or just MC with 2 options
-                // For this implementation, let's assume we are saving it as 'mc' type but with specific structure
-                // OR we can introduce a new 'true_false' type. Let's use 'true_false' type for clarity as requested.
-
                 setFormData({
                     question: questionToEdit.content.question,
                     correctAnswer: questionToEdit.answerKey.correct.toString(),
@@ -76,7 +71,7 @@ export function TrueFalseEditor({
 
         const content = {
             question: formData.question,
-            options: ["Benar", "Salah"], // Fixed options
+            options: ["Benar", "Salah"], // Implicit options
         };
 
         const answerKey = {
@@ -94,7 +89,6 @@ export function TrueFalseEditor({
                 method,
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
-
                     type: "true_false",
                     content,
                     answerKey,
@@ -121,7 +115,7 @@ export function TrueFalseEditor({
         setFormData({
             question: "",
             correctAnswer: "true",
-            difficulty: "easy",
+            difficulty: "medium",
             defaultPoints: 1,
             tags: [],
         });
@@ -153,10 +147,10 @@ export function TrueFalseEditor({
             <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
                 <DialogHeader>
                     <DialogTitle>
-                        {questionToEdit ? "Edit Soal Benar/Salah" : "Tambah Soal Benar/Salah"}
+                        {questionToEdit ? "Edit Soal Benar-Salah" : "Tambah Soal Benar-Salah"}
                     </DialogTitle>
                     <DialogDescription>
-                        {questionToEdit ? "Edit detail soal benar/salah" : "Buat soal dengan pilihan jawaban Benar atau Salah"}
+                        {questionToEdit ? "Edit detail soal benar-salah" : "Buat soal dengan pilihan jawaban Benar atau Salah"}
                     </DialogDescription>
                 </DialogHeader>
                 <form onSubmit={handleSubmit}>
@@ -178,18 +172,16 @@ export function TrueFalseEditor({
                             <Label>Kunci Jawaban *</Label>
                             <RadioGroup
                                 value={formData.correctAnswer}
-                                onValueChange={(value) =>
-                                    setFormData({ ...formData, correctAnswer: value })
-                                }
-                                className="flex gap-4 mt-2"
+                                onValueChange={(value) => setFormData({ ...formData, correctAnswer: value })}
+                                className="mt-2"
                             >
                                 <div className="flex items-center space-x-2">
                                     <RadioGroupItem value="true" id="r-true" />
-                                    <Label htmlFor="r-true" className="cursor-pointer">Benar</Label>
+                                    <Label htmlFor="r-true" className="font-normal">Benar (True)</Label>
                                 </div>
                                 <div className="flex items-center space-x-2">
                                     <RadioGroupItem value="false" id="r-false" />
-                                    <Label htmlFor="r-false" className="cursor-pointer">Salah</Label>
+                                    <Label htmlFor="r-false" className="font-normal">Salah (False)</Label>
                                 </div>
                             </RadioGroup>
                         </div>
