@@ -74,16 +74,16 @@ export default function CreateExamSessionPage() {
             ]);
 
             if (templatesRes.ok) {
-                const data = await templatesRes.json();
-                setTemplates(data.data || []);
+                const result = await templatesRes.json();
+                setTemplates(result.data || []);
             }
             if (classesRes.ok) {
-                const data = await classesRes.json();
-                setClasses(data);
+                const result = await classesRes.json();
+                setClasses(result.data || []);
             }
             if (studentsRes.ok) {
-                const data = await studentsRes.json();
-                setStudents(data);
+                const result = await studentsRes.json();
+                setStudents(result.data || []);
             }
         } catch (error) {
             console.error("Error fetching data:", error);

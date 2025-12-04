@@ -80,7 +80,8 @@ export default function EditExamSessionPage() {
             ]);
 
             if (sessionRes.ok) {
-                const session = await sessionRes.json();
+                const result = await sessionRes.json();
+                const session = result.data || result;
                 // Convert dates to datetime-local format (UTC+7)
                 const startTime = toDateTimeLocalString(session.startTime);
                 const endTime = toDateTimeLocalString(session.endTime);
@@ -96,12 +97,12 @@ export default function EditExamSessionPage() {
                 });
             }
             if (classesRes.ok) {
-                const data = await classesRes.json();
-                setClasses(data);
+                const result = await classesRes.json();
+                setClasses(result.data || []);
             }
             if (studentsRes.ok) {
-                const data = await studentsRes.json();
-                setStudents(data);
+                const result = await studentsRes.json();
+                setStudents(result.data || []);
             }
         } catch (error) {
             console.error("Error fetching data:", error);

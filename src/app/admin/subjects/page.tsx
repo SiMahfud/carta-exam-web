@@ -64,8 +64,8 @@ export default function SubjectsPage() {
         try {
             const response = await fetch("/api/subjects");
             if (response.ok) {
-                const data = await response.json();
-                setSubjects(data);
+                const result = await response.json();
+                setSubjects(result.data || []);
             }
         } catch (error) {
             console.error("Error fetching subjects:", error);

@@ -90,8 +90,8 @@ export default function GradingPage() {
         try {
             const response = await fetch("/api/classes");
             if (response.ok) {
-                const data = await response.json();
-                setClasses(data || []);
+                const result = await response.json();
+                setClasses(result.data || []);
             }
         } catch (error) {
             console.error("Error fetching classes:", error);

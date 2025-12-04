@@ -92,8 +92,8 @@ export default function ClassesPage() {
         try {
             const response = await fetch("/api/classes");
             if (response.ok) {
-                const data = await response.json();
-                setClasses(data);
+                const result = await response.json();
+                setClasses(result.data || []);
             }
         } catch (error) {
             console.error("Error fetching classes:", error);
@@ -111,8 +111,8 @@ export default function ClassesPage() {
         try {
             const response = await fetch(`/api/classes/${classId}`);
             if (response.ok) {
-                const data = await response.json();
-                setClassStudents(data.students);
+                const result = await response.json();
+                setClassStudents(result.data?.students || []);
             }
         } catch (error) {
             console.error("Error fetching students:", error);
@@ -123,8 +123,8 @@ export default function ClassesPage() {
         try {
             const response = await fetch("/api/users?role=student");
             if (response.ok) {
-                const data = await response.json();
-                setAvailableStudents(data);
+                const result = await response.json();
+                setAvailableStudents(result.data || []);
             }
         } catch (error) {
             console.error("Error fetching available students:", error);
