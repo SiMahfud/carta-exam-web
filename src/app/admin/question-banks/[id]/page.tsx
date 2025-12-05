@@ -56,6 +56,7 @@ import { ShortAnswerEditor } from "@/components/question-editor/ShortAnswerEdito
 import { MatchingEditor } from "@/components/question-editor/MatchingEditor";
 import { EssayEditor } from "@/components/question-editor/EssayEditor";
 import { TrueFalseEditor } from "@/components/question-editor/TrueFalseEditor";
+import { ImportQuestionsDialog } from "@/components/question-editor/ImportQuestionsDialog";
 
 interface BankQuestion {
     id: string;
@@ -254,90 +255,99 @@ export default function QuestionBankDetailPage() {
                             {bank.description || "No description"}
                         </p>
                     </div>
-                    <Dialog open={typeDialogOpen} onOpenChange={setTypeDialogOpen}>
-                        <DialogTrigger asChild>
-                            <Button>
-                                <Plus className="mr-2 h-4 w-4" />
-                                Tambah Soal
-                            </Button>
-                        </DialogTrigger>
-                        <DialogContent className="sm:max-w-md">
-                            <DialogHeader>
-                                <DialogTitle>Pilih Tipe Soal</DialogTitle>
-                                <DialogDescription>
-                                    Pilih jenis soal yang ingin dibuat
-                                </DialogDescription>
-                            </DialogHeader>
-                            <div className="grid gap-2">
-                                <Button
-                                    variant="outline"
-                                    className="justify-start"
-                                    onClick={() => {
-                                        setSelectedType("mc");
-                                        setTypeDialogOpen(false);
-                                    }}
-                                >
-                                    <FileQuestion className="mr-2 h-4 w-4" />
-                                    Pilihan Ganda
+                    <div className="flex gap-2">
+                        <ImportQuestionsDialog
+                            bankId={bankId}
+                            onSuccess={() => {
+                                fetchQuestions();
+                                fetchTags();
+                            }}
+                        />
+                        <Dialog open={typeDialogOpen} onOpenChange={setTypeDialogOpen}>
+                            <DialogTrigger asChild>
+                                <Button>
+                                    <Plus className="mr-2 h-4 w-4" />
+                                    Tambah Soal
                                 </Button>
-                                <Button
-                                    variant="outline"
-                                    className="justify-start"
-                                    onClick={() => {
-                                        setSelectedType("true_false");
-                                        setTypeDialogOpen(false);
-                                    }}
-                                >
-                                    <FileQuestion className="mr-2 h-4 w-4" />
-                                    Benar/Salah
-                                </Button>
-                                <Button
-                                    variant="outline"
-                                    className="justify-start"
-                                    onClick={() => {
-                                        setSelectedType("complex_mc");
-                                        setTypeDialogOpen(false);
-                                    }}
-                                >
-                                    <FileQuestion className="mr-2 h-4 w-4" />
-                                    Pilihan Ganda Kompleks
-                                </Button>
-                                <Button
-                                    variant="outline"
-                                    className="justify-start"
-                                    onClick={() => {
-                                        setSelectedType("matching");
-                                        setTypeDialogOpen(false);
-                                    }}
-                                >
-                                    <FileQuestion className="mr-2 h-4 w-4" />
-                                    Menjodohkan
-                                </Button>
-                                <Button
-                                    variant="outline"
-                                    className="justify-start"
-                                    onClick={() => {
-                                        setSelectedType("short");
-                                        setTypeDialogOpen(false);
-                                    }}
-                                >
-                                    <FileQuestion className="mr-2 h-4 w-4" />
-                                    Isian Singkat
-                                </Button>
-                                <Button
-                                    variant="outline"
-                                    className="justify-start"
-                                    onClick={() => {
-                                        setSelectedType("essay");
-                                        setTypeDialogOpen(false);
-                                    }}
-                                >
-                                    <FileQuestion className="mr-2 h-4 w-4" />
-                                    Uraian
-                                </Button>
-                            </div>
-                        </DialogContent>
-                    </Dialog>
+                            </DialogTrigger>
+                            <DialogContent className="sm:max-w-md">
+                                <DialogHeader>
+                                    <DialogTitle>Pilih Tipe Soal</DialogTitle>
+                                    <DialogDescription>
+                                        Pilih jenis soal yang ingin dibuat
+                                    </DialogDescription>
+                                </DialogHeader>
+                                <div className="grid gap-2">
+                                    <Button
+                                        variant="outline"
+                                        className="justify-start"
+                                        onClick={() => {
+                                            setSelectedType("mc");
+                                            setTypeDialogOpen(false);
+                                        }}
+                                    >
+                                        <FileQuestion className="mr-2 h-4 w-4" />
+                                        Pilihan Ganda
+                                    </Button>
+                                    <Button
+                                        variant="outline"
+                                        className="justify-start"
+                                        onClick={() => {
+                                            setSelectedType("true_false");
+                                            setTypeDialogOpen(false);
+                                        }}
+                                    >
+                                        <FileQuestion className="mr-2 h-4 w-4" />
+                                        Benar/Salah
+                                    </Button>
+                                    <Button
+                                        variant="outline"
+                                        className="justify-start"
+                                        onClick={() => {
+                                            setSelectedType("complex_mc");
+                                            setTypeDialogOpen(false);
+                                        }}
+                                    >
+                                        <FileQuestion className="mr-2 h-4 w-4" />
+                                        Pilihan Ganda Kompleks
+                                    </Button>
+                                    <Button
+                                        variant="outline"
+                                        className="justify-start"
+                                        onClick={() => {
+                                            setSelectedType("matching");
+                                            setTypeDialogOpen(false);
+                                        }}
+                                    >
+                                        <FileQuestion className="mr-2 h-4 w-4" />
+                                        Menjodohkan
+                                    </Button>
+                                    <Button
+                                        variant="outline"
+                                        className="justify-start"
+                                        onClick={() => {
+                                            setSelectedType("short");
+                                            setTypeDialogOpen(false);
+                                        }}
+                                    >
+                                        <FileQuestion className="mr-2 h-4 w-4" />
+                                        Isian Singkat
+                                    </Button>
+                                    <Button
+                                        variant="outline"
+                                        className="justify-start"
+                                        onClick={() => {
+                                            setSelectedType("essay");
+                                            setTypeDialogOpen(false);
+                                        }}
+                                    >
+                                        <FileQuestion className="mr-2 h-4 w-4" />
+                                        Uraian
+                                    </Button>
+                                </div>
+                            </DialogContent>
+                        </Dialog>
+                    </div>
                 </div>
             </div>
 

@@ -42,7 +42,7 @@ export async function POST(
             essay: [],
         };
 
-        allQuestions.forEach(q => {
+        allQuestions.forEach((q: any) => {
             if (questionsByType[q.type]) {
                 questionsByType[q.type].push(q);
             }
@@ -77,7 +77,7 @@ export async function POST(
                 durationMinutes: t.durationMinutes,
                 totalScore: t.totalScore || 100,
             },
-            questions: selectedQuestions.map(q => {
+            questions: selectedQuestions.map((q) => {
                 const content = (q.content as any) || {};
                 const answerKey = (q.answerKey as any) || {};
 
@@ -85,19 +85,53 @@ export async function POST(
                 let transformedOptions = null;
                 if ((q.type === 'mc' || q.type === 'complex_mc') && content.options && Array.isArray(content.options)) {
                     const labels = ['A', 'B', 'C', 'D', 'E'];
-                    transformedOptions = content.options.map((optionText: string, idx: number) => ({
+                    transformedOptions = content.options.map((optionText: any, idx: number) => ({
                         label: labels[idx] || String.fromCharCode(65 + idx),
-                        text: optionText
+                        text: typeof optionText === 'object' ? optionText.text : optionText
                     }));
                 }
 
                 // Transform leftItems/rightItems to pairs format for matching
                 let transformedPairs = null;
-                if (q.type === 'matching' && content.leftItems && content.rightItems) {
-                    transformedPairs = content.leftItems.map((leftItem: string, idx: number) => ({
-                        left: leftItem,
-                        right: content.rightItems[idx] || ''
-                    }));
+                if (q.type === 'matching' && content.leftItems && content.rightItems && answerKey.pairs) {
+                    transformedPairs = [];
+                    // answerKey.pairs is { "0": [1], "1": [0, 2] } mapping left index to right indices
+                    Object.entries(answerKey.pairs).forEach(([leftIdx, rightIndices]) => {
+                        const lIdx = parseInt(leftIdx);
+                        const leftItem = content.leftItems[lIdx];
+
+                        if (Array.isArray(rightIndices)) {
+                            rightIndices.forEach((rIdx: any) => {
+                                const rightItem = content.rightItems[rIdx];
+                                if (leftItem && rightItem) {
+                                    transformedPairs.push({
+                                        left: typeof leftItem === 'object' ? leftItem.text : leftItem,
+                                        right: typeof rightItem === 'object' ? rightItem.text : rightItem
+                                    });
+                                }
+                            });
+                        } else {
+                            // Handle legacy format if any
+                            const rIdx = rightIndices as number;
+                            const rightItem = content.rightItems[rIdx];
+                            if (leftItem && rightItem) {
+                                transformedPairs.push({
+                                    left: typeof leftItem === 'object' ? leftItem.text : leftItem,
+                                    right: typeof rightItem === 'object' ? rightItem.text : rightItem
+                                });
+                            }
+                        }
+                    });
+                } else if (q.type === 'matching' && content.leftItems && content.rightItems) {
+                    // Fallback for questions without explicit pairs in answerKey (legacy/imported)
+                    // Try to match by index if pairs not defined
+                    transformedPairs = content.leftItems.map((leftItem: any, idx: number) => {
+                        const rightItem = content.rightItems[idx];
+                        return {
+                            left: typeof leftItem === 'object' ? leftItem.text : leftItem,
+                            right: typeof rightItem === 'object' ? rightItem.text : (rightItem || '')
+                        };
+                    });
                 }
 
                 // Get accepted answers for short answer
@@ -118,15 +152,34 @@ export async function POST(
                     }));
                 }
 
+                // Handle matches from imported questions (ID-based)
+                if (q.type === 'matching' && content.leftItems && content.rightItems && answerKey.matches) {
+                    transformedPairs = [];
+                    answerKey.matches.forEach((match: any) => {
+                        const leftItem = content.leftItems.find((i: any) => i.id === match.leftId);
+                        const rightItem = content.rightItems.find((i: any) => i.id === match.rightId);
+
+                        if (leftItem && rightItem) {
+                            transformedPairs.push({
+                                left: typeof leftItem === 'object' ? leftItem.text : leftItem,
+                                right: typeof rightItem === 'object' ? rightItem.text : rightItem
+                            });
+                        }
+                    });
+                }
+
                 return {
                     number: q.number,
                     type: q.type,
                     questionText: content.question || content.questionText || '',
                     options: transformedOptions,
-                    correctAnswer: answerKey.correct || answerKey.correctAnswer,
+                    correctAnswer: answerKey.correct ?? answerKey.correctAnswer ?? answerKey.correctIndices,
                     points: q.defaultPoints,
                     difficulty: q.difficulty,
                     pairs: transformedPairs,
+                    leftItems: content.leftItems,
+                    rightItems: content.rightItems,
+                    rawAnswerKey: answerKey,
                     acceptableAnswers: acceptableAnswers,
                     rubric: transformedRubric || content.rubric || null,
                     guidelines: content.guidelines || content.maxWords || null,

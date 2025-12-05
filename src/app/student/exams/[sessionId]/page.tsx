@@ -13,6 +13,7 @@ import { ExamHeader } from "@/components/exam/take-exam/ExamHeader";
 import { ExamSidebar } from "@/components/exam/take-exam/ExamSidebar";
 import { QuestionRenderer } from "@/components/exam/take-exam/QuestionRenderer";
 import { SubmitDialog } from "@/components/exam/take-exam/SubmitDialog";
+import { MathHtmlRenderer } from "@/components/ui/math-html-renderer";
 
 // Types
 import { Question, Answer } from "@/components/exam/take-exam/types";
@@ -257,9 +258,9 @@ export default function TakeExamPage() {
 
                         <div className="flex-1 p-6 md:p-8 overflow-y-auto">
                             <div className="prose max-w-none mb-8">
-                                <p className="text-lg md:text-xl leading-relaxed text-foreground font-medium">
-                                    {currentQuestion.questionText}
-                                </p>
+                                <div className="text-lg md:text-xl leading-relaxed text-foreground font-medium">
+                                    <MathHtmlRenderer html={currentQuestion.questionText} />
+                                </div>
                             </div>
 
                             <QuestionRenderer

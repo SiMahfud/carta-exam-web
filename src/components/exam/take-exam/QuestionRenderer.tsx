@@ -1,5 +1,6 @@
 import { AlertCircle } from "lucide-react";
 import { MatchingQuestionRenderer } from "@/components/exam/MatchingQuestionRenderer";
+import { MathHtmlRenderer } from "@/components/ui/math-html-renderer";
 import { Question } from "./types";
 
 interface QuestionRendererProps {
@@ -43,8 +44,8 @@ export function QuestionRenderer({ question, answer, onChange }: QuestionRendere
                         />
 
                         <div className="flex-1 pt-1">
-                            <span className={`text-base ${answer === option.label ? "font-medium text-foreground" : "text-foreground/80"}`}>
-                                {option.text}
+                            <span className={`text-base w-full ${answer === option.label ? "font-medium text-foreground" : "text-foreground/80"}`}>
+                                <MathHtmlRenderer html={option.text} />
                             </span>
                         </div>
                     </label>
@@ -96,8 +97,8 @@ export function QuestionRenderer({ question, answer, onChange }: QuestionRendere
                             />
 
                             <div className="flex-1">
-                                <span className={`text-base ${isSelected ? "font-medium text-foreground" : "text-foreground/80"}`}>
-                                    {option.text}
+                                <span className={`text-base w-full ${isSelected ? "font-medium text-foreground" : "text-foreground/80"}`}>
+                                    <MathHtmlRenderer html={option.text} />
                                 </span>
                             </div>
                         </label>

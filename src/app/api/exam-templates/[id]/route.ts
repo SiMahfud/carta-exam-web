@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { examTemplates, subjects } from "@/lib/schema";
 import { eq } from "drizzle-orm";
+import { ActivityLogger } from "@/lib/activity-logger";
 
 // GET /api/exam-templates/[id] - Get template details
 export async function GET(
@@ -145,6 +146,11 @@ export async function PUT(
             );
         }
 
+        // Log activity
+        if (updated[0].createdBy) {
+            await ActivityLogger.examTemplate.updated(updated[0].createdBy, params.id, updated[0].name);
+        }
+
         return NextResponse.json(updated[0]);
     } catch (error) {
         console.error("Error updating exam template:", error);
@@ -177,6 +183,11 @@ export async function DELETE(
                 { error: "Template not found" },
                 { status: 404 }
             );
+        }
+
+        // Log activity (using createdBy from deleted record if available)
+        if (deleted[0].createdBy) {
+            await ActivityLogger.examTemplate.deleted(deleted[0].createdBy, params.id, deleted[0].name);
         }
 
         return NextResponse.json({ message: "Template deleted successfully" });

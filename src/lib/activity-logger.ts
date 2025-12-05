@@ -67,6 +67,32 @@ export const ActivityLogger = {
                 details: { sessionName },
             }),
     },
+    examTemplate: {
+        created: (userId: string, templateId: string, templateName: string) =>
+            logActivity({
+                userId,
+                action: "created",
+                entityType: "exam_template",
+                entityId: templateId,
+                details: { templateName },
+            }),
+        updated: (userId: string, templateId: string, templateName: string) =>
+            logActivity({
+                userId,
+                action: "updated",
+                entityType: "exam_template",
+                entityId: templateId,
+                details: { templateName },
+            }),
+        deleted: (userId: string, templateId: string, templateName: string) =>
+            logActivity({
+                userId,
+                action: "deleted",
+                entityType: "exam_template",
+                entityId: templateId,
+                details: { templateName },
+            }),
+    },
     questionBank: {
         created: (userId: string, bankId: string, bankName: string) =>
             logActivity({

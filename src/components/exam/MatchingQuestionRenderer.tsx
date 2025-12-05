@@ -2,13 +2,14 @@
 
 import { useState, useRef, useEffect, useMemo } from "react";
 import { X } from "lucide-react";
+import { MathHtmlRenderer } from "@/components/ui/math-html-renderer";
 
 interface MatchingQuestionRendererProps {
     question: {
         id: string;
         questionText: string;
-        leftItems?: string[];
-        rightItems?: string[];
+        leftItems?: (string | { id: string; text: string })[];
+        rightItems?: (string | { id: string; text: string })[];
     };
     answer: { left: string; right: string }[] | null;
     onChange: (answer: { left: string; right: string }[]) => void;
@@ -30,14 +31,19 @@ export function MatchingQuestionRenderer({ question, answer, onChange }: Matchin
         "#ef4444", // red
         "#f97316", // orange
         "#eab308", // yellow
-        "#22c55e", // green
-        "#06b6d4", // cyan
-        "#3b82f6", // blue
-        "#8b5cf6", // violet
-        "#d946ef", // fuchsia
     ];
 
     const getColor = (index: number) => colors[index % colors.length];
+
+    const getItemId = (item: string | { id: string; text: string }) => {
+        if (typeof item === 'string') return item;
+        return item.id || item.text; // Fallback to text if id is missing
+    };
+
+    const getItemText = (item: string | { id: string; text: string }) => {
+        if (typeof item === 'string') return item;
+        return item.text;
+    };
 
     // Calculate line positions
     useEffect(() => {
@@ -49,8 +55,12 @@ export function MatchingQuestionRenderer({ question, answer, onChange }: Matchin
             if (!containerRect) return;
 
             connections.forEach((conn, idx) => {
-                const leftEl = document.getElementById(`left-${question.id}-${conn.left}`);
-                const rightEl = document.getElementById(`right-${question.id}-${conn.right}`);
+                // Sanitize IDs for DOM selection to handle special characters if using text as ID
+                const leftId = `left-${question.id}-${conn.left}`.replace(/[^a-zA-Z0-9-_]/g, '_');
+                const rightId = `right-${question.id}-${conn.right}`.replace(/[^a-zA-Z0-9-_]/g, '_');
+
+                const leftEl = document.getElementById(leftId);
+                const rightEl = document.getElementById(rightId);
 
                 if (leftEl && rightEl) {
                     const leftRect = leftEl.getBoundingClientRect();
@@ -65,7 +75,7 @@ export function MatchingQuestionRenderer({ question, answer, onChange }: Matchin
                     const y2 = rightRect.top + rightRect.height / 2 - containerRect.top;
 
                     // Find index of left item to assign consistent color
-                    const leftIndex = leftItems.indexOf(conn.left);
+                    const leftIndex = leftItems.findIndex(item => getItemId(item) === conn.left);
 
                     newLines.push({
                         x1, y1, x2, y2,
@@ -168,15 +178,20 @@ export function MatchingQuestionRenderer({ question, answer, onChange }: Matchin
                 <div className="flex-1 space-y-4 z-20">
                     <h3 className="font-semibold text-center mb-4 text-muted-foreground text-sm uppercase tracking-wider">Pernyataan</h3>
                     {leftItems.map((item, idx) => {
-                        const isSelected = selectedLeft === item;
-                        const isConnected = connections.some(c => c.left === item);
+                        const itemId = getItemId(item);
+                        const itemText = getItemText(item);
+                        const isSelected = selectedLeft === itemId;
+                        const isConnected = connections.some(c => c.left === itemId);
                         const color = getColor(idx);
+
+                        // Sanitize ID for DOM
+                        const domId = `left-${question.id}-${itemId}`.replace(/[^a-zA-Z0-9-_]/g, '_');
 
                         return (
                             <div
-                                id={`left-${question.id}-${item}`}
+                                id={domId}
                                 key={idx}
-                                onClick={() => handleLeftClick(item)}
+                                onClick={() => handleLeftClick(itemId)}
                                 className={`
                                     relative p-4 rounded-xl border-2 cursor-pointer transition-all duration-200
                                     flex items-center justify-between group hover:shadow-md
@@ -188,7 +203,9 @@ export function MatchingQuestionRenderer({ question, answer, onChange }: Matchin
                                 `}
                                 style={{ borderColor: isSelected || isConnected ? color : undefined }}
                             >
-                                <span className="font-medium text-foreground/90">{item}</span>
+                                <div className="font-medium text-foreground/90 w-full">
+                                    <MathHtmlRenderer html={itemText} />
+                                </div>
 
                                 {/* Connection indicator dot */}
                                 <div className={`
@@ -206,15 +223,21 @@ export function MatchingQuestionRenderer({ question, answer, onChange }: Matchin
                 <div className="flex-1 space-y-4 z-20">
                     <h3 className="font-semibold text-center mb-4 text-muted-foreground text-sm uppercase tracking-wider">Pasangan</h3>
                     {rightItems.map((item, idx) => {
+                        const itemId = getItemId(item);
+                        const itemText = getItemText(item);
+
                         // Find all connections to this right item
-                        const itemConnections = connections.filter(c => c.right === item);
+                        const itemConnections = connections.filter(c => c.right === itemId);
                         const isConnected = itemConnections.length > 0;
+
+                        // Sanitize ID for DOM
+                        const domId = `right-${question.id}-${itemId}`.replace(/[^a-zA-Z0-9-_]/g, '_');
 
                         return (
                             <div
-                                id={`right-${question.id}-${item}`}
+                                id={domId}
                                 key={idx}
-                                onClick={() => handleRightClick(item)}
+                                onClick={() => handleRightClick(itemId)}
                                 className={`
                                     relative p-4 rounded-xl border-2 cursor-pointer transition-all duration-200
                                     flex items-center gap-3 group hover:shadow-md
@@ -230,24 +253,26 @@ export function MatchingQuestionRenderer({ question, answer, onChange }: Matchin
                                     ${isConnected ? "bg-primary border-primary" : "bg-muted border-muted-foreground/30"}
                                 `} />
 
-                                <span className="font-medium text-foreground/90 flex-1">{item}</span>
+                                <div className="font-medium text-foreground/90 flex-1">
+                                    <MathHtmlRenderer html={itemText} />
+                                </div>
 
                                 {/* Remove buttons for connections */}
                                 {isConnected && (
                                     <div className="flex -space-x-1">
                                         {itemConnections.map((conn, i) => {
-                                            const leftIndex = leftItems.indexOf(conn.left);
+                                            const leftIndex = leftItems.findIndex(l => getItemId(l) === conn.left);
                                             const color = getColor(leftIndex);
                                             return (
                                                 <button
                                                     key={i}
                                                     onClick={(e) => {
                                                         e.stopPropagation();
-                                                        removeConnection(conn.left, item);
+                                                        removeConnection(conn.left, itemId);
                                                     }}
                                                     className="w-6 h-6 rounded-full flex items-center justify-center text-white text-[10px] hover:scale-110 transition-transform shadow-sm z-30"
                                                     style={{ backgroundColor: color }}
-                                                    title={`Hapus hubungan dengan "${conn.left}"`}
+                                                    title={`Hapus hubungan`}
                                                 >
                                                     <X className="w-3 h-3" />
                                                 </button>

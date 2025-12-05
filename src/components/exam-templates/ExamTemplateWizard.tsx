@@ -74,8 +74,8 @@ export default function ExamTemplateWizard({ initialData, onSubmit, isEditMode =
         try {
             const response = await fetch("/api/subjects");
             if (response.ok) {
-                const data = await response.json();
-                setSubjects(data);
+                const result = await response.json();
+                setSubjects(result.data || []);
             }
         } catch (error) {
             console.error("Error fetching subjects:", error);
@@ -86,8 +86,8 @@ export default function ExamTemplateWizard({ initialData, onSubmit, isEditMode =
         try {
             const response = await fetch(`/api/question-banks?subjectId=${subjectId}`);
             if (response.ok) {
-                const data = await response.json();
-                setQuestionBanks(data);
+                const result = await response.json();
+                setQuestionBanks(result.data || []);
             }
         } catch (error) {
             console.error("Error fetching question banks:", error);
