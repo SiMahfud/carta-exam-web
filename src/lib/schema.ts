@@ -156,6 +156,25 @@ export const examTemplates = sqliteTable("exam_templates", {
     enableLockdown: integer("enable_lockdown", { mode: "boolean" }).default(true),
     requireToken: integer("require_token", { mode: "boolean" }).default(false),
     maxViolations: integer("max_violations").default(3),
+    violationSettings: text("violation_settings", { mode: "json" })
+        .$type<{
+            detectTabSwitch: boolean;
+            detectCopyPaste: boolean;
+            detectRightClick: boolean;
+            detectScreenshot: boolean;
+            detectDevTools: boolean;
+            cooldownSeconds: number;
+            mode: 'lenient' | 'strict' | 'disabled';
+        }>()
+        .$defaultFn(() => ({
+            detectTabSwitch: true,
+            detectCopyPaste: true,
+            detectRightClick: true,
+            detectScreenshot: true,
+            detectDevTools: true,
+            cooldownSeconds: 5,
+            mode: 'strict'
+        })),
     allowReview: integer("allow_review", { mode: "boolean" }).default(false),
     showResultImmediately: integer("show_result_immediately", { mode: "boolean" }).default(false),
     allowRetake: integer("allow_retake", { mode: "boolean" }).default(false),
@@ -185,6 +204,9 @@ export const examSessions = sqliteTable("exam_sessions", {
 
     // Status
     status: text("status", { enum: ["scheduled", "active", "completed", "cancelled"] }).default("scheduled"),
+
+    // Access Token (for requireToken feature)
+    accessToken: text("access_token"),
 
     // Assignment
     targetType: text("target_type", { enum: ["class", "individual"] }).notNull(),
@@ -275,6 +297,7 @@ export const submissions = sqliteTable("submissions", {
     flaggedQuestions: text("flagged_questions", { mode: "json" }), // Array of question IDs marked as "ragu-ragu"
     violationCount: integer("violation_count").default(0),
     violationLog: text("violation_log", { mode: "json" }), // Array of { type, timestamp }
+    bonusTimeMinutes: integer("bonus_time_minutes").default(0), // Additional time granted by admin
     status: text("status", { enum: ["in_progress", "completed", "terminated"] }).default("in_progress"),
 
     // Grading status

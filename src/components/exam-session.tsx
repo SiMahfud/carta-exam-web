@@ -18,7 +18,8 @@ export default function ExamSession({ exam, questions, submission, user }: { exa
     const [currentIndex, setCurrentIndex] = useState(0)
     const [answers, setAnswers] = useState<Record<string, any>>({})
     const [flaggedQuestions, setFlaggedQuestions] = useState<Set<string>>(new Set())
-    const [timeLeft, setTimeLeft] = useState(exam.durationMinutes * 60)
+    const totalDurationMinutes = exam.durationMinutes + (submission.bonusTimeMinutes || 0)
+    const [timeLeft, setTimeLeft] = useState(totalDurationMinutes * 60)
     const [isFinished, setIsFinished] = useState(false)
     const [violationCount, setViolationCount] = useState(submission.violationCount || 0)
     const [showViolationWarning, setShowViolationWarning] = useState(false)
@@ -30,9 +31,9 @@ export default function ExamSession({ exam, questions, submission, user }: { exa
         const startTime = new Date(submission.startTime).getTime()
         const now = new Date().getTime()
         const elapsedSeconds = Math.floor((now - startTime) / 1000)
-        const remaining = (exam.durationMinutes * 60) - elapsedSeconds
+        const remaining = (totalDurationMinutes * 60) - elapsedSeconds
         setTimeLeft(remaining > 0 ? remaining : 0)
-    }, [submission.startTime, exam.durationMinutes])
+    }, [submission.startTime, totalDurationMinutes])
 
     // Timer tick
     useEffect(() => {

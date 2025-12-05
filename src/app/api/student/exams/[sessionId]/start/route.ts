@@ -10,7 +10,7 @@ export async function POST(
 ) {
     try {
         const body = await request.json();
-        const { studentId } = body; // TODO: Get from auth session
+        const { studentId, token } = body; // TODO: Get studentId from auth session
 
         if (!studentId) {
             return NextResponse.json(
@@ -41,6 +41,7 @@ export async function POST(
             startTime: examSessions.startTime,
             endTime: examSessions.endTime,
             status: examSessions.status,
+            accessToken: examSessions.accessToken,
         })
             .from(examSessions)
             .where(eq(examSessions.id, params.sessionId))
@@ -78,6 +79,23 @@ export async function POST(
         }
 
         const template = templateData[0];
+
+        // Token validation if required
+        if (template.requireToken) {
+            if (!token) {
+                return NextResponse.json(
+                    { error: "Token diperlukan untuk memulai ujian", requireToken: true },
+                    { status: 403 }
+                );
+            }
+            if (token !== session.accessToken) {
+                return NextResponse.json(
+                    { error: "Token tidak valid", requireToken: true },
+                    { status: 403 }
+                );
+            }
+        }
+
         const composition = template.questionComposition as any;
         const bankIds = template.bankIds as string[];
 

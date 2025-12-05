@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { ArrowLeft, RefreshCw, Users, PlayCircle, CheckCircle, AlertTriangle, Clock, Eye } from "lucide-react";
+import { ArrowLeft, RefreshCw, Users, PlayCircle, CheckCircle, AlertTriangle, Clock, Eye, Key, Copy } from "lucide-react";
 import {
     Dialog,
     DialogContent,
@@ -70,6 +70,7 @@ export default function SessionMonitorPage() {
     const [selectedStudentIds, setSelectedStudentIds] = useState<string[]>([]);
     const [actionDialogOpen, setActionDialogOpen] = useState(false);
     const [selectedAction, setSelectedAction] = useState<string>("");
+    const [selectedMinutes, setSelectedMinutes] = useState<number>(10);
     const [processingAction, setProcessingAction] = useState(false);
 
     // Violations dialog state
@@ -78,8 +79,14 @@ export default function SessionMonitorPage() {
     const [violations, setViolations] = useState<Violation[]>([]);
     const [loadingViolations, setLoadingViolations] = useState(false);
 
+    // Token state
+    const [accessToken, setAccessToken] = useState<string | null>(null);
+    const [requireToken, setRequireToken] = useState(false);
+    const [generatingToken, setGeneratingToken] = useState(false);
+
     useEffect(() => {
         fetchData();
+        fetchToken();
         // Auto-refresh every 30s
         const interval = setInterval(fetchData, 30000);
         return () => clearInterval(interval);
@@ -107,6 +114,45 @@ export default function SessionMonitorPage() {
         } finally {
             setLoading(false);
             setRefreshing(false);
+        }
+    };
+
+    const fetchToken = async () => {
+        try {
+            const response = await fetch(`/api/exam-sessions/${params.id}/token`);
+            if (response.ok) {
+                const data = await response.json();
+                setAccessToken(data.accessToken);
+                setRequireToken(data.requireToken);
+            }
+        } catch (error) {
+            console.error("Error fetching token:", error);
+        }
+    };
+
+    const generateToken = async () => {
+        setGeneratingToken(true);
+        try {
+            const response = await fetch(`/api/exam-sessions/${params.id}/token`, {
+                method: 'POST',
+            });
+            if (response.ok) {
+                const data = await response.json();
+                setAccessToken(data.accessToken);
+                toast({
+                    title: "Token Generated",
+                    description: `Token baru: ${data.accessToken}`,
+                });
+            }
+        } catch (error) {
+            console.error("Error generating token:", error);
+            toast({
+                title: "Error",
+                description: "Gagal generate token",
+                variant: "destructive",
+            });
+        } finally {
+            setGeneratingToken(false);
         }
     };
 
@@ -164,7 +210,8 @@ export default function SessionMonitorPage() {
                 },
                 body: JSON.stringify({
                     studentIds: selectedStudentIds,
-                    action: selectedAction
+                    action: selectedAction,
+                    ...(selectedAction === 'add_time' && { minutes: selectedMinutes })
                 }),
             });
 
@@ -309,53 +356,127 @@ export default function SessionMonitorPage() {
                 </Card>
             </div>
 
+            {/* Token Card - only show if requireToken is enabled */}
+            {requireToken && (
+                <Card className="border-orange-200 bg-orange-50/50">
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                        <div className="flex items-center gap-2">
+                            <Key className="h-5 w-5 text-orange-600" />
+                            <CardTitle className="text-base font-medium">Token Ujian</CardTitle>
+                        </div>
+                        <Badge variant="outline" className="text-orange-600 border-orange-300">Diperlukan</Badge>
+                    </CardHeader>
+                    <CardContent>
+                        {accessToken ? (
+                            <div className="flex items-center gap-3">
+                                <div className="text-3xl font-mono font-bold tracking-widest text-orange-700">
+                                    {accessToken}
+                                </div>
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => {
+                                        navigator.clipboard.writeText(accessToken);
+                                        toast({ title: "Token disalin ke clipboard" });
+                                    }}
+                                >
+                                    <Copy className="h-4 w-4" />
+                                </Button>
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={generateToken}
+                                    disabled={generatingToken}
+                                >
+                                    {generatingToken ? "..." : "Generate Baru"}
+                                </Button>
+                            </div>
+                        ) : (
+                            <div className="flex items-center gap-3">
+                                <span className="text-muted-foreground">Belum ada token</span>
+                                <Button
+                                    size="sm"
+                                    onClick={generateToken}
+                                    disabled={generatingToken}
+                                >
+                                    {generatingToken ? "Generating..." : "Generate Token"}
+                                </Button>
+                            </div>
+                        )}
+                        <p className="text-xs text-muted-foreground mt-2">
+                            Siswa memerlukan token ini untuk memulai ujian.
+                        </p>
+                    </CardContent>
+                </Card>
+            )}
+
             {/* Filters and Actions */}
-            <div className="flex flex-col md:flex-row gap-4 justify-between items-end md:items-center">
-                <div className="flex gap-4 w-full md:w-auto">
-                    <div className="w-full md:w-64">
+            <Card className="p-4">
+                <div className="flex flex-col lg:flex-row gap-4 justify-between">
+                    {/* Search and Filter */}
+                    <div className="flex flex-wrap gap-3 items-center">
                         <input
                             type="text"
                             placeholder="Cari nama siswa..."
-                            className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                            className="flex h-9 w-full sm:w-52 rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
                         />
+                        <select
+                            className="flex h-9 rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring disabled:cursor-not-allowed disabled:opacity-50 w-36"
+                            value={classFilter}
+                            onChange={(e) => setClassFilter(e.target.value)}
+                        >
+                            <option value="all">Semua Kelas</option>
+                            {uniqueClasses.map(cls => (
+                                <option key={cls} value={cls}>{cls}</option>
+                            ))}
+                        </select>
                     </div>
-                    <select
-                        className="flex h-10 items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 w-40"
-                        value={classFilter}
-                        onChange={(e) => setClassFilter(e.target.value)}
-                    >
-                        <option value="all">Semua Kelas</option>
-                        {uniqueClasses.map(cls => (
-                            <option key={cls} value={cls}>{cls}</option>
-                        ))}
-                    </select>
-                </div>
 
-                <div className="flex gap-2 items-center">
-                    <span className="text-sm text-muted-foreground">
-                        {selectedStudentIds.length} dipilih
-                    </span>
-                    <select
-                        className="flex h-10 items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 w-40"
-                        value={selectedAction}
-                        onChange={(e) => setSelectedAction(e.target.value)}
-                        disabled={selectedStudentIds.length === 0}
-                    >
-                        <option value="">Pilih Aksi...</option>
-                        <option value="reset_time">Reset Waktu</option>
-                        <option value="force_finish">Paksa Selesai</option>
-                        <option value="retake">Ulang Ujian</option>
-                    </select>
-                    <Button
-                        onClick={() => setActionDialogOpen(true)}
-                        disabled={!selectedAction || selectedStudentIds.length === 0}
-                    >
-                        Terapkan
-                    </Button>
+                    {/* Actions */}
+                    <div className="flex flex-wrap gap-2 items-center">
+                        <span className="text-sm text-muted-foreground whitespace-nowrap">
+                            {selectedStudentIds.length} dipilih
+                        </span>
+                        <div className="flex flex-wrap gap-2 items-center">
+                            <select
+                                className="flex h-9 rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring disabled:cursor-not-allowed disabled:opacity-50 w-36"
+                                value={selectedAction}
+                                onChange={(e) => setSelectedAction(e.target.value)}
+                                disabled={selectedStudentIds.length === 0}
+                            >
+                                <option value="">Pilih Aksi...</option>
+                                <option value="add_time">Tambah Waktu</option>
+                                <option value="reset_time">Reset Waktu</option>
+                                <option value="reset_violations">Reset Pelanggaran</option>
+                                <option value="force_finish">Paksa Selesai</option>
+                                <option value="retake">Ulang Ujian</option>
+                            </select>
+                            {selectedAction === 'add_time' && (
+                                <select
+                                    className="flex h-9 rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring w-28"
+                                    value={selectedMinutes}
+                                    onChange={(e) => setSelectedMinutes(parseInt(e.target.value))}
+                                >
+                                    <option value={5}>+5 menit</option>
+                                    <option value={10}>+10 menit</option>
+                                    <option value={15}>+15 menit</option>
+                                    <option value={30}>+30 menit</option>
+                                    <option value={60}>+60 menit</option>
+                                </select>
+                            )}
+                            <Button
+                                size="sm"
+                                onClick={() => setActionDialogOpen(true)}
+                                disabled={!selectedAction || selectedStudentIds.length === 0}
+                            >
+                                Terapkan
+                            </Button>
+                        </div>
+                    </div>
                 </div>
-            </div>
+            </Card>
 
             {/* Student List */}
             <Card>
@@ -445,9 +566,11 @@ export default function SessionMonitorPage() {
                         <DialogTitle>Konfirmasi Aksi</DialogTitle>
                         <DialogDescription>
                             Apakah Anda yakin ingin melakukan aksi <strong>
-                                {selectedAction === 'reset_time' ? 'Reset Waktu' :
-                                    selectedAction === 'force_finish' ? 'Paksa Selesai' :
-                                        selectedAction === 'retake' ? 'Ulang Ujian' : selectedAction}
+                                {selectedAction === 'add_time' ? `Tambah Waktu (+${selectedMinutes} menit)` :
+                                    selectedAction === 'reset_time' ? 'Reset Waktu' :
+                                        selectedAction === 'reset_violations' ? 'Reset Pelanggaran' :
+                                            selectedAction === 'force_finish' ? 'Paksa Selesai' :
+                                                selectedAction === 'retake' ? 'Ulang Ujian' : selectedAction}
                             </strong> pada {selectedStudentIds.length} peserta yang dipilih?
                         </DialogDescription>
                     </DialogHeader>

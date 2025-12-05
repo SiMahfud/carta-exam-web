@@ -35,8 +35,17 @@ export async function GET(
             );
         }
 
-        const submission = submissionData[0];
+        let submission = submissionData[0];
         const questionOrder = submission.questionOrder as string[];
+
+        // If startTime is null (after reset), set it to current time
+        if (!submission.startTime) {
+            const now = new Date();
+            await db.update(submissions)
+                .set({ startTime: now })
+                .where(eq(submissions.id, submission.id));
+            submission = { ...submission, startTime: now };
+        }
 
         // Get session to fetch template
         const sessionData = await db.select({
@@ -127,13 +136,14 @@ export async function GET(
 
         // Calculate effective end time
         // End time is the earlier of:
-        // 1. Student's start time + duration
+        // 1. Student's start time + duration + bonus time
         // 2. Session's hard end time
         let effectiveEndTime = new Date(session.endTime);
+        const bonusMinutes = submission.bonusTimeMinutes || 0;
 
         if (submission.startTime && template.durationMinutes) {
             const startTime = new Date(submission.startTime);
-            const durationMs = template.durationMinutes * 60 * 1000;
+            const durationMs = (template.durationMinutes + bonusMinutes) * 60 * 1000;
             const studentEndTime = new Date(startTime.getTime() + durationMs);
 
             if (studentEndTime < effectiveEndTime) {

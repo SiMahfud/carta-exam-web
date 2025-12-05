@@ -1,6 +1,6 @@
 export interface Question {
     id: string;
-    type: "mc" | "complex_mc" | "matching" | "short" | "essay";
+    type: "mc" | "complex_mc" | "matching" | "short" | "essay" | "true_false";
     questionText: string;
     options?: { label: string; text: string }[];
     pairs?: { left: string; right: string }[];

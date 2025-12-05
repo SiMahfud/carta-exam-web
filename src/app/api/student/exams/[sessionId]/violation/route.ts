@@ -6,9 +6,10 @@ import { eq, and } from "drizzle-orm";
 // POST /api/student/exams/[sessionId]/violation - Log a violation
 export async function POST(
     request: Request,
-    { params }: { params: { sessionId: string } }
+    { params }: { params: Promise<{ sessionId: string }> }
 ) {
     try {
+        const { sessionId } = await params;
         const body = await request.json();
         const { studentId, type, details } = body;
         // type: 'tab_switch', 'copy_paste', 'right_click', 'screenshot', etc.
@@ -24,7 +25,7 @@ export async function POST(
         const submissionData = await db.select()
             .from(submissions)
             .where(and(
-                eq(submissions.sessionId, params.sessionId),
+                eq(submissions.sessionId, sessionId),
                 eq(submissions.userId, studentId)
             ))
             .limit(1);
@@ -43,7 +44,7 @@ export async function POST(
             templateId: examSessions.templateId,
         })
             .from(examSessions)
-            .where(eq(examSessions.id, params.sessionId))
+            .where(eq(examSessions.id, sessionId))
             .limit(1);
 
         if (sessionData.length === 0) {

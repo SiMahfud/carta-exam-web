@@ -11,6 +11,16 @@ export interface QuestionBank {
     description?: string;
 }
 
+export interface ViolationSettings {
+    detectTabSwitch: boolean;
+    detectCopyPaste: boolean;
+    detectRightClick: boolean;
+    detectScreenshot: boolean;
+    detectDevTools: boolean;
+    cooldownSeconds: number;
+    mode: 'lenient' | 'strict' | 'disabled';
+}
+
 export interface ExamTemplateFormData {
     name: string;
     description: string;
@@ -34,6 +44,7 @@ export interface ExamTemplateFormData {
     enableLockdown: boolean;
     requireToken: boolean;
     maxViolations: number;
+    violationSettings: ViolationSettings;
     // New fields
     targetType: 'all' | 'classes' | 'grades' | 'students';
     targetIds: string[];

@@ -1,4 +1,7 @@
+"use client";
+
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { logout } from "@/actions/auth";
 import { FileText, User, ShieldCheck, LogOut } from "lucide-react";
@@ -8,6 +11,22 @@ export default function StudentLayout({
 }: {
     children: React.ReactNode;
 }) {
+    const pathname = usePathname();
+
+    // Check if currently in an active exam session (taking exam)
+    // Path pattern: /student/exams/[sessionId] (not just /student/exams)
+    const isInExamSession = pathname?.match(/^\/student\/exams\/[^\/]+$/);
+
+    // If in exam session, render minimal layout without header
+    if (isInExamSession) {
+        return (
+            <div className="min-h-screen bg-background">
+                {children}
+            </div>
+        );
+    }
+
+    // Normal layout with header
     return (
         <div className="min-h-screen flex flex-col bg-muted/30">
             <header className="sticky top-0 z-50 w-full border-b bg-background/80 backdrop-blur-md supports-[backdrop-filter]:bg-background/60">

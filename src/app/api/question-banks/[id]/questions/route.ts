@@ -79,7 +79,7 @@ export async function GET(
         // Filter by tags if provided (client-side for simplicity with JSON field)
         let filteredQuestions = questions;
         if (tags && tags.length > 0) {
-            filteredQuestions = questions.filter(q => {
+            filteredQuestions = questions.filter((q: any) => {
                 const questionTags = (q.tags as string[]) || [];
                 return tags.some(tag => questionTags.includes(tag));
             });
@@ -185,7 +185,7 @@ export async function POST(
                 } catch (err) {
                     console.error(`Error processing question index ${i}:`, err);
                     if (err instanceof z.ZodError) {
-                        results.errors.push({ index: i, error: err.errors });
+                        results.errors.push({ index: i, error: (err as any).errors });
                     } else {
                         results.errors.push({ index: i, error: "Internal server error" });
                     }
@@ -222,7 +222,7 @@ export async function POST(
     } catch (error) {
         console.error("Error creating question:", error);
         if (error instanceof z.ZodError) {
-            return NextResponse.json({ error: "Validation failed", details: error.errors }, { status: 400 });
+            return NextResponse.json({ error: "Validation failed", details: (error as any).errors }, { status: 400 });
         }
         return NextResponse.json(
             { error: "Failed to create question" },

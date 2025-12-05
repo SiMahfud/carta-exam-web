@@ -58,6 +58,15 @@ export default function ExamTemplateWizard({ initialData, onSubmit, isEditMode =
         enableLockdown: true,
         requireToken: false,
         maxViolations: 3,
+        violationSettings: {
+            detectTabSwitch: true,
+            detectCopyPaste: true,
+            detectRightClick: true,
+            detectScreenshot: true,
+            detectDevTools: true,
+            cooldownSeconds: 5,
+            mode: 'strict' as const,
+        },
         // New field defaults
         targetType: 'all',
         targetIds: [],

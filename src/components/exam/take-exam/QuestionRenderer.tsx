@@ -151,5 +151,48 @@ export function QuestionRenderer({ question, answer, onChange }: QuestionRendere
         );
     }
 
+    if (question.type === "true_false") {
+        return (
+            <div className="space-y-3 max-w-xl">
+                {[
+                    { value: "true", label: "Benar" },
+                    { value: "false", label: "Salah" }
+                ].map((option) => (
+                    <label
+                        key={option.value}
+                        className={`
+                            flex items-center gap-4 p-4 rounded-xl border-2 cursor-pointer transition-all duration-200 group
+                            ${answer === option.value
+                                ? "border-primary bg-primary/5 shadow-sm"
+                                : "border-muted bg-background hover:border-primary/30 hover:bg-muted/30"}
+                        `}
+                    >
+                        <div className={`
+                            flex items-center justify-center w-8 h-8 rounded-full border-2 shrink-0 transition-colors
+                            ${answer === option.value
+                                ? "border-primary bg-primary text-primary-foreground"
+                                : "border-muted-foreground/30 text-muted-foreground group-hover:border-primary/50"}
+                        `}>
+                            {answer === option.value && <div className="w-2.5 h-2.5 bg-white rounded-full" />}
+                        </div>
+
+                        <input
+                            type="radio"
+                            name="true_false_answer"
+                            value={option.value}
+                            checked={answer === option.value}
+                            onChange={(e) => onChange(e.target.value)}
+                            className="sr-only"
+                        />
+
+                        <span className={`text-lg font-medium ${answer === option.value ? "text-foreground" : "text-foreground/80"}`}>
+                            {option.label}
+                        </span>
+                    </label>
+                ))}
+            </div>
+        );
+    }
+
     return <div>Tipe soal tidak dikenali</div>;
 }
