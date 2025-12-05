@@ -74,10 +74,15 @@ Template Ujian mendefinisikan aturan dan struktur ujian.
    - Menggunakan semua soal dari bank.
    - Memilih sejumlah soal secara acak.
    - Memfilter berdasarkan tag atau kesulitan.
-5. **Pengaturan**:
-   - Aktifkan **Lockdown Browser** (mencegah pindah tab).
-   - Acak Urutan Soal.
-   - Acak Urutan Jawaban.
+5. **Pengaturan Keamanan**:
+   - **Lockdown Browser**: Aktifkan untuk mencegah kecurangan.
+   - **Mode Pelanggaran**:
+     - *Ketat*: Ujian otomatis berhenti jika melanggar.
+     - *Toleran*: Hanya mencatat, ujian tetap lanjut.
+     - *Nonaktif*: Tidak ada deteksi.
+   - **Jenis Deteksi**: Pilih apa yang dideteksi (Pindah Tab, Copy-Paste, Klik Kanan, Screenshot, DevTools).
+   - **Token Ujian**: Wajibkan siswa memasukkan token untuk memulai.
+   - **Pengaturan Lain**: Acak soal/jawaban, durasi.
 6. Klik **Simpan Template** (Save Template).
 
 ### Langkah 2: Jadwalkan Sesi Ujian
@@ -95,9 +100,11 @@ Selama sesi aktif, Anda dapat memantau kemajuan siswa.
 2. Anda akan melihat dasbor langsung yang menampilkan:
    - Siapa yang sudah mulai.
    - Kemajuan saat ini (soal terjawab).
-   - **Pelanggaran**: Peringatan untuk pindah tab atau perilaku mencurigakan.
+   - **Token Ujian**: Lihat dan generate token akses untuk siswa.
+   - **Pelanggaran**: Peringatan real-time untuk perilaku mencurigakan.
 3. Anda dapat melakukan aksi terhadap siswa:
    - **Reset Waktu**: Mengatur ulang sisa waktu siswa.
+   - **Reset Pelanggaran**: Menghapus jumlah pelanggaran siswa (jika terkena blokir).
    - **Paksa Selesai**: Menghentikan ujian siswa secara paksa.
    - **Ujian Ulang**: Mengizinkan siswa untuk memulai ulang ujian dari awal.
 

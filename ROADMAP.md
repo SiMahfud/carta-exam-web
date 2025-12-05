@@ -55,6 +55,11 @@ Advanced Features:    ███░░░░░░░░░░░░░░░░�
   - Violation tracking
   - Auto-termination on max violations
   - Dynamic token system
+  - **New Security Features**:
+    - [x] Detailed violation settings (per-type toggle)
+    - [x] Violation modes (Strict/Lenient)
+    - [x] Cooldown configuration
+    - [x] "Reset Violations" admin action
   
 - [x] **Grading System**
   - Auto-grading for objective questions

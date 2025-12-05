@@ -76,6 +76,10 @@ Dokumentasi lengkap tersedia untuk membantu Anda memahami dan berkontribusi pada
 - ✅ **Code Splitting**: Refactored large components (`ExamTemplateWizard`, `TakeExamPage`) into smaller, maintainable pieces
 - ✅ **API Standardization**: Centralized error handling and response formats across all API endpoints
 - ✅ **Database Optimization**: Added indexes to 13 tables for improved query performance
+- ✅ **Exam Security Enhancements**:
+  - **Granular Violation Settings**: Configurable detection (tab switch, copy-paste, etc.) and violation modes (Strict/Lenient).
+  - **Token System**: Complete token management flow (Generate, View, Validate) for secure exam access.
+  - **Violation Management**: "Reset Violations" action for admins to unblock students.
 
 ### 🗺️ Pengembangan & Roadmap
 - [ROADMAP.md](ROADMAP.md) - **Roadmap pengembangan lengkap** dengan checklist fitur, spesifikasi teknis, dan prioritas
@@ -123,4 +127,4 @@ Dikembangkan untuk SMAN 1 Campurdarat dengan tujuan meningkatkan kualitas dan ef
 
 **Status Proyek**: 🟡 Beta - Menuju Production Ready  
 **Versi**: 0.1.0  
-**Last Updated**: December 4, 2025
+**Last Updated**: December 5, 2025

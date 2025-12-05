@@ -1,7 +1,7 @@
 # ✅ CartaExam Feature Status
 
 > **Quick Reference**: Current implementation status of all features  
-> **Last Updated**: December 4, 2025
+> **Last Updated**: December 5, 2025
 
 ---
 
@@ -106,6 +106,8 @@
 | → Bulk selection | ✅ | Select all/deselect all |
 | → Table view | ✅ | DataTables-like interface |
 | Session analytics | 📋 | Planned for Phase 3 |
+| **Add Time Feature** | ✅ | Add extra time to ongoing exams |
+| **Reset Violations** | ✅ | Reset student violations manually |
 | Recurring sessions | ❌ | Future |
 
 ---
@@ -114,15 +116,19 @@
 
 ### Lockdown Features
 | Feature | Status | Notes |
-|---------|--------|-------|
-| Tab switch detection | ✅ | Complete |
+|---------|--------|----- --|
+| Tab switch detection | ✅ | Complete with debounce |
 | Copy-paste prevention | ✅ | Complete |
 | Fullscreen enforcement | ✅ | Complete |
-| Violation tracking | ✅ | With logs |
+| Violation tracking | ✅ | With detailed logs |
 | Auto-termination | ✅ | Configurable max violations |
-| Dynamic token system | ✅ | Complete |
-| Right-click disable | ✅ | Implemented |
-| Screenshot detection | 🚧 | Partial |
+| Dynamic token system | ✅ | Complete with admin UI |
+| Right-click disable | ✅ | Configurable per template |
+| Screenshot detection | ✅ | Complete with debounce |
+| DevTools detection (F12) | ✅ | Complete |
+| **Configurable Detection** | ✅ | Per-type enable/disable in wizard |
+| **Violation Cooldown** | ✅ | 3-15 sec configurable |
+| **Violation Modes** | ✅ | Strict/Lenient/Disabled |
 | **Advanced Proctoring** | | |
 | → Webcam monitoring | ❌ | Planned for Phase 3 |
 | → Screen recording | ❌ | Planned for Phase 3 |
@@ -422,4 +428,4 @@
 
 ---
 
-**Last Updated**: December 4, 2025 | **Version**: 1.0.1
+**Last Updated**: December 5, 2025 | **Version**: 1.0.2

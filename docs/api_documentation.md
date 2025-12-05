@@ -79,6 +79,12 @@ Mengelola sesi ujian terjadwal.
   - Memperbarui sesi ujian (misal: ubah status, waktu).
 - **DELETE** `/api/exam-sessions/[id]`
   - Membatalkan/Menghapus sesi ujian.
+- **GET** `/api/exam-sessions/[id]/token`
+  - Mendapatkan token akses aktif (jika ada).
+- **POST** `/api/exam-sessions/[id]/token`
+  - Bankitkan (generate) token akses baru.
+- **DELETE** `/api/exam-sessions/[id]/token`
+  - Hapus token akses aktif.
 
 ### Penilaian (Grading)
 Mengelola penilaian hasil ujian.
@@ -120,8 +126,9 @@ Endpoint untuk pelaksanaan ujian siswa.
 
 - **GET** `/api/student/exams`
   - Menampilkan daftar ujian yang ditugaskan untuk siswa saat ini.
-- **POST** `/api/student/exam/[examId]/start`
+- **POST** `/api/student/exams/[sessionId]/start`
   - Memulai sesi ujian.
+  - Body: `{ studentId: string, token?: string }`
 - **POST** `/api/student/exam/[examId]/submit`
   - Mengumpulkan ujian.
 - **POST** `/api/student/exam/[examId]/answer`
