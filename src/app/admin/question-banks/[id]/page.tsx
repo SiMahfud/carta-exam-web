@@ -57,6 +57,7 @@ import { MatchingEditor } from "@/components/question-editor/MatchingEditor";
 import { EssayEditor } from "@/components/question-editor/EssayEditor";
 import { TrueFalseEditor } from "@/components/question-editor/TrueFalseEditor";
 import { ImportQuestionsDialog } from "@/components/question-editor/ImportQuestionsDialog";
+import { MathHtmlRenderer } from "@/components/ui/math-html-renderer";
 
 interface BankQuestion {
     id: string;
@@ -525,8 +526,7 @@ export default function QuestionBankDetailPage() {
                                             </Badge>
                                         </div>
                                         <CardTitle className="text-base">
-                                            {question.content?.question ||
-                                                "No question text"}
+                                            <MathHtmlRenderer html={question.content?.question || "No question text"} />
                                         </CardTitle>
                                         {question.tags && question.tags.length > 0 && (
                                             <div className="flex gap-1 mt-2">

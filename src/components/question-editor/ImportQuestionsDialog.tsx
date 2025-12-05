@@ -17,6 +17,7 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { Upload, FileText, Check, AlertCircle, Loader2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { MatchingQuestionRenderer } from "@/components/exam/MatchingQuestionRenderer";
 
 interface ImportQuestionsDialogProps {
     bankId: string;
@@ -514,22 +515,21 @@ export function ImportQuestionsDialog({ bankId, onSuccess }: ImportQuestionsDial
                                         {/* Matching Preview */}
                                         {question.type === 'matching' && (
                                             <div className="space-y-3 pl-4">
-                                                <p className="text-sm font-semibold text-muted-foreground mb-2">Pasangan Jawaban:</p>
-                                                <div className="grid grid-cols-2 gap-4">
-                                                    <div className="space-y-2">
-                                                        {question.content.leftItems?.map((item: any, i: number) => (
-                                                            <div key={i} className="p-2 border rounded text-sm bg-muted/30">
-                                                                {item.text}
-                                                            </div>
-                                                        ))}
-                                                    </div>
-                                                    <div className="space-y-2">
-                                                        {question.content.rightItems?.map((item: any, i: number) => (
-                                                            <div key={i} className="p-2 border rounded text-sm bg-muted/30">
-                                                                {item.text}
-                                                            </div>
-                                                        ))}
-                                                    </div>
+                                                <p className="text-sm font-semibold text-muted-foreground mb-2">Preview Pasangan:</p>
+                                                <div className="border rounded-lg p-4 bg-muted/10">
+                                                    <MatchingQuestionRenderer
+                                                        question={{
+                                                            id: `import-${idx}`,
+                                                            questionText: "",
+                                                            leftItems: question.content.leftItems,
+                                                            rightItems: question.content.rightItems
+                                                        }}
+                                                        answer={question.answerKey.matches?.map((m: any) => ({
+                                                            left: m.leftId,
+                                                            right: m.rightId
+                                                        })) || []}
+                                                        onChange={() => { }} // Read-only
+                                                    />
                                                 </div>
                                                 <div className="mt-2 text-xs text-muted-foreground">
                                                     Matches detected: {question.answerKey.matches?.length} pair(s)
