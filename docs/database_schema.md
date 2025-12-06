@@ -122,6 +122,7 @@ Cetak biru (blueprint) untuk ujian, mendefinisikan aturan, waktu, dan pemilihan 
 | `randomize_questions` | BOOLEAN | Acak urutan soal |
 | `randomize_answers` | BOOLEAN | Acak urutan jawaban |
 | `enable_lockdown` | BOOLEAN | Aktifkan lockdown browser |
+| `violation_settings` | JSON | Detail pengaturan pelanggaran (detectTabSwitch, cooldown, dll) |
 | `created_by` | TEXT | Foreign Key -> `users.id` |
 
 #### `exam_sessions`
@@ -137,6 +138,7 @@ Sesi terjadwal dari template ujian.
 | `status` | TEXT | Enum: `scheduled`, `active`, `completed`, `cancelled` |
 | `target_type` | TEXT | Enum: `class`, `individual` |
 | `target_ids` | JSON | ID kelas atau siswa yang ditugaskan |
+| `access_token` | TEXT | Token akses statis untuk sesi jika diaktifkan |
 
 #### `question_pools`
 Menyimpan set soal spesifik yang dihasilkan untuk siswa dalam sesi (jika menggunakan pengacakan).
@@ -185,6 +187,7 @@ Pengumpulan jawaban siswa untuk ujian.
 | `score` | INTEGER | Total nilai |
 | `status` | TEXT | Enum: `in_progress`, `completed`, `terminated` |
 | `violation_count` | INTEGER | Jumlah pelanggaran terdeteksi |
+| `bonus_time_minutes` | INTEGER | Waktu tambahan yang diberikan guru (menit) |
 
 #### `answers`
 Jawaban individu dalam pengumpulan.
