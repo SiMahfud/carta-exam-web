@@ -2,7 +2,8 @@
 
 import { useRouter } from "next/navigation";
 import { useToast } from "@/hooks/use-toast";
-import ExamTemplateWizard, { ExamTemplateFormData } from "@/components/exam-templates/ExamTemplateWizard";
+import ExamTemplateWizard from "@/components/exam-templates/ExamTemplateWizard";
+import { ExamTemplateFormData } from "@/components/exam-templates/types";
 
 export default function CreateExamTemplatePage() {
     const router = useRouter();

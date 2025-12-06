@@ -1,7 +1,7 @@
 # ✅ CartaExam Feature Status
 
 > **Quick Reference**: Current implementation status of all features  
-> **Last Updated**: December 5, 2025
+> **Last Updated**: December 6, 2025
 
 ---
 
@@ -81,7 +81,12 @@
 |---------|--------|-------|
 | Template creation | ✅ | Complete |
 | Question composition | ✅ | By type and count |
-| Randomization settings | ✅ | Questions & answers |
+| **Randomization settings** | ✅ | **Enhanced Dec 6** - 4 modes with answer shuffle |
+| → Shuffle all questions | ✅ | Default mode |
+| → Shuffle by question type | ✅ | Only shuffle selected types |
+| → Shuffle except type | ✅ | Shuffle all except selected types |
+| → Shuffle specific numbers | ✅ | Only shuffle specified question numbers |
+| → Shuffle answer options | ✅ | Toggle for MC, Complex MC, True/False, Matching |
 | Timing configuration | ✅ | Duration & min duration |
 | Security settings | ✅ | Lockdown, tokens, violations |
 | Target selection | ✅ | Classes/individuals |
@@ -428,4 +433,4 @@
 
 ---
 
-**Last Updated**: December 5, 2025 | **Version**: 1.0.2
+**Last Updated**: December 6, 2025 | **Version**: 1.0.3

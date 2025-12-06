@@ -64,7 +64,7 @@ export async function GET(
 
         // Get template for randomization settings
         const templateData = await db.select({
-            randomizeAnswers: examTemplates.randomizeAnswers,
+            randomizationRules: examTemplates.randomizationRules,
             durationMinutes: examTemplates.durationMinutes,
         })
             .from(examTemplates)
@@ -72,6 +72,8 @@ export async function GET(
             .limit(1);
 
         const template = templateData[0];
+        const randomizationRules = template.randomizationRules as { shuffleAnswers?: boolean } | null;
+        const shuffleAnswers = randomizationRules?.shuffleAnswers || false;
 
         // Fetch all questions
         const questions = await db.select()
@@ -80,15 +82,14 @@ export async function GET(
 
         // Map questions in the correct order
         const orderedQuestions = questionOrder.map(id => {
-            const question = questions.find(q => q.id === id);
+            const question = questions.find((q: typeof questions[0]) => q.id === id);
             if (!question) return null;
 
             const content = question.content as any;
-            const answerKey = question.answerKey as any;
 
             // Randomize options if enabled (for MC and Complex MC)
             let options = content.options || [];
-            if (template.randomizeAnswers && (question.type === 'mc' || question.type === 'complex_mc')) {
+            if (shuffleAnswers && (question.type === 'mc' || question.type === 'complex_mc' || question.type === 'true_false')) {
                 options = [...options].sort(() => Math.random() - 0.5);
             }
 
@@ -100,7 +101,7 @@ export async function GET(
 
             // Handle matching question items
             let rightItems = content.rightItems || [];
-            if (template.randomizeAnswers && question.type === 'matching') {
+            if (shuffleAnswers && question.type === 'matching') {
                 rightItems = [...rightItems].sort(() => Math.random() - 0.5);
             }
 
@@ -123,7 +124,7 @@ export async function GET(
 
         // Map answers for frontend
         const answersMap: Record<string, any> = {};
-        existingAnswers.forEach(ans => {
+        existingAnswers.forEach((ans: typeof existingAnswers[0]) => {
             // Use bankQuestionId if available, otherwise fallback to questionId (legacy)
             const qId = ans.bankQuestionId || ans.questionId;
             if (qId) {

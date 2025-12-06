@@ -1,6 +1,7 @@
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Switch } from "@/components/ui/switch";
 import {
     Select,
     SelectContent,
@@ -23,12 +24,12 @@ export function StepRandomization({ formData, setFormData }: StepRandomizationPr
             </div>
 
             <div className="space-y-4">
-                <Label>Mode Pengacakan</Label>
+                <Label>Mode Pengacakan Soal</Label>
                 <Select
                     value={formData.randomizationRules.mode}
                     onValueChange={(value: any) => setFormData({
                         ...formData,
-                        randomizationRules: { mode: value }
+                        randomizationRules: { ...formData.randomizationRules, mode: value }
                     })}
                 >
                     <SelectTrigger>
@@ -147,6 +148,28 @@ export function StepRandomization({ formData, setFormData }: StepRandomizationPr
                 </div>
             )}
 
+            {/* Pengacakan Pilihan Jawaban */}
+            <div className="space-y-4 pt-4 border-t">
+                <div className="flex items-center justify-between">
+                    <div className="space-y-0.5">
+                        <Label>Acak Pilihan Jawaban</Label>
+                        <p className="text-xs text-muted-foreground">
+                            Mengacak urutan pilihan A, B, C, D untuk soal pilihan ganda dan kompleks
+                        </p>
+                    </div>
+                    <Switch
+                        checked={formData.randomizationRules.shuffleAnswers || false}
+                        onCheckedChange={(checked) => setFormData({
+                            ...formData,
+                            randomizationRules: {
+                                ...formData.randomizationRules,
+                                shuffleAnswers: checked
+                            }
+                        })}
+                    />
+                </div>
+            </div>
+
             <div className="p-4 border rounded-lg bg-blue-50 dark:bg-blue-950/20">
                 <p className="text-sm text-blue-700 dark:text-blue-400">
                     💡 Tip: Acak semua soal kecuali esai agar esai tetap di akhir.
@@ -155,3 +178,4 @@ export function StepRandomization({ formData, setFormData }: StepRandomizationPr
         </div>
     );
 }
+

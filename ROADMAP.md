@@ -2,7 +2,7 @@
 
 > **Status Proyek**: 🟡 Beta - Feature-Complete Prototype → Production Ready
 > 
-> **Last Updated**: December 4, 2025
+> **Last Updated**: December 6, 2025
 
 ---
 
@@ -44,8 +44,12 @@ Advanced Features:    ███░░░░░░░░░░░░░░░░�
 - [x] **Exam Management**
   - Exam templates
   - Exam sessions with scheduling
-  - Question randomization
-  - Answer randomization
+  - **Advanced Question Randomization** (Dec 6, 2025):
+    - [x] Mode: Shuffle all questions
+    - [x] Mode: Shuffle by question type (only selected types)
+    - [x] Mode: Shuffle except type (all except selected types)
+    - [x] Mode: Shuffle specific numbers (only selected positions)
+    - [x] Answer option shuffle (MC, Complex MC, True/False, Matching)
   - Duration and timing controls
   
 - [x] **Exam Security (Lockdown)**
@@ -738,4 +742,4 @@ See [CONTRIBUTING.md](./CONTRIBUTING.md) for detailed contribution guidelines.
 
 ---
 
-**Last Updated**: December 2, 2025 | **Version**: 1.0.0
+**Last Updated**: December 6, 2025 | **Version**: 1.0.1

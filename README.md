@@ -15,7 +15,7 @@ CartaExam adalah aplikasi ujian berbasis web yang dirancang untuk memberikan pen
   - Esai (Essay)
   - Benar/Salah (True/False)
   - **Rich Text Support**: Dukungan gambar dan format teks pada soal dan jawaban.
-- **Manajemen Ujian**: Penjadwalan sesi ujian, pengacakan soal dan jawaban, serta pengaturan durasi.
+- **Manajemen Ujian**: Penjadwalan sesi ujian, **pengacakan soal dengan 4 mode** (semua, per jenis, kecuali jenis, nomor tertentu), pengacakan jawaban, serta pengaturan durasi.
 - **Monitoring Real-time**: Guru dapat memantau status pengerjaan siswa, pelanggaran, dan melakukan aksi (Reset Waktu, Paksa Selesai, Ujian Ulang) secara langsung.
 - **Dashboard Admin Canggih**: Statistik real-time, log aktivitas sistem, dan pemantauan kesehatan server.
 - **Sistem Penilaian Efisien**:
@@ -70,7 +70,11 @@ Dokumentasi lengkap tersedia untuk membantu Anda memahami dan berkontribusi pada
 - [Panduan Pengguna untuk Guru](docs/user_guide_teachers.md) - Cara menggunakan aplikasi
 - [Skema Database](docs/database_schema.md) - Struktur database lengkap
 
-### 🎯 Recent Improvements (December 4, 2025)
+### 🎯 Recent Improvements (December 6, 2025)
+
+**Advanced Randomization (NEW)**:
+- ✅ **4 Modes Pengacakan Soal**: Acak semua, per jenis soal, kecuali jenis tertentu, atau nomor tertentu
+- ✅ **Pengacakan Pilihan Jawaban**: Toggle untuk mengacak urutan A, B, C, D pada MC, Complex MC, True/False, dan Matching
 
 **Performance & Code Quality**:
 - ✅ **Code Splitting**: Refactored large components (`ExamTemplateWizard`, `TakeExamPage`) into smaller, maintainable pieces
@@ -126,5 +130,5 @@ Dikembangkan untuk SMAN 1 Campurdarat dengan tujuan meningkatkan kualitas dan ef
 ---
 
 **Status Proyek**: 🟡 Beta - Menuju Production Ready  
-**Versi**: 0.1.0  
-**Last Updated**: December 5, 2025
+**Versi**: 0.1.1  
+**Last Updated**: December 6, 2025

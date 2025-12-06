@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { examSessions, examTemplates, submissions, bankQuestions } from "@/lib/schema";
 import { eq, inArray, and } from "drizzle-orm";
+import { applyQuestionRandomization, RandomizationRules } from "@/lib/randomization";
 
 // POST /api/student/exams/[sessionId]/start - Start taking an exam
 export async function POST(
@@ -106,23 +107,21 @@ export async function POST(
 
         // Select questions by type according to composition
         const selectedQuestions: any[] = [];
-        const questionTypes = ['mc', 'complex_mc', 'matching', 'short', 'essay'];
+        const questionTypes = ['mc', 'complex_mc', 'matching', 'short', 'essay', 'true_false'];
 
         for (const type of questionTypes) {
             const count = composition[type] || 0;
             if (count > 0) {
-                const typeQuestions = allQuestions.filter(q => q.type === type);
+                const typeQuestions = allQuestions.filter((q: typeof allQuestions[0]) => q.type === type);
                 // Shuffle and take required count
                 const shuffled = typeQuestions.sort(() => Math.random() - 0.5);
                 selectedQuestions.push(...shuffled.slice(0, count));
             }
         }
 
-        // Apply randomization if enabled
-        let questionOrder = selectedQuestions.map(q => q.id);
-        if (template.randomizeQuestions) {
-            questionOrder = questionOrder.sort(() => Math.random() - 0.5);
-        }
+        // Apply randomization based on template rules
+        const randomizationRules = (template.randomizationRules as RandomizationRules) || { mode: 'all' };
+        const questionOrder = applyQuestionRandomization(selectedQuestions, randomizationRules);
 
         // Create submission
         // Create submission

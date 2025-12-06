@@ -3,7 +3,8 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useToast } from "@/hooks/use-toast";
-import ExamTemplateWizard, { ExamTemplateFormData } from "@/components/exam-templates/ExamTemplateWizard";
+import ExamTemplateWizard from "@/components/exam-templates/ExamTemplateWizard";
+import { ExamTemplateFormData } from "@/components/exam-templates/types";
 import { Loader2 } from "lucide-react";
 
 export default function EditExamTemplatePage({ params }: { params: { id: string } }) {
@@ -34,6 +35,7 @@ export default function EditExamTemplatePage({ params }: { params: { id: string 
                         matching: 0,
                         short: 0,
                         essay: 0,
+                        true_false: 0,
                     },
                     durationMinutes: data.durationMinutes,
                     totalScore: data.totalScore || 100,
@@ -45,6 +47,15 @@ export default function EditExamTemplatePage({ params }: { params: { id: string 
                     enableLockdown: data.enableLockdown ?? true,
                     requireToken: data.requireToken ?? false,
                     maxViolations: data.maxViolations ?? 3,
+                    violationSettings: data.violationSettings || {
+                        detectTabSwitch: true,
+                        detectCopyPaste: true,
+                        detectRightClick: true,
+                        detectScreenshot: true,
+                        detectDevTools: true,
+                        cooldownSeconds: 5,
+                        mode: 'strict' as const,
+                    },
                     // New fields
                     targetType: data.targetType || 'all',
                     targetIds: data.targetIds || [],

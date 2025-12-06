@@ -35,6 +35,7 @@ export interface ExamTemplateFormData {
         true_false: number;
     };
     durationMinutes: number;
+    minSubmitMinutes: number;
     totalScore: number;
     displaySettings: {
         showQuestionNumber: boolean;
@@ -53,5 +54,6 @@ export interface ExamTemplateFormData {
         types?: ('mc' | 'complex_mc' | 'matching' | 'short' | 'essay' | 'true_false')[];
         excludeTypes?: ('mc' | 'complex_mc' | 'matching' | 'short' | 'essay' | 'true_false')[];
         questionNumbers?: number[];
+        shuffleAnswers?: boolean;
     };
 }
