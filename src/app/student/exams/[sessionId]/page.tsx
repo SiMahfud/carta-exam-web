@@ -45,6 +45,8 @@ export default function TakeExamPage() {
     const [violationCount, setViolationCount] = useState(0);
     const [showViolationBanner, setShowViolationBanner] = useState(false);
     const [examName, setExamName] = useState<string>("");
+    const [minSubmitMinutes, setMinSubmitMinutes] = useState(0);
+    const [startTime, setStartTime] = useState<Date | null>(null);
 
     // Token states
     const [showTokenDialog, setShowTokenDialog] = useState(false);
@@ -226,6 +228,10 @@ export default function TakeExamPage() {
                 setQuestions(data.questions);
                 setEndTime(new Date(data.endTime));
                 setExamName(data.examName || "");
+                setMinSubmitMinutes(data.minDurationMinutes || 0);
+                if (data.startTime) {
+                    setStartTime(new Date(data.startTime));
+                }
 
                 // Restore answers if available
                 if (data.answers) {
@@ -510,6 +516,8 @@ export default function TakeExamPage() {
                     totalQuestions={questions.length}
                     onSubmit={handleSubmit}
                     submitting={submitting}
+                    minSubmitMinutes={minSubmitMinutes}
+                    elapsedMinutes={startTime ? Math.floor((Date.now() - startTime.getTime()) / 60000) : 0}
                 />
             </div>
         </>

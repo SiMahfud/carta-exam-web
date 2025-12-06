@@ -62,7 +62,7 @@ export async function GET(
             .where(eq(answers.submissionId, params.id));
 
         // Format answers for frontend with proper answer key conversion
-        const formattedAnswers = answersData.map(a => {
+        const formattedAnswers = answersData.map((a: typeof answersData[0]) => {
             let correctAnswer = a.questionAnswerKey;
 
             // Extract value if stored as object {correct: value}
@@ -157,12 +157,12 @@ export async function PATCH(
             .from(answers)
             .where(eq(answers.submissionId, params.id));
 
-        const totalEarned = allAnswers.reduce((sum, a) => sum + (a.partialPoints || 0), 0);
-        const totalMax = allAnswers.reduce((sum, a) => sum + (a.maxPoints || 0), 0);
+        const totalEarned = allAnswers.reduce((sum: number, a: typeof allAnswers[0]) => sum + (a.partialPoints || 0), 0);
+        const totalMax = allAnswers.reduce((sum: number, a: typeof allAnswers[0]) => sum + (a.maxPoints || 0), 0);
         const finalScore = totalMax > 0 ? Math.round((totalEarned / totalMax) * 100) : 0;
 
         // Check if all essays are graded
-        const hasPendingEssays = allAnswers.some(a => a.gradingStatus === 'pending_manual');
+        const hasPendingEssays = allAnswers.some((a: typeof allAnswers[0]) => a.gradingStatus === 'pending_manual');
 
         // Update submission
         await db.update(submissions)

@@ -157,8 +157,8 @@ export async function POST(request: NextRequest) {
             username: users.username,
         }).from(users);
 
-        const existingUsernames = new Set<string>(existingUsers.map(u => u.username.toLowerCase()));
-        const existingIds = new Set<string>(existingUsers.map(u => u.id));
+        const existingUsernames = new Set<string>(existingUsers.map((u: typeof existingUsers[0]) => u.username.toLowerCase()));
+        const existingIds = new Set<string>(existingUsers.map((u: typeof existingUsers[0]) => u.id));
 
         // Get existing classes
         const existingClasses = await db.select({
@@ -168,7 +168,7 @@ export async function POST(request: NextRequest) {
             academicYear: classes.academicYear,
         }).from(classes);
 
-        const classMap = new Map<string, string>(existingClasses.map(c => [`${c.name}_${c.grade}_${c.academicYear}`, c.id]));
+        const classMap = new Map<string, string>(existingClasses.map((c: typeof existingClasses[0]) => [`${c.name}_${c.grade}_${c.academicYear}`, c.id]));
 
         // Validate all rows
         const allErrors: ValidationError[] = [];

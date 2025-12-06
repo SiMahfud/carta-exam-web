@@ -33,7 +33,7 @@ export default async function QuestionManagerPage({ params }: { params: { id: st
             </div>
 
             <div className="space-y-4">
-                {examQuestions.map((q, index) => (
+                {examQuestions.map((q: typeof examQuestions[0], index: number) => (
                     <Card key={q.id}>
                         <CardHeader className="pb-2">
                             <CardTitle className="text-lg font-medium">

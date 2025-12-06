@@ -16,7 +16,7 @@ export async function GET() {
 
         // Transform into a more usable format
         const statusCounts: Record<string, number> = {};
-        stats.forEach(stat => {
+        stats.forEach((stat: typeof stats[0]) => {
             if (stat.status) {
                 statusCounts[stat.status] = Number(stat.count);
             }

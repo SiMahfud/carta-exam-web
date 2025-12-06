@@ -101,19 +101,19 @@ export async function GET(request: NextRequest) {
         // Filter by type
         let filteredUsers = allUsers;
         if (type === "students") {
-            filteredUsers = allUsers.filter(u => u.role === "student");
+            filteredUsers = allUsers.filter((u: typeof allUsers[0]) => u.role === "student");
         } else if (type === "teachers") {
-            filteredUsers = allUsers.filter(u => u.role === "teacher" || u.role === "admin");
+            filteredUsers = allUsers.filter((u: typeof allUsers[0]) => u.role === "teacher" || u.role === "admin");
         }
 
         // Filter by class if specified
         if (classId) {
-            filteredUsers = filteredUsers.filter(u => u.classId === classId);
+            filteredUsers = filteredUsers.filter((u: typeof filteredUsers[0]) => u.classId === classId);
         }
 
         // Group by user (in case of multiple classes, take first one)
         const userMap = new Map<string, typeof filteredUsers[0]>();
-        filteredUsers.forEach(u => {
+        filteredUsers.forEach((u: typeof filteredUsers[0]) => {
             if (!userMap.has(u.id)) {
                 userMap.set(u.id, u);
             }

@@ -25,6 +25,12 @@ export function StepReview({ formData, subjects }: StepReviewProps) {
                         <h4 className="font-semibold text-sm text-muted-foreground mb-1">Durasi</h4>
                         <p className="font-medium">{formData.durationMinutes} Menit</p>
                     </div>
+                    {formData.minSubmitMinutes > 0 && (
+                        <div>
+                            <h4 className="font-semibold text-sm text-muted-foreground mb-1">Min. Pengumpulan</h4>
+                            <p className="font-medium">{formData.minSubmitMinutes} Menit</p>
+                        </div>
+                    )}
                     <div>
                         <h4 className="font-semibold text-sm text-muted-foreground mb-1">Total Skor</h4>
                         <p className="font-medium">{formData.totalScore}</p>

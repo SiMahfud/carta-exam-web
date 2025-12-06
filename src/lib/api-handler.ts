@@ -33,7 +33,7 @@ export async function apiHandler<T>(
 
         if (error instanceof ZodError) {
             return NextResponse.json(
-                { error: "Validation Error", details: error.errors },
+                { error: "Validation Error", details: error.issues },
                 { status: 400 }
             );
         }

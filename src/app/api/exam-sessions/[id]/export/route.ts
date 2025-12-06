@@ -63,7 +63,7 @@ export async function GET(
             .where(eq(submissions.sessionId, params.id));
 
         // 3. Get all answers for these submissions
-        const submissionIds = submissionsData.map(s => s.submissionId);
+        const submissionIds = submissionsData.map((s: typeof submissionsData[0]) => s.submissionId);
         let answersData: any[] = [];
 
         if (submissionIds.length > 0) {
@@ -87,8 +87,8 @@ export async function GET(
         const workbook = XLSX.utils.book_new();
 
         // === Sheet 1: Rekap Nilai ===
-        const rekapData = submissionsData.map((sub, idx) => {
-            const studentAnswers = answersData.filter(a => a.submissionId === sub.submissionId);
+        const rekapData = submissionsData.map((sub: typeof submissionsData[0], idx: number) => {
+            const studentAnswers = answersData.filter((a: typeof answersData[0]) => a.submissionId === sub.submissionId);
 
             // Calculate scores by type
             const scores: Record<string, { correct: number; total: number; score: number; maxScore: number }> = {
@@ -141,9 +141,9 @@ export async function GET(
 
         // === Sheet 2: Essay (if any) ===
         const essayData: any[] = [];
-        submissionsData.forEach(sub => {
-            const studentAnswers = answersData.filter(a => a.submissionId === sub.submissionId && a.questionType === 'essay');
-            studentAnswers.forEach((ans, idx) => {
+        submissionsData.forEach((sub: typeof submissionsData[0]) => {
+            const studentAnswers = answersData.filter((a: typeof answersData[0]) => a.submissionId === sub.submissionId && a.questionType === 'essay');
+            studentAnswers.forEach((ans: typeof answersData[0], idx: number) => {
                 const content = typeof ans.questionContent === 'string' ? JSON.parse(ans.questionContent) : ans.questionContent;
                 const questionText = content?.question || content?.questionText || '';
                 const studentAns = typeof ans.studentAnswer === 'string' ? ans.studentAnswer : (ans.studentAnswer?.text || JSON.stringify(ans.studentAnswer));
@@ -171,9 +171,9 @@ export async function GET(
         }
 
         // === Sheet 3: Statistik ===
-        const completedResults = submissionsData.filter(r => r.status === 'completed');
-        const scores = completedResults.map(r => r.earnedPoints || r.score || 0);
-        const avgScore = scores.length > 0 ? Math.round(scores.reduce((a, b) => a + b, 0) / scores.length * 10) / 10 : 0;
+        const completedResults = submissionsData.filter((r: typeof submissionsData[0]) => r.status === 'completed');
+        const scores = completedResults.map((r: typeof completedResults[0]) => r.earnedPoints || r.score || 0);
+        const avgScore = scores.length > 0 ? Math.round(scores.reduce((a: number, b: number) => a + b, 0) / scores.length * 10) / 10 : 0;
 
         const statsData = [
             { 'Informasi Ujian': 'Nama Sesi', 'Nilai': session.sessionName },

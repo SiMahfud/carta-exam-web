@@ -43,7 +43,7 @@ export async function GET(request: NextRequest) {
             .limit(limit * 2); // Get more since we filter in-memory
 
         // Filter questions by content match
-        const filteredQuestions = questionResults.filter(q => {
+        const filteredQuestions = questionResults.filter((q: typeof questionResults[0]) => {
             try {
                 const content = typeof q.content === 'string' ? JSON.parse(q.content) : q.content;
                 const questionText = content?.question || content?.text || '';
@@ -54,7 +54,7 @@ export async function GET(request: NextRequest) {
         }).slice(0, limit);
 
         // Get bank -> subject mapping
-        const bankIds = [...new Set(filteredQuestions.map(q => q.bankId))];
+        const bankIds = Array.from(new Set(filteredQuestions.map((q: typeof filteredQuestions[0]) => q.bankId)));
         const subjectMap = new Map<string, string>();
 
         if (bankIds.length > 0) {
@@ -66,8 +66,8 @@ export async function GET(request: NextRequest) {
                 .select({ id: subjects.id, name: subjects.name })
                 .from(subjects);
 
-            const subjectNames = new Map(subjectData.map(s => [s.id, s.name]));
-            banks.forEach(b => subjectMap.set(b.id, subjectNames.get(b.subjectId) || 'Unknown'));
+            const subjectNames = new Map<string, string>(subjectData.map((s: typeof subjectData[0]) => [s.id, s.name] as [string, string]));
+            banks.forEach((b: typeof banks[0]) => subjectMap.set(b.id, subjectNames.get(b.subjectId) || 'Unknown'));
         }
 
         // Search exam templates
@@ -129,7 +129,7 @@ export async function GET(request: NextRequest) {
             .limit(limit);
 
         const result: SearchResult = {
-            questions: filteredQuestions.map(q => {
+            questions: filteredQuestions.map((q: typeof filteredQuestions[0]) => {
                 const content = typeof q.content === 'string' ? JSON.parse(q.content) : q.content;
                 const questionText = content?.question || content?.text || '';
                 return {
@@ -140,10 +140,10 @@ export async function GET(request: NextRequest) {
                 };
             }),
             exams: [
-                ...templateResults.map(t => ({ id: t.id, name: t.name, status: 'template', type: 'template' as const })),
-                ...sessionResults.map(s => ({ id: s.id, name: s.name, status: s.status, type: 'session' as const }))
+                ...templateResults.map((t: typeof templateResults[0]) => ({ id: t.id, name: t.name, status: 'template', type: 'template' as const })),
+                ...sessionResults.map((s: typeof sessionResults[0]) => ({ id: s.id, name: s.name, status: s.status, type: 'session' as const }))
             ],
-            students: studentResults.filter(s => s.username !== 'admin'),
+            students: studentResults.filter((s: typeof studentResults[0]) => s.username !== 'admin'),
             classes: classResults,
             subjects: subjectResults
         };

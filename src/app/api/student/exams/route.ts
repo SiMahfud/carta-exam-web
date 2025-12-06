@@ -22,7 +22,7 @@ export async function GET(request: Request) {
             .from(classStudents)
             .where(eq(classStudents.studentId, studentId));
 
-        const classIds = studentClasses.map(c => c.classId);
+        const classIds = studentClasses.map((c: typeof studentClasses[0]) => c.classId);
 
         if (classIds.length === 0) {
             return NextResponse.json({ data: [] });
@@ -49,9 +49,9 @@ export async function GET(request: Request) {
         const allSessions = await sessionsQuery;
 
         // Filter sessions where student's class is in targetIds
-        const assignedSessions = allSessions.filter(session => {
+        const assignedSessions = allSessions.filter((session: typeof allSessions[0]) => {
             const targetIds = session.targetIds as any as string[];
-            return targetIds && targetIds.some(id => classIds.includes(id));
+            return targetIds && targetIds.some((id: string) => classIds.includes(id));
         });
 
         // Get student's submissions
@@ -61,8 +61,8 @@ export async function GET(request: Request) {
 
         // Enhance sessions with submission status
         const now = new Date();
-        const enhancedSessions = assignedSessions.map(session => {
-            const submission = studentSubmissions.find(s => s.sessionId === session.id);
+        const enhancedSessions = assignedSessions.map((session: typeof assignedSessions[0]) => {
+            const submission = studentSubmissions.find((s: typeof studentSubmissions[0]) => s.sessionId === session.id);
 
             let examStatus = "upcoming";
             const startTime = new Date(session.startTime);
@@ -87,7 +87,7 @@ export async function GET(request: Request) {
 
         // Filter by status if provided
         const filteredSessions = status && status !== "all"
-            ? enhancedSessions.filter(s => s.examStatus === status)
+            ? enhancedSessions.filter((s: typeof enhancedSessions[0]) => s.examStatus === status)
             : enhancedSessions;
 
         return NextResponse.json({ data: filteredSessions });

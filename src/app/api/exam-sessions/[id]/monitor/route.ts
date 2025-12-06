@@ -36,7 +36,7 @@ export async function GET(
                 .innerJoin(classes, eq(classStudents.classId, classes.id))
                 .where(inArray(classStudents.classId, targetIds));
 
-            students = classStudentsResult.map(s => ({
+            students = classStudentsResult.map((s: typeof classStudentsResult[0]) => ({
                 id: s.studentId,
                 name: s.studentName,
                 className: s.className
@@ -50,7 +50,7 @@ export async function GET(
                 .from(users)
                 .where(inArray(users.id, targetIds));
 
-            students = usersResult.map(s => ({
+            students = usersResult.map((s: typeof usersResult[0]) => ({
                 id: s.id,
                 name: s.name,
                 className: "Individual"
@@ -63,8 +63,8 @@ export async function GET(
             .where(eq(submissions.sessionId, session.id));
 
         // 4. Map status to students
-        const studentProgress = students.map(student => {
-            const submission = submissionsResult.find(s => s.userId === student.id);
+        const studentProgress = students.map((student: typeof students[0]) => {
+            const submission = submissionsResult.find((s: typeof submissionsResult[0]) => s.userId === student.id);
 
             let status = "not_started";
             let score = null;
@@ -93,10 +93,10 @@ export async function GET(
         // 5. Aggregate stats
         const stats = {
             total: students.length,
-            notStarted: studentProgress.filter(s => s.status === "not_started").length,
-            inProgress: studentProgress.filter(s => s.status === "in_progress").length,
-            completed: studentProgress.filter(s => s.status === "completed").length,
-            violations: studentProgress.reduce((acc, curr) => acc + curr.violationCount, 0)
+            notStarted: studentProgress.filter((s: typeof studentProgress[0]) => s.status === "not_started").length,
+            inProgress: studentProgress.filter((s: typeof studentProgress[0]) => s.status === "in_progress").length,
+            completed: studentProgress.filter((s: typeof studentProgress[0]) => s.status === "completed").length,
+            violations: studentProgress.reduce((acc: number, curr: typeof studentProgress[0]) => acc + curr.violationCount, 0)
         };
 
         return NextResponse.json({

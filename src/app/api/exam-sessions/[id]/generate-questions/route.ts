@@ -55,7 +55,7 @@ export async function POST(
                 .from(classStudents)
                 .where(inArray(classStudents.classId, classIds));
 
-            studentIds = Array.from(new Set(students.map(s => s.studentId))); // Remove duplicates
+            studentIds = Array.from(new Set(students.map((s: typeof students[0]) => s.studentId))); // Remove duplicates
         } else {
             // Individual students
             studentIds = s.targetIds as string[];
@@ -70,9 +70,9 @@ export async function POST(
         // Apply tag filters
         const filterTags = t.filterTags as string[] || [];
         if (filterTags.length > 0) {
-            allQuestions = allQuestions.filter(q => {
+            allQuestions = allQuestions.filter((q: typeof allQuestions[0]) => {
                 const qTags = (q.tags as string[]) || [];
-                return filterTags.some(tag => qTags.includes(tag));
+                return filterTags.some((tag: string) => qTags.includes(tag));
             });
         }
 
@@ -85,7 +85,7 @@ export async function POST(
             essay: [],
         };
 
-        allQuestions.forEach(q => {
+        allQuestions.forEach((q: typeof allQuestions[0]) => {
             if (questionsByType[q.type]) {
                 questionsByType[q.type].push(q);
             }
@@ -113,7 +113,7 @@ export async function POST(
                 // Random selection
                 const shuffled = [...available].sort(() => Math.random() - 0.5);
                 const selected = shuffled.slice(0, count);
-                selectedQuestions.push(...selected.map(q => q.id));
+                selectedQuestions.push(...selected.map((q: typeof shuffled[0]) => q.id));
             }
 
             // Randomize order if configured
@@ -122,9 +122,9 @@ export async function POST(
                 // If essayAtEnd, separate essays and randomize the rest
                 if (t.essayAtEnd) {
                     const essays = allQuestions
-                        .filter(q => selectedQuestions.includes(q.id) && q.type === "essay")
-                        .map(q => q.id);
-                    const nonEssays = selectedQuestions.filter(id => !essays.includes(id));
+                        .filter((q: typeof allQuestions[0]) => selectedQuestions.includes(q.id) && q.type === "essay")
+                        .map((q: typeof allQuestions[0]) => q.id);
+                    const nonEssays = selectedQuestions.filter((id: string) => !essays.includes(id));
 
                     const shuffledNonEssays = [...nonEssays].sort(() => Math.random() - 0.5);
                     orderedQuestions = [...shuffledNonEssays, ...essays];
@@ -134,9 +134,9 @@ export async function POST(
             } else if (t.essayAtEnd) {
                 // Just move essays to end without randomizing
                 const essays = allQuestions
-                    .filter(q => selectedQuestions.includes(q.id) && q.type === "essay")
-                    .map(q => q.id);
-                const nonEssays = selectedQuestions.filter(id => !essays.includes(id));
+                    .filter((q: typeof allQuestions[0]) => selectedQuestions.includes(q.id) && q.type === "essay")
+                    .map((q: typeof allQuestions[0]) => q.id);
+                const nonEssays = selectedQuestions.filter((id: string) => !essays.includes(id));
                 orderedQuestions = [...nonEssays, ...essays];
             }
 

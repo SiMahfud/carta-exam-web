@@ -66,6 +66,7 @@ export async function GET(
         const templateData = await db.select({
             randomizationRules: examTemplates.randomizationRules,
             durationMinutes: examTemplates.durationMinutes,
+            minDurationMinutes: examTemplates.minDurationMinutes,
         })
             .from(examTemplates)
             .where(eq(examTemplates.id, session.templateId))
@@ -155,6 +156,8 @@ export async function GET(
         return NextResponse.json({
             questions: orderedQuestions,
             endTime: effectiveEndTime,
+            startTime: submission.startTime,
+            minDurationMinutes: template.minDurationMinutes || 0,
             submissionId: submission.id,
             answers: answersMap
         });

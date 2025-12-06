@@ -29,7 +29,7 @@ export default async function ExamPreviewPage({ params }: { params: { id: string
             </div>
 
             <div className="space-y-8">
-                {examQuestions.map((q, index) => (
+                {examQuestions.map((q: typeof examQuestions[0], index: number) => (
                     <div key={q.id} className="border rounded-lg p-6 bg-white shadow-sm">
                         <div className="mb-4 font-semibold text-lg border-b pb-2">
                             Soal No. {index + 1}

@@ -27,7 +27,7 @@ export function StepConfiguration({ formData, setFormData }: StepConfigurationPr
             <div className="space-y-4">
                 <div className="flex items-center gap-2 pb-2 border-b">
                     <Clock className="h-5 w-5 text-primary" />
-                    <h3 className="font-semibold text-lg">Waktu & Skor</h3>
+                    <h3 className="font-semibold text-lg">Waktu &amp; Skor</h3>
                 </div>
                 <div className="grid gap-6 md:grid-cols-2">
                     <div className="space-y-2">
@@ -40,6 +40,25 @@ export function StepConfiguration({ formData, setFormData }: StepConfigurationPr
                             onChange={(e) => setFormData({ ...formData, durationMinutes: parseInt(e.target.value) || 0 })}
                         />
                     </div>
+                    <div className="space-y-2">
+                        <Label htmlFor="minSubmit">Waktu Minimum Pengumpulan (Menit)</Label>
+                        <Input
+                            id="minSubmit"
+                            type="number"
+                            min="0"
+                            max={formData.durationMinutes}
+                            value={formData.minSubmitMinutes}
+                            onChange={(e) => {
+                                const value = parseInt(e.target.value) || 0;
+                                setFormData({ ...formData, minSubmitMinutes: Math.min(value, formData.durationMinutes) });
+                            }}
+                        />
+                        <p className="text-xs text-muted-foreground">
+                            Siswa hanya bisa mengumpulkan ujian setelah waktu ini. Isi 0 untuk tanpa batasan.
+                        </p>
+                    </div>
+                </div>
+                <div className="grid gap-6 md:grid-cols-2">
                     <div className="space-y-2">
                         <Label htmlFor="totalScore">Total Skor Maksimal</Label>
                         <Input
@@ -125,8 +144,8 @@ export function StepConfiguration({ formData, setFormData }: StepConfigurationPr
                                 <label
                                     key={option.value}
                                     className={`flex flex-col p-3 border rounded-lg cursor-pointer transition-colors ${formData.violationSettings.mode === option.value
-                                            ? 'border-primary bg-primary/5'
-                                            : 'hover:border-muted-foreground/50'
+                                        ? 'border-primary bg-primary/5'
+                                        : 'hover:border-muted-foreground/50'
                                         }`}
                                 >
                                     <div className="flex items-center gap-2">
@@ -218,8 +237,8 @@ export function StepConfiguration({ formData, setFormData }: StepConfigurationPr
                                             type="button"
                                             onClick={() => updateViolationSetting('cooldownSeconds', sec)}
                                             className={`px-4 py-2 rounded-md border transition-colors ${formData.violationSettings.cooldownSeconds === sec
-                                                    ? 'bg-primary text-primary-foreground border-primary'
-                                                    : 'hover:bg-muted'
+                                                ? 'bg-primary text-primary-foreground border-primary'
+                                                : 'hover:bg-muted'
                                                 }`}
                                         >
                                             {sec} detik

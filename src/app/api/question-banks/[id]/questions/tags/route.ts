@@ -16,9 +16,9 @@ export async function GET(
 
         // Extract unique tags
         const uniqueTags = new Set<string>();
-        questions.forEach(q => {
+        questions.forEach((q: typeof questions[0]) => {
             const tags = (q.tags as string[]) || [];
-            tags.forEach(tag => uniqueTags.add(tag));
+            tags.forEach((tag: string) => uniqueTags.add(tag));
         });
 
         return NextResponse.json({

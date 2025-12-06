@@ -27,7 +27,7 @@ export async function GET(request: Request) {
             .limit(limit);
 
         // Format activities for display
-        const formattedActivities = activities.map((activity) => {
+        const formattedActivities = activities.map((activity: typeof activities[0]) => {
             const details = activity.details as Record<string, unknown> || {};
             let description = "";
             let entityName = "";
@@ -40,21 +40,23 @@ export async function GET(request: Request) {
             else if (details.userName) entityName = details.userName as string;
 
             // Build description based on entity type and action
-            const actionText = {
+            const actionTextMap: Record<string, string> = {
                 created: "dibuat",
                 updated: "diperbarui",
                 deleted: "dihapus",
                 started: "dimulai",
                 completed: "diselesaikan",
-            }[activity.action] || activity.action;
+            };
+            const actionText = actionTextMap[activity.action as keyof typeof actionTextMap] || activity.action;
 
-            const entityTypeText = {
+            const entityTypeTextMap: Record<string, string> = {
                 exam_session: "Sesi Ujian",
                 question_bank: "Bank Soal",
                 subject: "Mata Pelajaran",
                 class: "Kelas",
                 user: "User",
-            }[activity.entityType] || activity.entityType;
+            };
+            const entityTypeText = entityTypeTextMap[activity.entityType as keyof typeof entityTypeTextMap] || activity.entityType;
 
             description = `${entityTypeText} "${entityName}" ${actionText}`;
 

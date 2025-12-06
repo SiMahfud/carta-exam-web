@@ -98,7 +98,7 @@ export async function GET(
             .where(and(...conditions));
 
         // 3. Get all answers for these submissions with question details
-        const submissionIds = submissionsData.map(s => s.submissionId);
+        const submissionIds = submissionsData.map((s: typeof submissionsData[0]) => s.submissionId);
 
         let answersData: any[] = [];
         if (submissionIds.length > 0) {
@@ -124,8 +124,8 @@ export async function GET(
         }
 
         // 4. Aggregate results by student
-        const results = submissionsData.map(submission => {
-            const studentAnswers = answersData.filter(a => a.submissionId === submission.submissionId);
+        const results = submissionsData.map((submission: typeof submissionsData[0]) => {
+            const studentAnswers = answersData.filter((a: typeof answersData[0]) => a.submissionId === submission.submissionId);
 
             // Initialize score aggregation by type
             const scoresByType: Record<string, any> = {
@@ -182,13 +182,13 @@ export async function GET(
         });
 
         // 5. Calculate statistics
-        const completedResults = results.filter(r => r.status === 'completed');
-        const scores = completedResults.map(r => r.totalScore).filter(s => s !== null);
+        const completedResults = results.filter((r: typeof results[0]) => r.status === 'completed');
+        const scores = completedResults.map((r: typeof completedResults[0]) => r.totalScore).filter((s: number) => s !== null);
 
         const statistics = {
             totalStudents: results.length,
             completedStudents: completedResults.length,
-            averageScore: scores.length > 0 ? Math.round(scores.reduce((a, b) => a + b, 0) / scores.length * 10) / 10 : 0,
+            averageScore: scores.length > 0 ? Math.round(scores.reduce((a: number, b: number) => a + b, 0) / scores.length * 10) / 10 : 0,
             highestScore: scores.length > 0 ? Math.max(...scores) : 0,
             lowestScore: scores.length > 0 ? Math.min(...scores) : 0,
             completionRate: results.length > 0 ? Math.round((completedResults.length / results.length) * 100) : 0,

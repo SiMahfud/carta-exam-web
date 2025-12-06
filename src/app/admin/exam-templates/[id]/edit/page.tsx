@@ -38,6 +38,7 @@ export default function EditExamTemplatePage({ params }: { params: { id: string 
                         true_false: 0,
                     },
                     durationMinutes: data.durationMinutes,
+                    minSubmitMinutes: data.minDurationMinutes || 0,
                     totalScore: data.totalScore || 100,
                     displaySettings: data.displaySettings || {
                         showQuestionNumber: true,

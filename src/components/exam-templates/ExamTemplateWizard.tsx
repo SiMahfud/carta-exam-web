@@ -14,7 +14,6 @@ import { StepBasicInfo } from "./wizard-steps/StepBasicInfo";
 import { StepQuestionBanks } from "./wizard-steps/StepQuestionBanks";
 import { StepComposition } from "./wizard-steps/StepComposition";
 import { StepConfiguration } from "./wizard-steps/StepConfiguration";
-import { StepTarget } from "./wizard-steps/StepTarget";
 import { StepRandomization } from "./wizard-steps/StepRandomization";
 import { StepReview } from "./wizard-steps/StepReview";
 
@@ -48,6 +47,7 @@ export default function ExamTemplateWizard({ initialData, onSubmit, isEditMode =
             true_false: 0,
         },
         durationMinutes: 60,
+        minSubmitMinutes: 0,
         totalScore: 100,
         displaySettings: {
             showQuestionNumber: true,
@@ -165,7 +165,7 @@ export default function ExamTemplateWizard({ initialData, onSubmit, isEditMode =
                         {isEditMode ? "Edit Template Ujian" : "Buat Template Ujian"}
                     </h2>
                     <p className="text-muted-foreground">
-                        Langkah {step} dari 7
+                        Langkah {step} dari 6
                     </p>
                 </div>
             </div>
@@ -174,7 +174,7 @@ export default function ExamTemplateWizard({ initialData, onSubmit, isEditMode =
             <div className="w-full bg-secondary h-2 rounded-full overflow-hidden">
                 <div
                     className="bg-primary h-full transition-all duration-300"
-                    style={{ width: `${(step / 7) * 100}%` }}
+                    style={{ width: `${(step / 6) * 100}%` }}
                 />
             </div>
 
@@ -185,18 +185,16 @@ export default function ExamTemplateWizard({ initialData, onSubmit, isEditMode =
                         {step === 2 && "Sumber Soal"}
                         {step === 3 && "Komposisi Soal"}
                         {step === 4 && "Pengaturan & Keamanan"}
-                        {step === 5 && "Target Ujian"}
-                        {step === 6 && "Aturan Pengacakan"}
-                        {step === 7 && "Review & Simpan"}
+                        {step === 5 && "Aturan Pengacakan"}
+                        {step === 6 && "Review & Simpan"}
                     </CardTitle>
                     <CardDescription>
                         {step === 1 && "Isi detail dasar template ujian"}
                         {step === 2 && "Pilih bank soal yang akan digunakan"}
                         {step === 3 && "Tentukan jumlah soal per tipe"}
                         {step === 4 && "Atur durasi, skor, dan keamanan"}
-                        {step === 5 && "Pilih kelas atau siswa yang bisa mengakses"}
-                        {step === 6 && "Atur cara pengacakan soal"}
-                        {step === 7 && "Periksa kembali konfigurasi sebelum menyimpan"}
+                        {step === 5 && "Atur cara pengacakan soal"}
+                        {step === 6 && "Periksa kembali konfigurasi sebelum menyimpan"}
                     </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-6">
@@ -231,20 +229,13 @@ export default function ExamTemplateWizard({ initialData, onSubmit, isEditMode =
                     )}
 
                     {step === 5 && (
-                        <StepTarget
-                            formData={formData}
-                            setFormData={setFormData}
-                        />
-                    )}
-
-                    {step === 6 && (
                         <StepRandomization
                             formData={formData}
                             setFormData={setFormData}
                         />
                     )}
 
-                    {step === 7 && (
+                    {step === 6 && (
                         <StepReview
                             formData={formData}
                             subjects={subjects}
@@ -262,7 +253,7 @@ export default function ExamTemplateWizard({ initialData, onSubmit, isEditMode =
                             Kembali
                         </Button>
 
-                        {step < 7 ? (
+                        {step < 6 ? (
                             <Button onClick={handleNext}>
                                 Lanjut
                                 <ChevronRight className="ml-2 h-4 w-4" />

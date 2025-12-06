@@ -42,11 +42,11 @@ export async function POST(
             .from(answers)
             .where(eq(answers.submissionId, submission.id));
 
-        const totalEarned = answerData.reduce((sum, a) => sum + (a.partialPoints || 0), 0);
-        const totalMax = answerData.reduce((sum, a) => sum + (a.maxPoints || 0), 0);
+        const totalEarned = answerData.reduce((sum: number, a: typeof answerData[0]) => sum + (a.partialPoints || 0), 0);
+        const totalMax = answerData.reduce((sum: number, a: typeof answerData[0]) => sum + (a.maxPoints || 0), 0);
 
         // Check if there are essays pending manual grading
-        const hasEssays = answerData.some(a => a.gradingStatus === 'pending_manual');
+        const hasEssays = answerData.some((a: typeof answerData[0]) => a.gradingStatus === 'pending_manual');
         const gradingStatus = hasEssays ? 'pending_manual' : 'completed';
 
         // Update submission

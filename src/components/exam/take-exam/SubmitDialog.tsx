@@ -8,7 +8,7 @@ import {
     AlertDialogHeader,
     AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { AlertCircle } from "lucide-react";
+import { AlertCircle, Clock } from "lucide-react";
 
 interface SubmitDialogProps {
     open: boolean;
@@ -17,6 +17,8 @@ interface SubmitDialogProps {
     totalQuestions: number;
     onSubmit: () => void;
     submitting: boolean;
+    minSubmitMinutes?: number;
+    elapsedMinutes?: number;
 }
 
 export function SubmitDialog({
@@ -25,8 +27,13 @@ export function SubmitDialog({
     answeredCount,
     totalQuestions,
     onSubmit,
-    submitting
+    submitting,
+    minSubmitMinutes = 0,
+    elapsedMinutes = 0
 }: SubmitDialogProps) {
+    const canSubmit = elapsedMinutes >= minSubmitMinutes;
+    const remainingMinutes = Math.ceil(minSubmitMinutes - elapsedMinutes);
+
     return (
         <AlertDialog open={open} onOpenChange={onOpenChange}>
             <AlertDialogContent>
@@ -42,6 +49,15 @@ export function SubmitDialog({
                                 </span>
                             </div>
                         )}
+                        {!canSubmit && minSubmitMinutes > 0 && (
+                            <div className="mt-4 p-3 bg-blue-50 text-blue-800 rounded-md flex items-start gap-2">
+                                <Clock className="h-5 w-5 shrink-0 mt-0.5" />
+                                <span>
+                                    Anda baru bisa mengumpulkan ujian setelah <strong>{remainingMinutes} menit</strong> lagi.
+                                    Waktu minimum pengumpulan: {minSubmitMinutes} menit.
+                                </span>
+                            </div>
+                        )}
                         <p className="mt-4 text-sm text-muted-foreground">
                             Pastikan Anda telah memeriksa kembali jawaban Anda. Setelah dikumpulkan, Anda tidak dapat mengubah jawaban.
                         </p>
@@ -49,8 +65,12 @@ export function SubmitDialog({
                 </AlertDialogHeader>
                 <AlertDialogFooter>
                     <AlertDialogCancel>Periksa Kembali</AlertDialogCancel>
-                    <AlertDialogAction onClick={onSubmit} disabled={submitting} className="bg-primary hover:bg-primary/90">
-                        {submitting ? "Mengumpulkan..." : "Ya, Kumpulkan"}
+                    <AlertDialogAction
+                        onClick={onSubmit}
+                        disabled={submitting || !canSubmit}
+                        className="bg-primary hover:bg-primary/90"
+                    >
+                        {submitting ? "Mengumpulkan..." : canSubmit ? "Ya, Kumpulkan" : `Tunggu ${remainingMinutes} menit`}
                     </AlertDialogAction>
                 </AlertDialogFooter>
             </AlertDialogContent>
