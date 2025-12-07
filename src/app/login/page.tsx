@@ -8,7 +8,7 @@ import Link from "next/link"
 
 export default function LoginPage() {
     return (
-        <div className="flex items-center justify-center min-h-screen bg-background relative overflow-hidden">
+        <div className="flex items-center justify-center min-h-screen bg-background relative overflow-hidden px-4">
             {/* Background Effects */}
             <div className="absolute inset-0 -z-10 bg-[linear-gradient(to_right,#8080800a_1px,transparent_1px),linear-gradient(to_bottom,#8080800a_1px,transparent_1px)] bg-[size:14px_24px]"></div>
             <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[1000px] h-[500px] bg-primary/20 rounded-full blur-[120px] -z-10"></div>

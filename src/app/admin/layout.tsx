@@ -68,7 +68,7 @@ export default function AdminLayout({
     ];
 
     return (
-        <div className="min-h-screen bg-gray-50/50 flex">
+        <div className="min-h-screen bg-muted/30 dark:bg-background flex">
             {/* Mobile Sidebar Overlay */}
             {isSidebarOpen && (
                 <div
@@ -153,7 +153,7 @@ export default function AdminLayout({
             {/* Main Content Wrapper */}
             <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
                 {/* Header */}
-                <header className="h-16 bg-white border-b flex items-center justify-between px-4 lg:px-8 sticky top-0 z-30 shadow-sm">
+                <header className="h-16 bg-background border-b flex items-center justify-between px-4 lg:px-8 sticky top-0 z-30 shadow-sm">
                     <div className="flex items-center gap-4">
                         <Button
                             variant="ghost"

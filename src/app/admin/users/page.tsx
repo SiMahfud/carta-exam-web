@@ -218,10 +218,10 @@ export default function UsersPage() {
 
     return (
         <div className="container mx-auto py-8">
-            <div className="flex justify-between items-center mb-8">
+            <div className="flex justify-between items-center flex-col sm:flex-row gap-4">
                 <div>
-                    <h1 className="text-3xl font-bold">Manajemen User</h1>
-                    <p className="text-muted-foreground mt-2">
+                    <h2 className="text-2xl sm:text-3xl font-bold tracking-tight">Manajemen User</h2>
+                    <p className="text-muted-foreground mt-1 text-sm sm:text-base">
                         Kelola user admin, guru, dan siswa
                     </p>
                 </div>
