@@ -6,13 +6,39 @@ import { eq } from "drizzle-orm"
 import { cookies } from "next/headers"
 import { redirect } from "next/navigation"
 import bcrypt from "bcryptjs"
+import { z } from "zod"
 
 export async function login(formData: FormData) {
-    const username = formData.get("username") as string
-    const password = formData.get("password") as string
+    // Validation Schema
+    const LoginSchema = z.object({
+        username: z.string().min(1, "Username is required").max(50),
+        password: z.string().min(1, "Password is required")
+    });
 
-    if (!username || !password) {
-        return
+    const result = LoginSchema.safeParse({
+        username: formData.get("username"),
+        password: formData.get("password")
+    });
+
+    if (!result.success) {
+        console.log("Validation error:", result.error.flatten());
+        return;
+    }
+
+    const { username, password } = result.data;
+
+    // Rate Limiting
+    const headersList = cookies() // Hack: in server actions we can gets headers via headers() but we are importing cookies
+    const { headers } = await import("next/headers");
+    const ip = headers().get("x-forwarded-for") || "127.0.0.1";
+
+    try {
+        const { authRateLimiter } = await import("@/lib/rate-limit");
+        await authRateLimiter.getCheck()(5, ip); // 5 login attempts per min
+    } catch (e) {
+        console.log("Rate limit exceeded for login attempt from", ip);
+        // Simple return for now, ideally return error state to UI
+        return;
     }
 
     const [user] = await db.select().from(users).where(eq(users.username, username)).limit(1)
@@ -39,7 +65,7 @@ export async function login(formData: FormData) {
         } else if (user.role === "teacher") {
             redirect("/teacher")
         } else {
-            redirect("/exam")
+            redirect("/student/exams")
         }
     } else {
         // Handle error (todo: return error state)
