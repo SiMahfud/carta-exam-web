@@ -36,6 +36,7 @@ import { Breadcrumbs } from "@/components/ui/breadcrumbs";
 import { useKeyboardShortcuts, getAdminShortcuts } from "@/hooks/use-keyboard-shortcuts";
 import { KeyboardShortcutsHelp } from "@/components/ui/keyboard-shortcuts-help";
 import { RecentItemsDropdown } from "@/components/ui/recent-items";
+import { ModeToggle } from "@/components/ui/mode-toggle";
 
 export default function AdminLayout({
     children,
@@ -188,6 +189,7 @@ export default function AdminLayout({
                         >
                             <Search className="h-5 w-5" />
                         </Button>
+                        <ModeToggle />
                         <RecentItemsDropdown />
                         <DropdownMenu>
                             <DropdownMenuTrigger asChild>

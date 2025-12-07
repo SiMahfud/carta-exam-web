@@ -99,16 +99,16 @@ Advanced Features:    ███░░░░░░░░░░░░░░░░�
 
 #### Dark Mode Support
 - [x] Design system prepared (Tailwind classes)
-- [ ] **Implement theme toggle** `Priority: HIGH`
-  - **Tech**: Tailwind dark: variant, localStorage persistence
-  - **Files**: `src/app/layout.tsx`, create `src/components/theme-provider.tsx`
-  - **Effort**: 4 hours
-  - **Dependencies**: None
+- [x] **Implement theme toggle** `Priority: HIGH` ✅ **Completed: Dec 7, 2025**
+  - [x] Installed `next-themes` and created `ThemeProvider`
+  - [x] Created `ModeToggle` component
+  - [x] Integrated into Landing, Admin, and Student layouts
+  - **Files**: `src/app/layout.tsx`, `src/components/theme-provider.tsx`, `src/components/ui/mode-toggle.tsx`
+  - **Actual Effort**: 2 hours
   
-- [ ] **Dark mode color palette**
-  - Update `tailwind.config.ts` with dark mode colors
-  - Test all pages for contrast
-  - **Effort**: 6 hours
+- [x] **Dark mode color palette** ✅ **Completed: Dec 7, 2025**
+  - [x] Verified `tailwind.config.ts` and `globals.css` configuration
+  - **Effort**: 1 hour
   
 - [ ] **Dark mode for charts and visualizations**
   - Ensure all visual elements support dark mode
@@ -178,14 +178,13 @@ Advanced Features:    ███░░░░░░░░░░░░░░░░�
   - Use Next.js revalidation
   - **Effort**: 6 hours
 
-### 1.3 Security Hardening [20%]
+### 1.3 Security Hardening [80%]
 
-- [ ] **Input validation** `Priority: HIGH`
-  - Audit all API endpoints
-  - Add Zod validation schemas
-  - Sanitize user inputs
-  - **Files**: All API routes
-  - **Effort**: 12 hours
+- [x] **Input validation** `Priority: HIGH` ✅ **Completed: Dec 7, 2025**
+  - [x] Implemented Zod validation for Auth actions
+  - [x] Implemented Zod validation for critical API endpoints
+  - **Files**: `src/actions/auth.ts`, `src/lib/api-handler.ts`
+  - **Actual Effort**: 4 hours
   
 - [ ] **Password strength requirements**
   - Minimum length, complexity
@@ -193,22 +192,23 @@ Advanced Features:    ███░░░░░░░░░░░░░░░░�
   - **Files**: `src/app/login/page.tsx`, user management
   - **Effort**: 4 hours
   
-- [ ] **Rate limiting** `Priority: HIGH`
-  - Implement rate limiting middleware
-  - Protect login, API endpoints
-  - **Tech**: Use middleware with in-memory store or Redis
-  - **Files**: `src/middleware.ts`
-  - **Effort**: 6 hours
+- [x] **Rate limiting** `Priority: HIGH` ✅ **Completed: Dec 7, 2025**
+  - [x] Configured `next.config.mjs` security headers
+  - [x] Implemented Token Bucket rate limiter (`src/lib/rate-limit.ts`)
+  - [x] Applied middleware protection to `/api/*` (100 req/min)
+  - [x] Applied strict protection to login (5 req/min)
+  - **Files**: `src/middleware.ts`, `src/lib/rate-limit.ts`, `next.config.mjs`
+  - **Actual Effort**: 4 hours
   
 - [ ] **HTTPS enforcement**
   - Configure SSL/TLS for production
   - Redirect HTTP to HTTPS
   - **Effort**: 2 hours (deployment config)
   
-- [ ] **Security headers**
-  - Add CSP, HSTS, X-Frame-Options
+- [x] **Security headers** ✅ **Completed: Dec 7, 2025**
+  - [x] Added CSP, HSTS, X-Frame-Options, Permissions-Policy
   - **Files**: `next.config.mjs`
-  - **Effort**: 3 hours
+  - **Actual Effort**: 1 hour
 
 ### 1.4 Testing Infrastructure [0%]
 

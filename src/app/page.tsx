@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
+import { ModeToggle } from "@/components/ui/mode-toggle";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { ShieldCheck, BookOpen, MonitorPlay, CheckCircle, ArrowRight, GraduationCap } from "lucide-react";
 
@@ -23,6 +24,7 @@ export default function Home() {
                 Masuk sebagai Guru
               </Button>
             </Link>
+            <ModeToggle />
             <Link href="/login">
               <Button className="rounded-full px-6 shadow-lg shadow-primary/20">
                 Mulai Ujian

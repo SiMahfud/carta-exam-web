@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { logout } from "@/actions/auth";
 import { FileText, User, ShieldCheck, LogOut } from "lucide-react";
+import { ModeToggle } from "@/components/ui/mode-toggle";
 
 export default function StudentLayout({
     children,
@@ -52,6 +53,7 @@ export default function StudentLayout({
                             <User className="h-4 w-4 text-muted-foreground" />
                             <span className="font-medium">Siswa</span>
                         </div>
+                        <ModeToggle />
                         <form action={logout}>
                             <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-destructive hover:bg-destructive/10">
                                 <LogOut className="h-4 w-4 mr-2" />
@@ -64,6 +66,6 @@ export default function StudentLayout({
             <main className="flex-1 container mx-auto px-4 py-8">
                 {children}
             </main>
-        </div>
+        </div >
     );
 }
