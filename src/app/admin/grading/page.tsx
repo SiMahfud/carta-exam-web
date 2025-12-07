@@ -7,7 +7,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
-import { Edit, Calendar, User, FileText, LayoutGrid, Table2, Send, Search } from "lucide-react";
+import { Edit, Calendar, User, FileText, LayoutGrid, Table2, Send, Search, Download } from "lucide-react";
 import {
     Select,
     SelectContent,
@@ -69,6 +69,60 @@ export default function GradingPage() {
     const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
     const [showBatchPublishDialog, setShowBatchPublishDialog] = useState(false);
     const [batchPublishing, setBatchPublishing] = useState(false);
+    const [exporting, setExporting] = useState(false);
+
+    // Get unique session IDs from submissions
+    const getSessionIds = () => {
+        const sessionIds = new Set(submissions.map(s => s.sessionId));
+        return Array.from(sessionIds);
+    };
+
+    const handleExport = async () => {
+        const sessionIds = getSessionIds();
+        if (sessionIds.length === 0) {
+            toast({
+                title: "Tidak ada data",
+                description: "Tidak ada submission untuk diekspor",
+                variant: "destructive",
+            });
+            return;
+        }
+
+        setExporting(true);
+        try {
+            // Export the first session if multiple exist
+            const sessionId = sessionIds[0];
+            const response = await fetch(`/api/exam-sessions/${sessionId}/export`);
+
+            if (response.ok) {
+                const blob = await response.blob();
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `hasil-ujian-${new Date().toISOString().split('T')[0]}.xlsx`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                window.URL.revokeObjectURL(url);
+
+                toast({
+                    title: "Berhasil",
+                    description: "File Excel berhasil diunduh",
+                    variant: "success",
+                });
+            } else {
+                throw new Error("Export failed");
+            }
+        } catch (error) {
+            toast({
+                title: "Error",
+                description: "Gagal mengekspor data",
+                variant: "destructive",
+            });
+        } finally {
+            setExporting(false);
+        }
+    };
 
     useEffect(() => {
         // Load view preference from localStorage
@@ -223,6 +277,14 @@ export default function GradingPage() {
                     </p>
                 </div>
                 <div className="flex items-center gap-2">
+                    <Button
+                        variant="outline"
+                        onClick={handleExport}
+                        disabled={exporting || submissions.length === 0}
+                    >
+                        <Download className="h-4 w-4 mr-2" />
+                        {exporting ? "Mengekspor..." : "Export Excel"}
+                    </Button>
                     <Button
                         variant={viewMode === "card" ? "default" : "outline"}
                         size="icon"

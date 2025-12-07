@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { logout } from "@/actions/auth";
 import {
@@ -10,7 +10,6 @@ import {
     Database,
     FileText,
     Calendar,
-    ClipboardList,
     Edit3,
     LogOut,
     Menu,
@@ -18,9 +17,10 @@ import {
     LayoutDashboard,
     GraduationCap,
     Settings,
-    Search
+    Search,
+    Keyboard
 } from "lucide-react";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { cn } from "@/lib/utils";
 import { GlobalSearch } from "@/components/global-search/GlobalSearch";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -32,6 +32,10 @@ import {
     DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { Breadcrumbs } from "@/components/ui/breadcrumbs";
+import { useKeyboardShortcuts, getAdminShortcuts } from "@/hooks/use-keyboard-shortcuts";
+import { KeyboardShortcutsHelp } from "@/components/ui/keyboard-shortcuts-help";
+import { RecentItemsDropdown } from "@/components/ui/recent-items";
 
 export default function AdminLayout({
     children,
@@ -39,20 +43,17 @@ export default function AdminLayout({
     children: React.ReactNode
 }) {
     const pathname = usePathname();
+    const router = useRouter();
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
     const [isSearchOpen, setIsSearchOpen] = useState(false);
+    const [isShortcutsHelpOpen, setIsShortcutsHelpOpen] = useState(false);
 
-    // Keyboard shortcut for search (Ctrl+K / Cmd+K)
-    useEffect(() => {
-        const handleKeyDown = (e: KeyboardEvent) => {
-            if ((e.ctrlKey || e.metaKey) && e.key === "k") {
-                e.preventDefault();
-                setIsSearchOpen(true);
-            }
-        };
-        document.addEventListener("keydown", handleKeyDown);
-        return () => document.removeEventListener("keydown", handleKeyDown);
-    }, []);
+    // Initialize keyboard shortcuts
+    const shortcuts = getAdminShortcuts(router, {
+        openSearch: () => setIsSearchOpen(true),
+        openShortcutsHelp: () => setIsShortcutsHelpOpen(true),
+    });
+    useKeyboardShortcuts({ shortcuts });
 
     const navItems = [
         { href: "/admin", label: "Dashboard", icon: LayoutDashboard },
@@ -187,6 +188,7 @@ export default function AdminLayout({
                         >
                             <Search className="h-5 w-5" />
                         </Button>
+                        <RecentItemsDropdown />
                         <DropdownMenu>
                             <DropdownMenuTrigger asChild>
                                 <Button variant="ghost" className="relative h-9 w-9 rounded-full">
@@ -226,6 +228,7 @@ export default function AdminLayout({
                 {/* Page Content */}
                 <main className="flex-1 overflow-y-auto p-4 lg:p-8">
                     <div className="max-w-7xl mx-auto">
+                        <Breadcrumbs />
                         {children}
                     </div>
                 </main>
@@ -233,6 +236,13 @@ export default function AdminLayout({
 
             {/* Global Search Dialog */}
             <GlobalSearch open={isSearchOpen} onOpenChange={setIsSearchOpen} />
+
+            {/* Keyboard Shortcuts Help */}
+            <KeyboardShortcutsHelp
+                open={isShortcutsHelpOpen}
+                onOpenChange={setIsShortcutsHelpOpen}
+                shortcuts={shortcuts}
+            />
         </div>
     )
 }

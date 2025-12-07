@@ -629,33 +629,33 @@ Advanced Features:    ███░░░░░░░░░░░░░░░░�
 
 These can be implemented anytime for immediate value:
 
-- [ ] **Export results to Excel** `Effort: 6h`
+- [x] **Export results to Excel** `Effort: 6h` ✅ **Completed: Dec 7, 2025**
   - Use existing xlsx library
   - Add export button to grading page
   
-- [ ] **Keyboard shortcuts** `Effort: 8h`
+- [x] **Keyboard shortcuts** `Effort: 8h` ✅ **Completed: Dec 7, 2025**
   - Add shortcuts for common actions
   - Help modal showing shortcuts
   
-- [ ] **Print stylesheets** `Effort: 6h`
+- [x] **Print stylesheets** `Effort: 6h` ✅ **Completed: Dec 7, 2025**
   - Print-friendly exam papers
   - Print-friendly results
   
-- [ ] **Better error messages** `Effort: 4h`
+- [x] **Better error messages** `Effort: 4h` ✅ **Completed: Dec 7, 2025**
   - User-friendly error states
   - Actionable error messages
   
-- [ ] **Toast notifications** `Effort: 4h`
+- [x] **Toast notifications** `Effort: 4h` ✅ **Completed: Dec 7, 2025**
   - Success/error feedback
   - Already have shadcn/ui toast component
   
-- [ ] **Breadcrumbs navigation** `Effort: 4h`
+- [x] **Breadcrumbs navigation** `Effort: 4h` ✅ **Completed: Dec 7, 2025**
   - Improve navigation clarity
   
-- [ ] **Recent items shortcuts** `Effort: 6h`
+- [x] **Recent items shortcuts** `Effort: 6h` ✅ **Completed: Dec 7, 2025**
   - Quick access to recent exams/questions
   
-- [ ] **Auto-save indicators** `Effort: 4h`
+- [x] **Auto-save indicators** `Effort: 4h` ✅ **Completed: Dec 7, 2025**
   - Show save status in forms
 
 ---

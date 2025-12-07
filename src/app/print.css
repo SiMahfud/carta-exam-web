@@ -1,0 +1,221 @@
+/**
+ * Print Stylesheets for CartaExam
+ * Apply print-friendly styles for exam papers and grading results
+ */
+
+@media print {
+    /* Hide non-essential elements */
+    .no-print,
+    header,
+    aside,
+    nav,
+    footer,
+    button:not(.print-button),
+    .fixed,
+    .sidebar,
+    [role="dialog"],
+    [role="tooltip"],
+    .dropdown-menu,
+    .toast,
+    .modal {
+        display: none !important;
+    }
+
+    /* Reset background colors and shadows */
+    * {
+        background: white !important;
+        box-shadow: none !important;
+        text-shadow: none !important;
+    }
+
+    /* Ensure text is black for better print quality */
+    body {
+        color: #000 !important;
+        font-size: 12pt;
+        line-height: 1.5;
+    }
+
+    /* Page setup */
+    @page {
+        margin: 2cm;
+        size: A4;
+    }
+
+    /* Prevent page breaks inside important elements */
+    h1, h2, h3, h4, h5, h6,
+    img, table, figure, pre {
+        page-break-inside: avoid;
+        break-inside: avoid;
+    }
+
+    /* Keep headings with following content */
+    h1, h2, h3, h4, h5, h6 {
+        page-break-after: avoid;
+        break-after: avoid;
+    }
+
+    /* Main content should use full width */
+    main,
+    .print-content {
+        width: 100% !important;
+        max-width: 100% !important;
+        padding: 0 !important;
+        margin: 0 !important;
+    }
+
+    /* Links - show URL */
+    a[href]:after {
+        content: " (" attr(href) ")";
+        font-size: 0.8em;
+        color: #666;
+    }
+    a[href^="#"]:after,
+    a[href^="javascript:"]:after {
+        content: "";
+    }
+
+    /* Tables */
+    table {
+        border-collapse: collapse !important;
+        width: 100%;
+    }
+    th, td {
+        border: 1px solid #000 !important;
+        padding: 8px !important;
+    }
+    thead {
+        display: table-header-group;
+    }
+    tr {
+        page-break-inside: avoid;
+    }
+
+    /* Cards become simpler boxes */
+    .card {
+        border: 1px solid #ddd !important;
+        margin-bottom: 1rem !important;
+        padding: 1rem !important;
+    }
+
+    /* Question styling for exams */
+    .question-item {
+        page-break-inside: avoid;
+        margin-bottom: 2rem;
+        border-bottom: 1px solid #eee;
+        padding-bottom: 1rem;
+    }
+
+    .question-number {
+        font-weight: bold;
+        margin-bottom: 0.5rem;
+    }
+
+    .question-content {
+        margin-bottom: 1rem;
+    }
+
+    .question-choices {
+        margin-left: 1.5rem;
+    }
+
+    .question-choice {
+        margin-bottom: 0.25rem;
+    }
+
+    /* Student info header */
+    .print-header {
+        text-align: center;
+        margin-bottom: 2rem;
+        padding-bottom: 1rem;
+        border-bottom: 2px solid #000;
+    }
+
+    .print-header h1 {
+        font-size: 18pt;
+        margin-bottom: 0.5rem;
+    }
+
+    .print-header .school-info {
+        font-size: 10pt;
+        color: #666;
+    }
+
+    /* Student info section */
+    .student-info-section {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 1.5rem;
+        padding: 0.5rem;
+        border: 1px solid #ddd;
+    }
+
+    .student-info-section .label {
+        font-weight: bold;
+    }
+
+    /* Answer sheet */
+    .answer-sheet {
+        margin-top: 2rem;
+    }
+
+    .answer-row {
+        display: flex;
+        align-items: center;
+        margin-bottom: 0.5rem;
+    }
+
+    .answer-bubble {
+        width: 20px;
+        height: 20px;
+        border: 1px solid #000;
+        border-radius: 50%;
+        margin-right: 8px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    /* Grading results */
+    .grading-result {
+        page-break-inside: avoid;
+    }
+
+    .score-display {
+        font-size: 24pt;
+        font-weight: bold;
+        text-align: center;
+        margin: 1rem 0;
+    }
+
+    /* Hide interactive elements in print */
+    .interactive,
+    input,
+    select,
+    textarea,
+    .checkbox,
+    .radio {
+        display: none !important;
+    }
+
+    /* Show print-only elements */
+    .print-only {
+        display: block !important;
+    }
+
+    /* Utility classes */
+    .print-mb-1 { margin-bottom: 0.5rem !important; }
+    .print-mb-2 { margin-bottom: 1rem !important; }
+    .print-mb-4 { margin-bottom: 2rem !important; }
+    .print-text-center { text-align: center !important; }
+    .print-text-sm { font-size: 10pt !important; }
+    .print-text-lg { font-size: 14pt !important; }
+    .print-break-before { page-break-before: always; }
+    .print-break-after { page-break-after: always; }
+}
+
+/* Hide print-only elements on screen */
+@media screen {
+    .print-only {
+        display: none !important;
+    }
+}
