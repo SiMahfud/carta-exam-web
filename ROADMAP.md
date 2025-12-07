@@ -2,7 +2,7 @@
 
 > **Status Proyek**: 🟡 Beta - Feature-Complete Prototype → Production Ready
 > 
-> **Last Updated**: December 6, 2025
+> **Last Updated**: December 7, 2025
 
 ---
 
@@ -36,10 +36,16 @@ Advanced Features:    ███░░░░░░░░░░░░░░░░�
   - User CRUD operations
   
 - [x] **Question Bank System**
-  - 5 question types (MC, Complex MC, Matching, Short Answer, Essay)
+  - 6 question types (MC, Complex MC, Matching, Short Answer, Essay, True/False)
   - Rich text editor with image support
   - Tag and difficulty management
   - Question CRUD operations
+  - **DOCX Import** (Dec 7, 2025):
+    - [x] Import questions from Word documents
+    - [x] Replace All mode (clear existing before import)
+    - [x] Preview with KaTeX math rendering
+    - [x] Base64 image extraction to file system
+    - [x] Zod validation on import
   
 - [x] **Exam Management**
   - Exam templates
@@ -302,11 +308,14 @@ Advanced Features:    ███░░░░░░░░░░░░░░░░�
   - **Files**: `src/components/bulk-import/BulkUserManager.tsx`, `src/app/api/users/bulk-import/route.ts`, `src/app/api/users/bulk-export/route.ts`
   - **Actual Effort**: 8 hours
   
-- [ ] **Bulk question import**
-  - Import questions from templates
-  - Support Word/PDF parsing
-  - **Tech**: Consider AI-powered parsing
-  - **Effort**: 24 hours
+- [x] **Bulk question import** ✅ **Completed: Dec 7, 2025**
+  - [x] Import questions from DOCX templates
+  - [x] Replace All mode (clear existing before import)
+  - [x] Preview with KaTeX math rendering
+  - [x] Base64 image extraction and file system storage
+  - [x] Zod validation for data integrity
+  - **Files**: `src/components/question-editor/ImportQuestionsDialog.tsx`, `src/lib/image-processor.ts`
+  - **Actual Effort**: 8 hours
   
 - [x] **Bulk export features** ✅ **Completed: Dec 4, 2025**
   - [x] Export exam results to Excel (per session)
@@ -742,4 +751,4 @@ See [CONTRIBUTING.md](./CONTRIBUTING.md) for detailed contribution guidelines.
 
 ---
 
-**Last Updated**: December 6, 2025 | **Version**: 1.0.1
+**Last Updated**: December 7, 2025 | **Version**: 1.0.2

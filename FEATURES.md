@@ -1,7 +1,7 @@
 # ✅ CartaExam Feature Status
 
 > **Quick Reference**: Current implementation status of all features  
-> **Last Updated**: December 6, 2025
+> **Last Updated**: December 7, 2025
 
 ---
 
@@ -71,6 +71,9 @@
 | → Question sharing | ❌ | Planned for Phase 3 |
 | → Comment system | ❌ | Planned for Phase 3 |
 | → Review workflow | ❌ | Future |
+| **Import/Export** | | |
+| → DOCX Import | ✅ | **Dec 7** - Import, preview, replace mode |
+| → Replace All mode | ✅ | Clear existing before import |
 
 ---
 
@@ -287,7 +290,7 @@
 | User management | ✅ | Complete |
 | **Bulk Operations** | | |
 | → Bulk user management | ✅ | **Dec 4, 2025** - Import/Export/Update/Delete with Excel |
-| → Bulk question import | 📋 | Planned for Phase 2 |
+| → Bulk question import (DOCX) | ✅ | **Dec 7, 2025** - Import from Word, Replace All, Preview |
 | → Bulk export | ✅ | **Dec 4, 2025** - Export exam results to Excel |
 | → Batch actions | 📋 | Planned for Phase 2 |
 
@@ -433,4 +436,4 @@
 
 ---
 
-**Last Updated**: December 6, 2025 | **Version**: 1.0.3
+**Last Updated**: December 7, 2025 | **Version**: 1.0.4

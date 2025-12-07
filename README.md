@@ -70,9 +70,15 @@ Dokumentasi lengkap tersedia untuk membantu Anda memahami dan berkontribusi pada
 - [Panduan Pengguna untuk Guru](docs/user_guide_teachers.md) - Cara menggunakan aplikasi
 - [Skema Database](docs/database_schema.md) - Struktur database lengkap
 
-### 🎯 Recent Improvements (December 6, 2025)
+### 🎯 Recent Improvements (December 7, 2025)
 
-**Advanced Randomization (NEW)**:
+**DOCX Import (NEW)**:
+- ✅ **Import Soal dari DOCX**: Upload file Word untuk import soal secara massal
+- ✅ **Mode Replace All**: Opsi untuk menghapus semua soal lama dan menggantinya dengan hasil import
+- ✅ **Preview dengan KaTeX**: Tampilan preview soal dengan rendering math formula ($...$ dan $$...$$)
+- ✅ **Image Processing**: Ekstraksi gambar Base64 ke file sistem secara otomatis
+
+**Advanced Randomization**:
 - ✅ **4 Modes Pengacakan Soal**: Acak semua, per jenis soal, kecuali jenis tertentu, atau nomor tertentu
 - ✅ **Pengacakan Pilihan Jawaban**: Toggle untuk mengacak urutan A, B, C, D pada MC, Complex MC, True/False, dan Matching
 
@@ -130,5 +136,5 @@ Dikembangkan untuk SMAN 1 Campurdarat dengan tujuan meningkatkan kualitas dan ef
 ---
 
 **Status Proyek**: 🟡 Beta - Menuju Production Ready  
-**Versi**: 0.1.1  
-**Last Updated**: December 6, 2025
+**Versi**: 0.1.2  
+**Last Updated**: December 7, 2025
