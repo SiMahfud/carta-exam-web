@@ -55,8 +55,8 @@ export function MultipleChoiceEditor({
             if (questionToEdit) {
                 setFormData({
                     question: questionToEdit.content.question,
-                    options: questionToEdit.content.options,
-                    correctAnswer: questionToEdit.answerKey.correct.toString(),
+                    options: questionToEdit.content.options || ["", "", "", "", ""],
+                    correctAnswer: (questionToEdit.answerKey.correct ?? 0).toString(),
                     difficulty: questionToEdit.difficulty,
                     defaultPoints: questionToEdit.defaultPoints,
                     tags: questionToEdit.tags || [],

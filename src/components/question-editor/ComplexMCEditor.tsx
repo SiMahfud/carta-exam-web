@@ -56,8 +56,8 @@ export function ComplexMCEditor({
             if (questionToEdit) {
                 setFormData({
                     question: questionToEdit.content.question,
-                    options: questionToEdit.content.options,
-                    correctAnswers: questionToEdit.answerKey.correct,
+                    options: questionToEdit.content.options || ["", ""],
+                    correctAnswers: questionToEdit.answerKey.correct || [],
                     difficulty: questionToEdit.difficulty,
                     defaultPoints: questionToEdit.defaultPoints,
                     tags: questionToEdit.tags || [],

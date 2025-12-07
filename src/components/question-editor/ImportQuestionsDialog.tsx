@@ -18,6 +18,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Upload, FileText, Check, AlertCircle, Loader2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { MatchingQuestionRenderer } from "@/components/exam/MatchingQuestionRenderer";
+import { QuestionPreviewCard } from "./QuestionPreviewCard";
 
 interface ImportQuestionsDialogProps {
     bankId: string;
@@ -370,16 +371,7 @@ export function ImportQuestionsDialog({ bankId, onSuccess }: ImportQuestionsDial
     };
 
     // Helper to get type label
-    const getTypeLabel = (type: string) => {
-        const labels: Record<string, string> = {
-            mc: "Pilihan Ganda",
-            complex_mc: "PG Kompleks",
-            matching: "Menjodohkan",
-            short: "Isian Singkat",
-            essay: "Uraian/Esai",
-        };
-        return labels[type] || type;
-    };
+
 
     return (
         <Dialog open={open} onOpenChange={setOpen}>
@@ -456,101 +448,26 @@ export function ImportQuestionsDialog({ bankId, onSuccess }: ImportQuestionsDial
                         </div>
                     )}
 
+
                     {/* Preview Section */}
                     {parsedQuestions.length > 0 && (
                         <div className="flex-1 border rounded-md p-4 overflow-y-auto" ref={previewContainerRef}>
                             <div className="space-y-6">
                                 {parsedQuestions.map((question, idx) => (
-                                    <div key={idx} className="border rounded-lg p-4 space-y-3 bg-card text-card-foreground shadow-sm">
-                                        <div className="flex justify-between items-start">
-                                            <div className="flex gap-2 items-center">
-                                                <Badge variant="outline">No. {question.metadata.originalNo}</Badge>
-                                                <Badge variant="secondary">{getTypeLabel(question.type)}</Badge>
-                                            </div>
-                                        </div>
-
-                                        <div
-                                            className="text-sm font-medium prose dark:prose-invert max-w-none"
-                                            dangerouslySetInnerHTML={{ __html: question.content.question }}
-                                        />
-
-                                        {/* MC Preview */}
-                                        {question.type === 'mc' && (
-                                            <div className="space-y-3">
-                                                <div className="space-y-2 pl-4">
-                                                    {question.content.options.map((opt: string, i: number) => {
-                                                        const isCorrect = i === question.answerKey.correct;
-                                                        return (
-                                                            <div key={i} className={`flex items-start gap-3 p-2 rounded ${isCorrect ? 'bg-green-100 dark:bg-green-900/30 border border-green-500' : 'hover:bg-muted/50'}`}>
-                                                                <div className="flex items-center justify-center h-5 w-5 rounded-full border border-primary text-[10px] flex-shrink-0 mt-0.5">
-                                                                    {["A", "B", "C", "D", "E"][i]}
-                                                                </div>
-                                                                <div className="text-sm flex-1" dangerouslySetInnerHTML={{ __html: opt }} />
-                                                                {isCorrect && <span className="ml-auto text-green-600 font-semibold text-xs">✓ KUNCI</span>}
-                                                            </div>
-                                                        );
-                                                    })}
-                                                </div>
-                                            </div>
-                                        )}
-
-                                        {/* Complex MC Preview */}
-                                        {question.type === 'complex_mc' && (
-                                            <div className="space-y-3">
-                                                <div className="space-y-2 pl-4">
-                                                    {question.content.options.map((opt: string, i: number) => {
-                                                        const isCorrect = question.answerKey.correctIndices.includes(i);
-                                                        return (
-                                                            <div key={i} className={`flex items-start gap-3 p-2 rounded ${isCorrect ? 'bg-green-100 dark:bg-green-900/30 border border-green-500' : 'hover:bg-muted/50'}`}>
-                                                                <div className="h-4 w-4 border rounded-sm flex-shrink-0 mt-1" />
-                                                                <div className="text-sm flex-1" dangerouslySetInnerHTML={{ __html: opt }} />
-                                                                {isCorrect && <span className="ml-auto text-green-600 font-semibold text-xs">✓ KUNCI</span>}
-                                                            </div>
-                                                        );
-                                                    })}
-                                                </div>
-                                            </div>
-                                        )}
-
-                                        {/* Matching Preview */}
-                                        {question.type === 'matching' && (
-                                            <div className="space-y-3 pl-4">
-                                                <p className="text-sm font-semibold text-muted-foreground mb-2">Preview Pasangan:</p>
-                                                <div className="border rounded-lg p-4 bg-muted/10">
-                                                    <MatchingQuestionRenderer
-                                                        question={{
-                                                            id: `import-${idx}`,
-                                                            questionText: "",
-                                                            leftItems: question.content.leftItems,
-                                                            rightItems: question.content.rightItems
-                                                        }}
-                                                        answer={question.answerKey.matches?.map((m: any) => ({
-                                                            left: m.leftId,
-                                                            right: m.rightId
-                                                        })) || []}
-                                                        onChange={() => { }} // Read-only
-                                                    />
-                                                </div>
-                                                <div className="mt-2 text-xs text-muted-foreground">
-                                                    Matches detected: {question.answerKey.matches?.length} pair(s)
-                                                </div>
-                                            </div>
-                                        )}
-
-                                        {/* Short / Essay Preview */}
-                                        {(question.type === 'short' || question.type === 'essay') && (
-                                            <div className="space-y-2 pl-4">
-                                                <div className="p-3 bg-muted/20 border rounded-lg">
-                                                    <p className="text-xs font-semibold text-muted-foreground mb-1">Kunci Jawaban:</p>
-                                                    <div className="text-sm text-green-700 dark:text-green-400 font-medium">
-                                                        {question.type === 'short'
-                                                            ? question.answerKey.acceptedAnswers?.join(' / ')
-                                                            : question.answerKey.modelAnswer}
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        )}
-                                    </div>
+                                    <QuestionPreviewCard
+                                        key={idx}
+                                        index={idx}
+                                        question={question}
+                                        onUpdate={(updated) => {
+                                            const newQuestions = [...parsedQuestions];
+                                            newQuestions[idx] = updated;
+                                            setParsedQuestions(newQuestions);
+                                        }}
+                                        onDelete={() => {
+                                            const newQuestions = parsedQuestions.filter((_, i) => i !== idx);
+                                            setParsedQuestions(newQuestions);
+                                        }}
+                                    />
                                 ))}
                             </div>
                         </div>

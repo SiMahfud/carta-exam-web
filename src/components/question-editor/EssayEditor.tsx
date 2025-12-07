@@ -73,7 +73,7 @@ export function EssayEditor({
                     question: questionToEdit.content.question,
                     guidelines: questionToEdit.content.guidelines || "",
                     maxWords: questionToEdit.content.maxWords || null,
-                    rubric: questionToEdit.answerKey.rubric,
+                    rubric: questionToEdit.answerKey.rubric || [{ criteria: "", maxPoints: 1 }],
                     keywords: questionToEdit.answerKey.keywords || [],
                     difficulty: questionToEdit.difficulty,
                     defaultPoints: questionToEdit.defaultPoints,
@@ -237,7 +237,7 @@ export function EssayEditor({
     };
 
     const getTotalRubricPoints = () => {
-        return formData.rubric.reduce((sum, r) => sum + r.maxPoints, 0);
+        return (formData.rubric || []).reduce((sum, r) => sum + r.maxPoints, 0);
     };
 
     return (

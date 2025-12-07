@@ -55,7 +55,7 @@ export function TrueFalseEditor({
             if (questionToEdit) {
                 setFormData({
                     question: questionToEdit.content.question,
-                    correctAnswer: questionToEdit.answerKey.correct.toString(),
+                    correctAnswer: questionToEdit.answerKey.correct === 1 ? "false" : "true",
                     difficulty: questionToEdit.difficulty,
                     defaultPoints: questionToEdit.defaultPoints,
                     tags: questionToEdit.tags || [],

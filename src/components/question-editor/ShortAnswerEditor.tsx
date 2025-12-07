@@ -57,7 +57,7 @@ export function ShortAnswerEditor({
             if (questionToEdit) {
                 setFormData({
                     question: questionToEdit.content.question,
-                    acceptedAnswers: questionToEdit.answerKey.acceptedAnswers,
+                    acceptedAnswers: questionToEdit.answerKey.acceptedAnswers || [""],
                     caseSensitive: questionToEdit.content.caseSensitive,
                     exactMatch: questionToEdit.content.exactMatch,
                     difficulty: questionToEdit.difficulty,

@@ -56,9 +56,9 @@ export function MatchingEditor({
             if (questionToEdit) {
                 setFormData({
                     question: questionToEdit.content.question,
-                    leftItems: questionToEdit.content.leftItems,
-                    rightItems: questionToEdit.content.rightItems,
-                    pairs: normalizePairs(questionToEdit.answerKey.pairs),
+                    leftItems: (questionToEdit.content.leftItems || []).map((item: any) => typeof item === 'object' && item !== null ? item.text : item),
+                    rightItems: (questionToEdit.content.rightItems || []).map((item: any) => typeof item === 'object' && item !== null ? item.text : item),
+                    pairs: normalizePairs(questionToEdit.answerKey, questionToEdit.content.leftItems, questionToEdit.content.rightItems),
                     difficulty: questionToEdit.difficulty,
                     defaultPoints: questionToEdit.defaultPoints,
                     tags: questionToEdit.tags || [],
@@ -244,17 +244,80 @@ export function MatchingEditor({
     };
 
     // Helper to normalize pairs from DB (which might be 1-to-1 or 1-to-many)
-    const normalizePairs = (pairs: any): { [key: number]: number[] } => {
+
+    // Helper to normalize pairs from DB (which can be stored in different formats)
+    const normalizePairs = (answerKey: any, rawLeftItems: any[] = [], rawRightItems: any[] = []): { [key: number]: number[] } => {
+        if (!answerKey) return {};
         const normalized: { [key: number]: number[] } = {};
-        Object.keys(pairs).forEach(key => {
-            const val = pairs[key];
-            const k = parseInt(key);
-            if (Array.isArray(val)) {
-                normalized[k] = val;
-            } else {
-                normalized[k] = [val];
-            }
-        });
+
+        // Debug logging
+        console.log('Normalizing answerKey:', JSON.stringify(answerKey));
+        console.log('Left items:', rawLeftItems?.length, rawLeftItems);
+        console.log('Right items:', rawRightItems?.length, rawRightItems);
+
+        // Format 1: matches array (from import) - [ { leftId, rightId } ]
+        if (answerKey.matches && Array.isArray(answerKey.matches)) {
+            answerKey.matches.forEach((match: { leftId: string; rightId: string }) => {
+                // Find left index by matching ID
+                const leftIndex = rawLeftItems.findIndex((item: any) =>
+                    typeof item === 'object' && item !== null && String(item.id) === String(match.leftId)
+                );
+                // Find right index by matching ID
+                const rightIndex = rawRightItems.findIndex((item: any) =>
+                    typeof item === 'object' && item !== null && String(item.id) === String(match.rightId)
+                );
+
+                if (leftIndex !== -1 && rightIndex !== -1) {
+                    if (!normalized[leftIndex]) {
+                        normalized[leftIndex] = [];
+                    }
+                    if (!normalized[leftIndex].includes(rightIndex)) {
+                        normalized[leftIndex].push(rightIndex);
+                    }
+                } else {
+                    console.warn('Could not resolve match:', match, 'leftIndex:', leftIndex, 'rightIndex:', rightIndex);
+                }
+            });
+            console.log('Normalized from matches:', normalized);
+            return normalized;
+        }
+
+        // Format 2: pairs object (from manual creation/old format) - { leftIndex: rightIndex | rightIndex[] }
+        if (answerKey.pairs) {
+            const pairs = answerKey.pairs;
+
+            const getLeftIndex = (key: string): number => {
+                if (/^\d+$/.test(key)) return parseInt(key);
+                return rawLeftItems.findIndex((item: any) =>
+                    typeof item === 'object' && item !== null && String(item.id) === String(key)
+                );
+            };
+
+            const getRightIndices = (values: any): number[] => {
+                const vals = Array.isArray(values) ? values : [values];
+                return vals.map((val: any) => {
+                    if (typeof val === 'number') return val;
+                    if (typeof val === 'string' && /^\d+$/.test(val)) return parseInt(val);
+                    return rawRightItems.findIndex((item: any) =>
+                        typeof item === 'object' && item !== null && String(item.id) === String(val)
+                    );
+                }).filter((i: number) => i !== -1);
+            };
+
+            Object.keys(pairs).forEach(key => {
+                const leftIndex = getLeftIndex(key);
+                if (leftIndex !== -1) {
+                    const rightIndices = getRightIndices(pairs[key]);
+                    if (rightIndices.length > 0) {
+                        normalized[leftIndex] = rightIndices;
+                    }
+                }
+            });
+            console.log('Normalized from pairs:', normalized);
+            return normalized;
+        }
+
+        console.warn('answerKey has neither matches nor pairs:', answerKey);
         return normalized;
     };
 
@@ -353,7 +416,8 @@ export function MatchingEditor({
                                                         // For dropdown, we need plain text or a snippet. Rich text might be too much.
                                                         // Let's strip HTML tags for the dropdown label or just show "Item Kanan X"
                                                         // A simple regex to strip tags:
-                                                        const plainText = rightItem.replace(/<[^>]+>/g, '') || `Item Kanan ${rIndex + 1}`;
+                                                        const safeRightItem = String(rightItem || "");
+                                                        const plainText = safeRightItem.replace(/<[^>]+>/g, '') || `Item Kanan ${rIndex + 1}`;
                                                         return (
                                                             <SelectItem
                                                                 key={rIndex}
@@ -370,7 +434,8 @@ export function MatchingEditor({
                                             <div className="flex flex-wrap gap-1">
                                                 {(formData.pairs[index] || []).map((rIndex) => {
                                                     const rightItemContent = formData.rightItems[rIndex];
-                                                    const plainText = rightItemContent.replace(/<[^>]+>/g, '') || `Item Kanan ${rIndex + 1}`;
+                                                    const safeRightItemContent = String(rightItemContent || "");
+                                                    const plainText = safeRightItemContent.replace(/<[^>]+>/g, '') || `Item Kanan ${rIndex + 1}`;
                                                     return (
                                                         <Badge key={rIndex} variant="secondary" className="text-xs">
                                                             {plainText.substring(0, 20) + (plainText.length > 20 ? "..." : "")}
