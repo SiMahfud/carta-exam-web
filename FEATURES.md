@@ -224,7 +224,7 @@
 | → Reliability coefficients | ❌ | Planned for Phase 3 |
 | → Custom report builder | ❌ | Planned for Phase 3 |
 | → PDF export | 📋 | Planned for Phase 3 |
-| → Excel export | 🔜 | High priority |
+| → Excel export | ✅ | **Dec 7** - Full export with 3 sheets |
 | → Scheduled reports | ❌ | Future |
 
 ---
@@ -234,7 +234,7 @@
 ### Notifications
 | Feature | Status | Notes |
 |---------|--------|-------|
-| In-app notifications | ❌ | Planned for Phase 2 |
+| In-app notifications | ✅ | **Dec 7** - Toast notification system |
 | Email notifications | 📋 | Planned for Phase 2 |
 | Push notifications | ❌ | Planned for Phase 2 |
 | Notification preferences | ❌ | Planned for Phase 2 |
@@ -264,8 +264,9 @@
 | → Skeleton loaders | 📋 | Planned for Phase 1 |
 | → Smooth animations | 📋 | Planned for Phase 1 |
 | → Micro-interactions | 📋 | Planned for Phase 1 |
-| → Toast notifications | ✅ | Implemented |
-| → Breadcrumbs | ✅ | Implemented |
+| → Toast notifications | ✅ | **Dec 7** - Implemented 4 variants |
+| → Breadcrumbs | ✅ | **Dec 7** - Implemented auto-generated crumbs |
+| → Print Styles | ✅ | **Dec 7** - Print-optimized CSS |
 
 ### Accessibility
 | Feature | Status | Notes |
@@ -411,7 +412,7 @@
 2. ✅ Mobile responsiveness fixes
 3. ✅ Performance optimization (code splitting)
 4. ✅ Security hardening (input validation, rate limiting)
-5. ✅ Bulk export to Excel
+5. ✅ Productivity features (Excel, Shortcuts, Print)
 
 ### 📅 Coming Soon (Next 3 Months)
 1. Testing infrastructure

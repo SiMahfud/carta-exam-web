@@ -17,7 +17,17 @@ Setelah login, Anda akan melihat Dasbor Admin. Ini memberikan gambaran cepat ten
 - **Statistik Real-time**: Jumlah siswa, ujian selesai, dan sesi aktif.
 - **Log Aktivitas**: Riwayat tindakan terbaru dalam sistem.
 - **Pengumpulan Terbaru**: Daftar siswa yang baru saja menyelesaikan ujian.
+- **Log Aktivitas**: Riwayat tindakan terbaru dalam sistem.
+- **Pengumpulan Terbaru**: Daftar siswa yang baru saja menyelesaikan ujian.
 - Tautan cepat untuk mengelola Kelas, Ujian, dan Bank Soal.
+
+### Pintasan Keyboard (Shortcuts)
+Untuk navigasi yang lebih cepat, Anda dapat menggunakan tombol keyboard:
+- Tekan **`?`** (Shift + /) untuk melihat daftar lengkap pintasan.
+- **`Ctrl + K`**: Membuka pencarian global (Cari siswa, soal, ujian, dll).
+- **`g`** lalu **`d`**: Pergi ke Dasbor.
+- **`g`** lalu **`q`**: Pergi ke Bank Soal.
+- **`g`** lalu **`g`**: Pergi ke Penilaian.
 
 ## Mengelola Mata Pelajaran & Kelas
 
@@ -101,7 +111,9 @@ Selama sesi aktif, Anda dapat memantau kemajuan siswa.
    - Siapa yang sudah mulai.
    - Kemajuan saat ini (soal terjawab).
    - **Token Ujian**: Lihat dan generate token akses untuk siswa.
+   - **Token Ujian**: Lihat dan generate token akses untuk siswa.
    - **Pelanggaran**: Peringatan real-time untuk perilaku mencurigakan.
+   - **Cetak Cadangan**: Tekan `Ctrl+P` untuk mencetak lembar soal sebagai cadangan fisik jika terjadi masalah teknis.
 3. Anda dapat melakukan aksi terhadap siswa:
    - **Reset Waktu**: Mengatur ulang sisa waktu siswa.
    - **Reset Pelanggaran**: Menghapus jumlah pelanggaran siswa (jika terkena blokir).
@@ -128,4 +140,6 @@ Selama sesi aktif, Anda dapat memantau kemajuan siswa.
 1. Pergi ke detail **Sesi Ujian**.
 2. Klik pada tab **Hasil** (Results).
 3. Anda dapat melihat nilai akhir untuk semua siswa.
-4. Ekspor hasil ke CSV/Excel (jika tersedia).
+3. Anda dapat melihat nilai akhir untuk semua siswa.
+4. **Ekspor Excel**: Klik tombol "Export Excel" untuk mengunduh rekap nilai lengkap.
+5. **Cetak Laporan**: Tekan `Ctrl+P` atau klik tombol Print di browser untuk mencetak laporan hasil yang rapi (tanpa menu navigasi).
