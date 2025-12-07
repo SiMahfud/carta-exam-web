@@ -97,6 +97,10 @@ Dokumentasi lengkap tersedia untuk membantu Anda memahami dan berkontribusi pada
 - ✅ **Print Styles**: Tampilan cetak yang rapi untuk ujian dan hasil nilai
 - ✅ **Better UX**: Toast notifications, Breadcrumbs, dan pesan error yang informatif
 
+**UI/UX Enhancements (NEW)**:
+- ✅ **Dark Mode**: Tema gelap dengan toggle di semua halaman (Landing, Admin, Student)
+- ✅ **Mobile Optimization**: Responsive design untuk semua halaman dengan mobile drawer navigation
+
 ### 🗺️ Pengembangan & Roadmap
 - [ROADMAP.md](ROADMAP.md) - **Roadmap pengembangan lengkap** dengan checklist fitur, spesifikasi teknis, dan prioritas
 - [FEATURES.md](FEATURES.md) - **Status fitur saat ini** - Lihat apa yang sudah, sedang, dan akan dikembangkan
@@ -112,11 +116,10 @@ Kami sangat terbuka untuk kontribusi! Lihat [CONTRIBUTING.md](CONTRIBUTING.md) u
 **Untuk AI Agents**: Lihat [AGENTS.md](AGENTS.md) untuk context teknis dan panduan pengembangan.
 
 ### Area yang Membutuhkan Bantuan
-- 🎨 Dark mode implementation
 - 📊 Advanced analytics & reporting
 - 🧪 Testing infrastructure
-- 📱 Mobile responsiveness
-- 🔒 Security enhancements
+- 🔔 Real-time notifications
+- 🤖 AI-powered features
 
 Lihat [ROADMAP.md](ROADMAP.md) untuk daftar lengkap fitur yang direncanakan.
 
@@ -128,7 +131,6 @@ Lihat [ROADMAP.md](ROADMAP.md) dan [FEATURES.md](FEATURES.md) untuk roadmap leng
 - [ ] **Analitik Lanjutan**: Laporan mendalam tentang performa siswa dan analisis butir soal.
 - [ ] **Aplikasi Mobile**: Aplikasi native untuk siswa (Android/iOS) untuk pengalaman ujian yang lebih baik.
 - [ ] **Integrasi LMS**: Sinkronisasi nilai dan data siswa dengan Google Classroom atau Moodle.
-- [ ] **Dark Mode**: Dukungan tema gelap untuk kenyamanan mata.
 - [ ] **Notifikasi Real-time**: Pemberitahuan instan untuk guru saat ada pelanggaran atau ujian selesai.
 
 ## 📄 License

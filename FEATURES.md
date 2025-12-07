@@ -253,14 +253,14 @@
 ### General UI
 | Feature | Status | Notes |
 |---------|--------|-------|
-| Responsive design | 🚧 | Needs improvement |
+| Responsive design | ✅ | **Dec 7** - Mobile optimized with drawer nav |
 | Modern UI components | ✅ | shadcn/ui |
 | Consistent styling | ✅ | Tailwind CSS |
 | Loading states | 🚧 | Some spinners |
 | Error states | 🚧 | Needs improvement |
 | Empty states | 🚧 | Needs improvement |
 | **Enhancements** | | |
-| → Dark mode | 🔜 | High priority! |
+| → Dark mode | ✅ | **Dec 7** - Full support with theme toggle |
 | → Skeleton loaders | 📋 | Planned for Phase 1 |
 | → Smooth animations | 📋 | Planned for Phase 1 |
 | → Micro-interactions | 📋 | Planned for Phase 1 |
