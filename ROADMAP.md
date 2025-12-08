@@ -238,7 +238,7 @@ Advanced Features:    ███░░░░░░░░░░░░░░░░�
   - **Files**: `playwright.config.ts`, `e2e/*.spec.ts`, `.github/workflows/tests.yml`
   - **Actual Effort**: 2 hours
 
-### 1.5 Error Handling & Logging [75%]
+### 1.5 Error Handling & Logging [100%] ✅
 
 - [x] **Global error boundary** `Priority: MEDIUM` ✅ **Completed: Dec 8, 2025**
   - [x] Created `src/app/error.tsx` - Root error boundary
@@ -253,9 +253,13 @@ Advanced Features:    ███░░░░░░░░░░░░░░░░�
   - **Files**: `src/lib/logger.ts`
   - **Actual Effort**: 1 hour
   
-- [ ] **Error tracking**
-  - Integrate Sentry or similar (optional for production)
-  - **Effort**: 4 hours
+- [x] **Error tracking** ✅ **Completed: Dec 8, 2025**
+  - [x] Integrated @sentry/nextjs
+  - [x] Sentry config files (client, server, edge)
+  - [x] Error boundary reports to Sentry
+  - [x] Instrumentation hook with Sentry init
+  - **Files**: `sentry.*.config.ts`, `next.config.mjs`, `.env.example`
+  - **Actual Effort**: 1 hour
 
 ---
 

@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect } from 'react'
+import * as Sentry from '@sentry/nextjs'
 import { AlertTriangle, RefreshCcw, Home } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import Link from 'next/link'
@@ -16,8 +17,12 @@ export default function Error({
         // Log to console in development
         console.error('Application Error:', error)
 
-        // In production, you would send this to a logging service
-        // logger.error('Application error', { error: error.message, digest: error.digest })
+        // Report error to Sentry
+        Sentry.captureException(error, {
+            tags: {
+                digest: error.digest,
+            },
+        })
     }, [error])
 
     return (
