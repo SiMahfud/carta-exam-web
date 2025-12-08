@@ -232,9 +232,11 @@ Advanced Features:    ███░░░░░░░░░░░░░░░░�
   
 - [x] **E2E tests** ✅ **Completed: Dec 8, 2025**
   - [x] Setup Playwright with Chromium
-  - [x] 6 E2E tests: Landing (2), Login (3), 404 (1)
-  - **Files**: `playwright.config.ts`, `e2e/basic.spec.ts`
-  - **Actual Effort**: 1 hour
+  - [x] 11 E2E tests: Basic (6), Auth (5)
+  - [x] Coverage report (~39% for lib files)
+  - [x] GitHub Actions CI/CD workflow
+  - **Files**: `playwright.config.ts`, `e2e/*.spec.ts`, `.github/workflows/tests.yml`
+  - **Actual Effort**: 2 hours
 
 ### 1.5 Error Handling & Logging [75%]
 
