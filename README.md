@@ -61,6 +61,19 @@ Anda dapat mengatur provider database melalui environment variable `DATABASE_PRO
     > - Menyediakan user default: `admin`/`password123` dan `siswa`/`password123`
 5.  Buka [http://localhost:3000](http://localhost:3000) di browser.
 
+### Testing
+
+```bash
+# Unit tests (93 tests)
+npm run test:run
+
+# E2E tests (11 tests dengan Playwright)
+npm run test:e2e
+
+# Coverage report
+npm run test:coverage
+```
+
 ## Dokumentasi
 
 Dokumentasi lengkap tersedia untuk membantu Anda memahami dan berkontribusi pada proyek ini:
@@ -117,7 +130,6 @@ Kami sangat terbuka untuk kontribusi! Lihat [CONTRIBUTING.md](CONTRIBUTING.md) u
 
 ### Area yang Membutuhkan Bantuan
 - 📊 Advanced analytics & reporting
-- 🧪 Testing infrastructure
 - 🔔 Real-time notifications
 - 🤖 AI-powered features
 
@@ -143,6 +155,6 @@ Dikembangkan untuk SMAN 1 Campurdarat dengan tujuan meningkatkan kualitas dan ef
 
 ---
 
-**Status Proyek**: 🟡 Beta - Menuju Production Ready  
-**Versi**: 0.1.2  
-**Last Updated**: December 7, 2025
+**Status Proyek**: 🟢 Production Ready  
+**Versi**: 0.2.0  
+**Last Updated**: December 8, 2025
