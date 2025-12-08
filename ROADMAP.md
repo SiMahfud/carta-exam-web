@@ -235,20 +235,23 @@ Advanced Features:    ███░░░░░░░░░░░░░░░░�
   - Write critical user flow tests
   - **Effort**: 24 hours
 
-### 1.5 Error Handling & Logging [10%]
+### 1.5 Error Handling & Logging [75%]
 
-- [ ] **Global error boundary** `Priority: MEDIUM`
-  - Catch and display errors gracefully
-  - **Files**: `src/app/error.tsx`
-  - **Effort**: 4 hours
+- [x] **Global error boundary** `Priority: MEDIUM` ✅ **Completed: Dec 8, 2025**
+  - [x] Created `src/app/error.tsx` - Root error boundary
+  - [x] Created `src/app/not-found.tsx` - Custom 404 page
+  - [x] Created `src/app/global-error.tsx` - Top-level error boundary
+  - **Actual Effort**: 1 hour
   
-- [ ] **Structured logging**
-  - Implement logging with levels
-  - **Tech**: Winston or Pino
-  - **Effort**: 8 hours
+- [x] **Structured logging** ✅ **Completed: Dec 8, 2025**
+  - [x] Implemented Pino logging with levels
+  - [x] Created `src/lib/logger.ts` with helper functions
+  - [x] Pretty print in dev, JSON in production
+  - **Files**: `src/lib/logger.ts`
+  - **Actual Effort**: 1 hour
   
 - [ ] **Error tracking**
-  - Integrate Sentry or similar
+  - Integrate Sentry or similar (optional for production)
   - **Effort**: 4 hours
 
 ---
