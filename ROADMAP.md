@@ -212,13 +212,18 @@ Advanced Features:    ███░░░░░░░░░░░░░░░░�
   - **Files**: `next.config.mjs`
   - **Actual Effort**: 1 hour
 
-### 1.4 Testing Infrastructure [0%]
+### 1.4 Testing Infrastructure [35%]
 
-- [ ] **Unit tests setup** `Priority: HIGH`
-  - Setup Jest/Vitest
-  - Write tests for utility functions
-  - **Files**: Create `__tests__` directories
-  - **Effort**: 16 hours
+- [x] **Unit tests setup** `Priority: HIGH` ✅ **Completed: Dec 8, 2025**
+  - [x] Setup Vitest test framework
+  - [x] Created vitest.config.mts with path aliases
+  - [x] Added test scripts to package.json
+  - [x] Unit tests for date-utils (11 tests)
+  - [x] Unit tests for randomization (18 tests)
+  - [x] Unit tests for error-messages (15 tests)
+  - [x] Unit tests for rate-limit (5 tests)
+  - **Files**: `vitest.config.mts`, `src/lib/__tests__/*`
+  - **Actual Effort**: 2 hours
   
 - [ ] **Integration tests**
   - Test API endpoints
