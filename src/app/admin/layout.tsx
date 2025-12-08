@@ -163,7 +163,7 @@ export default function AdminLayout({
                         >
                             <Menu className="h-6 w-6" />
                         </Button>
-                        <h2 className="font-semibold text-lg text-slate-800 hidden sm:block">
+                        <h2 className="font-semibold text-lg text-slate-800 dark:text-white hidden sm:block">
                             {navItems.find(item => item.href === pathname)?.label || "Dashboard"}
                         </h2>
                     </div>

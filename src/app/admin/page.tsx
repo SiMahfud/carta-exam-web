@@ -167,7 +167,7 @@ export default function AdminDashboard() {
         <div className="space-y-8">
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                 <div>
-                    <h2 className="text-3xl font-bold tracking-tight text-slate-900">Dashboard</h2>
+                    <h2 className="text-3xl font-bold tracking-tight text-slate-900 dark:text-white">Dashboard</h2>
                     <p className="text-muted-foreground mt-1">
                         Overview aktivitas dan statistik sistem ujian.
                     </p>
@@ -187,7 +187,7 @@ export default function AdminDashboard() {
                 {loading ? (
                     // Loading skeleton
                     Array.from({ length: 3 }).map((_, i) => (
-                        <Card key={i} className="border-none shadow-md bg-white">
+                        <Card key={i} className="border-none shadow-md bg-white dark:bg-slate-800">
                             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                                 <div className="h-4 w-24 bg-slate-200 animate-pulse rounded"></div>
                                 <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
@@ -202,7 +202,7 @@ export default function AdminDashboard() {
                     Object.values(stats).map((stat, i) => {
                         const Icon = getIconComponent(stat.icon);
                         return (
-                            <Card key={i} className="border-none shadow-md bg-white hover:shadow-lg transition-all duration-200">
+                            <Card key={i} className="border-none shadow-md bg-white dark:bg-slate-800 hover:shadow-lg transition-all duration-200">
                                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                                     <CardTitle className="text-sm font-medium text-muted-foreground">
                                         {stat.label}
@@ -210,7 +210,7 @@ export default function AdminDashboard() {
                                     <Icon className="h-4 w-4 text-muted-foreground" />
                                 </CardHeader>
                                 <CardContent>
-                                    <div className="text-2xl font-bold text-slate-900">{stat.value}</div>
+                                    <div className="text-2xl font-bold text-slate-900 dark:text-white">{stat.value}</div>
                                     <p className="text-xs text-muted-foreground mt-1 flex items-center">
                                         <span className="text-green-600 font-medium flex items-center mr-1">
                                             <TrendingUp className="h-3 w-3 mr-1" />
@@ -227,26 +227,26 @@ export default function AdminDashboard() {
 
             {/* Quick Actions */}
             <div>
-                <h3 className="text-xl font-semibold mb-4 text-slate-800">Menu Cepat</h3>
+                <h3 className="text-xl font-semibold mb-4 text-slate-800 dark:text-white">Menu Cepat</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                     {quickActions.map((action) => {
                         const Icon = action.icon;
                         return (
                             <Link key={action.href} href={action.href}>
-                                <Card className="group hover:shadow-lg transition-all duration-200 cursor-pointer border-slate-200 hover:border-primary/50 h-full">
+                                <Card className="group hover:shadow-lg transition-all duration-200 cursor-pointer border-slate-200 dark:border-slate-700 hover:border-primary/50 h-full dark:bg-slate-800">
                                     <CardContent className="p-6 flex items-start gap-4">
-                                        <div className={`p-3 rounded-xl ${action.bg} ${action.color} group-hover:scale-110 transition-transform duration-200`}>
+                                        <div className={`p-3 rounded-xl ${action.bg} dark:bg-opacity-20 ${action.color} group-hover:scale-110 transition-transform duration-200`}>
                                             <Icon className="h-6 w-6" />
                                         </div>
                                         <div className="flex-1">
-                                            <h4 className="font-semibold text-lg text-slate-900 group-hover:text-primary transition-colors">
+                                            <h4 className="font-semibold text-lg text-slate-900 dark:text-white group-hover:text-primary transition-colors">
                                                 {action.title}
                                             </h4>
                                             <p className="text-sm text-muted-foreground mt-1">
                                                 {action.description}
                                             </p>
                                         </div>
-                                        <div className="opacity-0 group-hover:opacity-100 transition-opacity self-center">
+                                        <div className="opacity-0 group-hover:opacity-100 transition-opacity self-center dark:text-slate-300">
                                             <ArrowRight className="h-5 w-5 text-slate-400" />
                                         </div>
                                     </CardContent>
@@ -259,7 +259,7 @@ export default function AdminDashboard() {
 
             {/* Recent Activity / System Info */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <Card className="border-slate-200 shadow-sm">
+                <Card className="border-slate-200 dark:border-slate-700 shadow-sm dark:bg-slate-800">
                     <CardHeader>
                         <CardTitle>Aktivitas Terkini</CardTitle>
                         <CardDescription>Log aktivitas sistem terbaru</CardDescription>
@@ -289,7 +289,7 @@ export default function AdminDashboard() {
                                                 <Icon className="h-4 w-4 text-blue-600" />
                                             </div>
                                             <div>
-                                                <p className="text-sm font-medium text-slate-900">{activity.description}</p>
+                                                <p className="text-sm font-medium text-slate-900 dark:text-white">{activity.description}</p>
                                                 <p className="text-xs text-muted-foreground">
                                                     {activity.timeAgo} oleh {activity.userName}
                                                 </p>

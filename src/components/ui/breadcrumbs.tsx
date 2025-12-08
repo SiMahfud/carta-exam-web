@@ -57,7 +57,7 @@ export function Breadcrumbs({
                                 <ChevronRight className="h-3.5 w-3.5 text-slate-400" />
                             )}
                             {isLast ? (
-                                <span className="font-medium text-slate-900 truncate max-w-[200px]">
+                                <span className="font-medium text-slate-900 dark:text-white truncate max-w-[200px]">
                                     {crumb.label}
                                 </span>
                             ) : (
