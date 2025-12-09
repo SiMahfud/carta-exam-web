@@ -58,6 +58,9 @@
   },
   "devDependencies": {
     "@playwright/test": "^1.57.0",
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^16.3.0",
+    "@testing-library/user-event": "^14.6.1",
     "@types/better-sqlite3": "^7.6.13",
     "@types/node": "^20",
     "@types/react": "^18",
@@ -67,6 +70,8 @@
     "drizzle-kit": "^0.31.7",
     "eslint": "^8",
     "eslint-config-next": "14.2.33",
+    "happy-dom": "^20.0.11",
+    "jsdom": "^27.3.0",
     "postcss": "^8",
     "tailwindcss": "^3.4.1",
     "typescript": "^5",

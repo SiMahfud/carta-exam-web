@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<testsuites name="vitest tests" tests="4" failures="0" errors="0" time="0.03651">
+    <testsuite name="src/components/ui/__tests__/button.test.tsx" timestamp="2025-12-09T01:05:52.356Z" hostname="DESKTOP-V0JD0BU" tests="4" failures="0" errors="0" skipped="0" time="0.03651">
+        <testcase classname="src/components/ui/__tests__/button.test.tsx" name="Button Component &gt; renders button with text" time="0.0237971">
+        </testcase>
+        <testcase classname="src/components/ui/__tests__/button.test.tsx" name="Button Component &gt; handles click events" time="0.0057394">
+        </testcase>
+        <testcase classname="src/components/ui/__tests__/button.test.tsx" name="Button Component &gt; renders destructive variant" time="0.0029752">
+        </testcase>
+        <testcase classname="src/components/ui/__tests__/button.test.tsx" name="Button Component &gt; can be disabled" time="0.0024619">
+        </testcase>
+    </testsuite>
+</testsuites>
