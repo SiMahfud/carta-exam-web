@@ -143,6 +143,17 @@ export class DocxGenerator {
                     { c1: "", c2: "", c3: "G", c4: "Gergaji" },
                     { c1: "", c2: "", c3: "H", c4: "Palu" },
                 ]
+            },
+            {
+                no: "2",
+                question: "Pasangkan Negara dengan Ibukotanya yang benar",
+                type: "3",
+                options: [
+                    { c1: "1", c2: "Indonesia", c3: "A", c4: "Tokyo", c5: "1", c6: "C" },
+                    { c1: "2", c2: "Jepang", c3: "B", c4: "London", c5: "2", c6: "A" },
+                    { c1: "3", c2: "Inggris", c3: "C", c4: "Jakarta", c5: "3", c6: "B" },
+                    { c1: "4", c2: "Perancis", c3: "D", c4: "Paris", c5: "4", c6: "D" },
+                ]
             }
         ]);
 

@@ -100,6 +100,7 @@ export default function ExamPreviewDialog({ templateId, open, onOpenChange }: Ex
             matching: "Menjodohkan",
             short: "Isian Singkat",
             essay: "Uraian/Esai",
+            true_false: "Benar / Salah",
         };
         return labels[type] || type;
     };
@@ -260,6 +261,36 @@ export default function ExamPreviewDialog({ templateId, open, onOpenChange }: Ex
                                                                 ))}
                                                             </div>
                                                         )}
+                                                    </div>
+                                                </div>
+                                            )}
+
+                                            {/* True/False */}
+                                            {question.type === 'true_false' && (
+                                                <div className="space-y-3">
+                                                    <p className="text-xs text-blue-600 italic">💡 Cara menjawab: Pilih Benar atau Salah</p>
+                                                    <div className="space-y-2 pl-4">
+                                                        {["Benar", "Salah"].map((opt, i) => {
+                                                            const isCorrect = question.correctAnswer && (
+                                                                (question.correctAnswer === 0 && i === 0) || // 0 = True/Benar
+                                                                (question.correctAnswer === 1 && i === 1) || // 1 = False/Salah
+                                                                (question.correctAnswer.toString().toLowerCase() === "true" && i === 0) ||
+                                                                (question.correctAnswer.toString().toLowerCase() === "false" && i === 1)
+                                                            );
+
+                                                            return (
+                                                                <div key={i} className={`flex items-start gap-3 p-2 rounded ${isCorrect ? 'bg-green-100 border border-green-500' : 'hover:bg-muted/50'}`}>
+                                                                    <input type="radio" name={`q${question.number}`} className="mt-0.5" defaultChecked={!!isCorrect} />
+                                                                    <div className="flex gap-2 flex-1">
+                                                                        <span className="font-medium min-w-[24px]">{opt === "Benar" ? "B" : "S"}.</span>
+                                                                        <div className="text-sm w-full font-medium">
+                                                                            {opt}
+                                                                        </div>
+                                                                        {isCorrect && <span className="ml-auto text-green-600 font-semibold text-xs whitespace-nowrap">✓ BENAR</span>}
+                                                                    </div>
+                                                                </div>
+                                                            );
+                                                        })}
                                                     </div>
                                                 </div>
                                             )}

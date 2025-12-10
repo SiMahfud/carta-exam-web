@@ -45,6 +45,7 @@ export function QuestionPreviewCard({ question, index, onUpdate, onDelete }: Que
             matching: "Menjodohkan",
             short: "Isian Singkat",
             essay: "Uraian/Esai",
+            true_false: "Benar / Salah",
         };
         return labels[type] || type;
     };
@@ -281,6 +282,30 @@ export function QuestionPreviewCard({ question, index, onUpdate, onDelete }: Que
                                 ? question.answerKey.acceptedAnswers?.join(' / ')
                                 : question.answerKey.modelAnswer}
                         </div>
+                    </div>
+                </div>
+            )}
+            {/* True/False Preview */}
+            {question.type === 'true_false' && (
+                <div className="space-y-3">
+                    <p className="text-xs text-blue-600 italic">💡 Cara menjawab: Pilih Benar atau Salah</p>
+                    <div className="space-y-2 pl-4">
+                        {["Benar", "Salah"].map((opt, i) => {
+                            // question.answerKey.correct: 0 = True, 1 = False
+                            // i: 0 = Benar, 1 = Salah
+                            const isCorrect = i === question.answerKey.correct;
+                            return (
+                                <div key={i} className={`flex items-start gap-3 p-2 rounded ${isCorrect ? 'bg-green-100 dark:bg-green-900/30 border border-green-500' : 'hover:bg-muted/50'}`}>
+                                    <div className="flex items-center justify-center h-5 w-5 rounded-full border border-primary text-[10px] flex-shrink-0 mt-0.5">
+                                        {opt === "Benar" ? "B" : "S"}
+                                    </div>
+                                    <div className="text-sm flex-1 font-medium">
+                                        {opt}
+                                    </div>
+                                    {isCorrect && <span className="ml-auto text-green-600 font-semibold text-xs">✓ KUNCI</span>}
+                                </div>
+                            );
+                        })}
                     </div>
                 </div>
             )}
