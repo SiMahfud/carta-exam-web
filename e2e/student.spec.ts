@@ -3,13 +3,14 @@ import { test, expect } from './auth.fixture';
 
 test.describe('Student Exam Flow', () => {
     test.beforeEach(async ({ studentPage }) => {
+        studentPage.on('console', msg => console.log(`[Browser]: ${msg.text()}`));
         // Ensure student starts at dashboard
         await studentPage.goto('/student/exams');
     });
 
     test('should view available exams', async ({ studentPage }) => {
         // Check for the seeded exam
-        await expect(studentPage.locator('text=Math Midterm Exam')).toBeVisible();
+        await expect(studentPage.locator('text=Midterm Session - Class 10A')).toBeVisible();
         await expect(studentPage.locator('text=60 mnt')).toBeVisible();
     });
 
@@ -101,14 +102,12 @@ test.describe('Student Exam Flow', () => {
         await expect(studentPage.locator('text=Kumpulkan Ujian?')).toBeVisible();
         await studentPage.click('button:has-text("Ya, Kumpulkan")');
 
-        // 5. Verify Result - Student is redirected to exams list or result page
-        // Wait for redirection
+        // Check for success toast
+        await expect(studentPage.locator('text=Ujian berhasil dikumpulkan')).toBeVisible({ timeout: 10000 });
+
+        // 5. Verify Result - Student is redirected to exams list
+        await studentPage.waitForURL('**/student/exams', { timeout: 10000 });
         await expect(studentPage.url()).not.toContain('/student/exams/');
-        // Check for success toast or redirection
-        // If redirected to list, status should be "Selesai" or "Completed"
-        // Or if redirected to result page
-        // Let's assume redirect to exams list as per `handleSubmit` in page.tsx: `router.push("/student/exams")`
-        await expect(studentPage.url()).toContain('/student/exams');
 
         // Verify status is Completed/Selesai
         await expect(studentPage.locator('text=Selesai')).toBeVisible();
