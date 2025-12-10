@@ -1,0 +1,149 @@
+# Page snapshot
+
+```yaml
+- generic [active] [ref=e1]:
+  - generic [ref=e3]:
+    - complementary [ref=e4]:
+      - generic [ref=e5]:
+        - generic [ref=e7]:
+          - img [ref=e9]
+          - generic [ref=e12]: CartaAdmin
+        - generic [ref=e13]:
+          - generic [ref=e14]: Menu Utama
+          - link "Dashboard" [ref=e15] [cursor=pointer]:
+            - /url: /admin
+            - img [ref=e16]
+            - generic [ref=e21]: Dashboard
+          - link "Mata Pelajaran" [ref=e22] [cursor=pointer]:
+            - /url: /admin/subjects
+            - img [ref=e23]
+            - generic [ref=e25]: Mata Pelajaran
+          - link "Kelas & Siswa" [ref=e26] [cursor=pointer]:
+            - /url: /admin/classes
+            - img [ref=e27]
+            - generic [ref=e32]: Kelas & Siswa
+          - link "Bank Soal" [ref=e33] [cursor=pointer]:
+            - /url: /admin/question-banks
+            - img [ref=e34]
+            - generic [ref=e38]: Bank Soal
+          - link "Template Ujian" [ref=e39] [cursor=pointer]:
+            - /url: /admin/exam-templates
+            - img [ref=e40]
+            - generic [ref=e43]: Template Ujian
+          - link "Sesi Ujian" [ref=e44] [cursor=pointer]:
+            - /url: /admin/exam-sessions
+            - img [ref=e45]
+            - generic [ref=e47]: Sesi Ujian
+          - link "Penilaian" [ref=e48] [cursor=pointer]:
+            - /url: /admin/grading
+            - img [ref=e49]
+            - generic [ref=e51]: Penilaian
+          - link "Manajemen User" [ref=e52] [cursor=pointer]:
+            - /url: /admin/users
+            - img [ref=e53]
+            - generic [ref=e56]: Manajemen User
+        - generic [ref=e57]:
+          - generic [ref=e58]:
+            - generic [ref=e59]:
+              - img [ref=e60]
+              - generic [ref=e61]: AD
+            - generic [ref=e62]:
+              - paragraph [ref=e63]: Administrator
+              - paragraph [ref=e64]: admin@cartaexam.com
+          - button "Logout" [ref=e66] [cursor=pointer]:
+            - img
+            - text: Logout
+    - generic [ref=e67]:
+      - banner [ref=e68]:
+        - heading "Dashboard" [level=2] [ref=e70]
+        - generic [ref=e71]:
+          - button "Cari... Ctrl+K" [ref=e72] [cursor=pointer]:
+            - img
+            - generic [ref=e73]: Cari...
+            - generic: Ctrl+K
+          - button "Toggle theme" [ref=e74] [cursor=pointer]:
+            - img
+            - generic [ref=e75]: Toggle theme
+          - button "AD" [ref=e76] [cursor=pointer]:
+            - generic [ref=e77]:
+              - img [ref=e78]
+              - generic [ref=e79]: AD
+      - main [ref=e80]:
+        - generic [ref=e82]:
+          - generic [ref=e83]:
+            - generic [ref=e84]:
+              - heading "Dashboard" [level=2] [ref=e85]
+              - paragraph [ref=e86]: Overview aktivitas dan statistik sistem ujian.
+            - link "Jadwal Baru" [ref=e88] [cursor=pointer]:
+              - /url: /admin/exam-sessions
+              - button "Jadwal Baru" [ref=e89]:
+                - img
+                - text: Jadwal Baru
+          - generic [ref=e90]:
+            - img [ref=e94]
+            - img [ref=e102]
+            - img [ref=e110]
+          - generic [ref=e115]:
+            - heading "Menu Cepat" [level=3] [ref=e116]
+            - generic [ref=e117]:
+              - link "Mata Pelajaran Kelola kurikulum & mapel" [ref=e118] [cursor=pointer]:
+                - /url: /admin/subjects
+                - generic [ref=e120]:
+                  - img [ref=e122]
+                  - generic [ref=e124]:
+                    - heading "Mata Pelajaran" [level=4] [ref=e125]
+                    - paragraph [ref=e126]: Kelola kurikulum & mapel
+                  - img [ref=e128]
+              - link "Kelas & Siswa Database siswa & rombel" [ref=e130] [cursor=pointer]:
+                - /url: /admin/classes
+                - generic [ref=e132]:
+                  - img [ref=e134]
+                  - generic [ref=e139]:
+                    - heading "Kelas & Siswa" [level=4] [ref=e140]
+                    - paragraph [ref=e141]: Database siswa & rombel
+                  - img [ref=e143]
+              - link "Bank Soal Repository soal ujian" [ref=e145] [cursor=pointer]:
+                - /url: /admin/question-banks
+                - generic [ref=e147]:
+                  - img [ref=e149]
+                  - generic [ref=e153]:
+                    - heading "Bank Soal" [level=4] [ref=e154]
+                    - paragraph [ref=e155]: Repository soal ujian
+                  - img [ref=e157]
+              - link "Template Ujian Konfigurasi format ujian" [ref=e159] [cursor=pointer]:
+                - /url: /admin/exam-templates
+                - generic [ref=e161]:
+                  - img [ref=e163]
+                  - generic [ref=e166]:
+                    - heading "Template Ujian" [level=4] [ref=e167]
+                    - paragraph [ref=e168]: Konfigurasi format ujian
+                  - img [ref=e170]
+              - link "Sesi Ujian Jadwal & monitoring" [ref=e172] [cursor=pointer]:
+                - /url: /admin/exam-sessions
+                - generic [ref=e174]:
+                  - img [ref=e176]
+                  - generic [ref=e178]:
+                    - heading "Sesi Ujian" [level=4] [ref=e179]
+                    - paragraph [ref=e180]: Jadwal & monitoring
+                  - img [ref=e182]
+              - link "Manajemen User Akses & pengguna sistem" [ref=e184] [cursor=pointer]:
+                - /url: /admin/users
+                - generic [ref=e186]:
+                  - img [ref=e188]
+                  - generic [ref=e191]:
+                    - heading "Manajemen User" [level=4] [ref=e192]
+                    - paragraph [ref=e193]: Akses & pengguna sistem
+                  - img [ref=e195]
+          - generic [ref=e197]:
+            - generic [ref=e199]:
+              - generic [ref=e200]: Aktivitas Terkini
+              - generic [ref=e201]: Log aktivitas sistem terbaru
+            - generic [ref=e219]:
+              - generic [ref=e220]:
+                - generic [ref=e221]: Status Sistem
+                - generic [ref=e222]: Informasi fitur dan pembaruan
+              - list [ref=e224]:
+                - listitem [ref=e225]
+                - listitem [ref=e228]
+  - alert [ref=e232]
+```

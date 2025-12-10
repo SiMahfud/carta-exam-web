@@ -16,6 +16,7 @@ export const test = base.extend<AuthFixtures>({
         await page.fill('input#username', 'admin');
         await page.fill('input#password', 'password123');
         await page.click('button[type="submit"]');
+        await page.waitForTimeout(1000);
 
         // Wait for navigation and verify admin dashboard
         await expect(page).toHaveURL(/\/admin/);
@@ -33,6 +34,7 @@ export const test = base.extend<AuthFixtures>({
         await page.fill('input#username', 'teacher');
         await page.fill('input#password', 'password123');
         await page.click('button[type="submit"]');
+        await page.waitForTimeout(1000);
 
         // Wait for navigation (teacher sees admin view too currently)
         await expect(page).toHaveURL(/\/admin/);
