@@ -18,7 +18,8 @@ import {
     GraduationCap,
     Settings,
     Search,
-    Keyboard
+    Keyboard,
+    HelpCircle
 } from "lucide-react";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
@@ -37,6 +38,7 @@ import { useKeyboardShortcuts, getAdminShortcuts } from "@/hooks/use-keyboard-sh
 import { KeyboardShortcutsHelp } from "@/components/ui/keyboard-shortcuts-help";
 import { RecentItemsDropdown } from "@/components/ui/recent-items";
 import { ModeToggle } from "@/components/ui/mode-toggle";
+import { OnboardingTour } from "@/components/onboarding/OnboardingTour";
 
 export default function AdminLayout({
     children,
@@ -79,6 +81,7 @@ export default function AdminLayout({
 
             {/* Sidebar */}
             <aside
+                data-tour="sidebar"
                 className={cn(
                     "fixed inset-y-0 left-0 z-50 w-64 bg-slate-900 text-white transition-transform duration-300 ease-in-out lg:translate-x-0 lg:static lg:block shadow-xl",
                     isSidebarOpen ? "translate-x-0" : "-translate-x-full"
@@ -171,6 +174,7 @@ export default function AdminLayout({
                     <div className="flex items-center gap-2">
                         {/* Search Button */}
                         <Button
+                            data-tour="global-search"
                             variant="outline"
                             className="hidden sm:flex items-center gap-2 text-muted-foreground"
                             onClick={() => setIsSearchOpen(true)}
@@ -190,6 +194,11 @@ export default function AdminLayout({
                             <Search className="h-5 w-5" />
                         </Button>
                         <ModeToggle />
+                        <Link href="/help" data-tour="help-button">
+                            <Button variant="ghost" size="icon" title="Pusat Bantuan">
+                                <HelpCircle className="h-5 w-5" />
+                            </Button>
+                        </Link>
                         <RecentItemsDropdown />
                         <DropdownMenu>
                             <DropdownMenuTrigger asChild>
@@ -245,6 +254,9 @@ export default function AdminLayout({
                 onOpenChange={setIsShortcutsHelpOpen}
                 shortcuts={shortcuts}
             />
+
+            {/* Onboarding Tour */}
+            <OnboardingTour />
         </div>
     )
 }

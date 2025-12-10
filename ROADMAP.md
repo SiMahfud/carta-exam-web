@@ -270,25 +270,28 @@ Advanced Features:    ███░░░░░░░░░░░░░░░░�
 
 > **Target**: March 2026 | **Duration**: 2-3 months
 
-### 2.1 Onboarding & Help System [0%]
+### 2.1 Onboarding & Help System [75%] ✅ Partial
 
-- [ ] **First-time user tutorial** `Priority: HIGH`
-  - Interactive walkthrough for teachers
-  - Product tour library integration
-  - **Tech**: Driver.js or Intro.js
-  - **Effort**: 16 hours
+- [x] **First-time user tutorial** `Priority: HIGH` ✅ **Completed: Dec 10, 2025**
+  - [x] Interactive walkthrough for teachers using driver.js
+  - [x] Product tour integrated into Admin layout
+  - **Tech**: driver.js
+  - **Files**: `src/components/onboarding/OnboardingTour.tsx`
+  - **Actual Effort**: 4 hours
   
-- [ ] **Contextual help**
-  - Add tooltips throughout app
-  - Help icons with explanations
-  - **Tech**: shadcn/ui Tooltip
-  - **Effort**: 12 hours
+- [x] **Contextual help** ✅ **Completed: Dec 10, 2025**
+  - [x] Add tooltips throughout app
+  - [x] Help icons with explanations
+  - **Tech**: shadcn/ui Tooltip (@radix-ui/react-tooltip)
+  - **Files**: `src/components/ui/tooltip.tsx`, `src/components/help/HelpTooltip.tsx`
+  - **Actual Effort**: 2 hours
   
-- [ ] **Help Center/FAQ**
-  - Create FAQ page
-  - Searchable help articles
-  - **Files**: Create `src/app/help/page.tsx`
-  - **Effort**: 20 hours
+- [x] **Help Center/FAQ** ✅ **Completed: Dec 10, 2025**
+  - [x] Create FAQ page with search
+  - [x] Searchable help articles
+  - [x] Categorized help topics
+  - **Files**: `src/app/help/page.tsx`
+  - **Actual Effort**: 4 hours
   
 - [ ] **Video tutorials**
   - Record and embed tutorial videos

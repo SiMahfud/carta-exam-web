@@ -185,7 +185,7 @@ export default function AdminDashboard() {
             </div>
 
             {/* Stats Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div data-tour="dashboard-stats" className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 {loading ? (
                     // Loading skeleton
                     Array.from({ length: 3 }).map((_, i) => (
@@ -228,7 +228,7 @@ export default function AdminDashboard() {
             </div>
 
             {/* Quick Actions */}
-            <div>
+            <div data-tour="quick-actions">
                 <h3 className="text-xl font-semibold mb-4 text-slate-800 dark:text-white">Menu Cepat</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                     {quickActions.map((action) => {
