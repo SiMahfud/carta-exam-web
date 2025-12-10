@@ -53,6 +53,8 @@ import {
     AlertDialogHeader,
     AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { Skeleton } from "@/components/ui/skeleton";
+import { EmptyState } from "@/components/ui/empty-state";
 
 export default function ExamSessionsPage() {
     const [sessions, setSessions] = useState<ExamSession[]>([]);
@@ -191,14 +193,42 @@ export default function ExamSessionsPage() {
             </div>
 
             {loading ? (
-                <div className="text-center py-20">
-                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
-                    <p className="mt-2 text-muted-foreground">Memuat data...</p>
+                <div className="space-y-4">
+                    {Array.from({ length: 3 }).map((_, i) => (
+                        <Card key={i}>
+                            <CardContent className="p-6">
+                                <div className="flex flex-col md:flex-row justify-between gap-4">
+                                    <div className="space-y-2 flex-1">
+                                        <div className="flex items-center gap-2">
+                                            <Skeleton className="h-6 w-48" />
+                                            <Skeleton className="h-5 w-24 rounded-full" />
+                                        </div>
+                                        <Skeleton className="h-4 w-64" />
+                                        <div className="flex gap-4 mt-2">
+                                            <Skeleton className="h-4 w-32" />
+                                            <Skeleton className="h-4 w-24" />
+                                            <Skeleton className="h-4 w-24" />
+                                        </div>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                        <Skeleton className="h-9 w-24" />
+                                        <Skeleton className="h-9 w-9" />
+                                    </div>
+                                </div>
+                            </CardContent>
+                        </Card>
+                    ))}
                 </div>
             ) : sessions.length === 0 ? (
-                <div className="text-center py-20 border rounded-lg bg-muted/20">
-                    <p className="text-muted-foreground">Belum ada sesi ujian</p>
-                </div>
+                <EmptyState
+                    icon={Calendar}
+                    title="Belum ada sesi ujian"
+                    description="Jadwal ujian akan muncul di sini. Buat sesi baru untuk memulai."
+                    action={{
+                        label: "Buat Sesi Baru",
+                        onClick: () => window.location.href = "/admin/exam-sessions/create"
+                    }}
+                />
             ) : (
                 <div className="space-y-4">
                     {sessions.map((session) => (

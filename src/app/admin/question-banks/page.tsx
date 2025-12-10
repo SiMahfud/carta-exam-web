@@ -40,6 +40,8 @@ import {
     AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import Link from "next/link";
+import { Skeleton } from "@/components/ui/skeleton";
+import { EmptyState } from "@/components/ui/empty-state";
 
 interface Subject {
     id: string;
@@ -237,18 +239,45 @@ export default function QuestionBanksPage() {
             </div>
 
             {loading ? (
-                <div className="text-center py-12">Loading...</div>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {Array.from({ length: 6 }).map((_, i) => (
+                        <Card key={i} className="border-none shadow-md">
+                            <CardHeader>
+                                <div className="flex justify-between items-start">
+                                    <div className="flex-1 space-y-2">
+                                        <Skeleton className="h-6 w-3/4" />
+                                        <Skeleton className="h-4 w-1/2" />
+                                    </div>
+                                    <Skeleton className="h-8 w-8 rounded-full" />
+                                </div>
+                            </CardHeader>
+                            <CardContent>
+                                <Skeleton className="h-4 w-full mb-4" />
+                                <div className="flex justify-between items-center">
+                                    <Skeleton className="h-3 w-1/4" />
+                                    <Skeleton className="h-8 w-24" />
+                                </div>
+                            </CardContent>
+                        </Card>
+                    ))}
+                </div>
             ) : questionBanks.length === 0 ? (
-                <Card>
-                    <CardContent className="py-12 text-center">
-                        <Database className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
-                        <p className="text-muted-foreground">
-                            {selectedSubject === "all"
-                                ? "Belum ada bank soal. Buat yang pertama!"
-                                : "Tidak ada bank soal untuk mata pelajaran ini."}
-                        </p>
-                    </CardContent>
-                </Card>
+                <EmptyState
+                    icon={Database}
+                    title="Belum ada bank soal"
+                    description={
+                        selectedSubject === "all"
+                            ? "Belum ada bank soal yang dibuat. Mulai dengan membuat bank soal baru."
+                            : "Tidak ada bank soal untuk mata pelajaran ini."
+                    }
+                    action={{
+                        label: "Buat Bank Soal",
+                        onClick: () => {
+                            resetForm();
+                            setDialogOpen(true);
+                        }
+                    }}
+                />
             ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                     {questionBanks.map((bank) => (

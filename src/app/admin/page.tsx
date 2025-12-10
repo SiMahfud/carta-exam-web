@@ -16,6 +16,8 @@ import {
     Loader2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
+import { EmptyState } from "@/components/ui/empty-state";
 import { useEffect, useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 
@@ -189,12 +191,12 @@ export default function AdminDashboard() {
                     Array.from({ length: 3 }).map((_, i) => (
                         <Card key={i} className="border-none shadow-md bg-white dark:bg-slate-800">
                             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                                <div className="h-4 w-24 bg-slate-200 animate-pulse rounded"></div>
+                                <Skeleton className="h-4 w-24" />
                                 <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
                             </CardHeader>
                             <CardContent>
-                                <div className="h-8 w-20 bg-slate-200 animate-pulse rounded mb-2"></div>
-                                <div className="h-3 w-32 bg-slate-200 animate-pulse rounded"></div>
+                                <Skeleton className="h-8 w-20 mb-2" />
+                                <Skeleton className="h-3 w-32" />
                             </CardContent>
                         </Card>
                     ))
@@ -268,13 +270,11 @@ export default function AdminDashboard() {
                         {loading ? (
                             <div className="space-y-4">
                                 {Array.from({ length: 3 }).map((_, i) => (
-                                    <div key={i} className="flex items-start gap-3 pb-4 border-b">
-                                        <div className="bg-slate-200 p-2 rounded-full animate-pulse">
-                                            <div className="h-4 w-4"></div>
-                                        </div>
-                                        <div className="flex-1">
-                                            <div className="h-4 w-3/4 bg-slate-200 animate-pulse rounded mb-2"></div>
-                                            <div className="h-3 w-1/2 bg-slate-200 animate-pulse rounded"></div>
+                                    <div key={i} className="flex items-start gap-3 pb-4 border-b last:border-0">
+                                        <Skeleton className="h-8 w-8 rounded-full" />
+                                        <div className="flex-1 space-y-2">
+                                            <Skeleton className="h-4 w-3/4" />
+                                            <Skeleton className="h-3 w-1/2" />
                                         </div>
                                     </div>
                                 ))}
@@ -299,9 +299,12 @@ export default function AdminDashboard() {
                                 })}
                             </div>
                         ) : (
-                            <p className="text-sm text-muted-foreground text-center py-8">
-                                Belum ada aktivitas
-                            </p>
+                            <EmptyState
+                                icon={Activity}
+                                title="Belum ada aktivitas"
+                                description="Aktivitas sistem akan muncul di sini."
+                                className="py-8 border-none bg-transparent"
+                            />
                         )}
                     </CardContent>
                 </Card>
@@ -316,8 +319,8 @@ export default function AdminDashboard() {
                             <ul className="space-y-3">
                                 {Array.from({ length: 2 }).map((_, i) => (
                                     <li key={i} className="flex items-center gap-2 text-sm">
-                                        <div className="h-2 w-2 rounded-full bg-slate-600 animate-pulse"></div>
-                                        <div className="h-4 w-32 bg-slate-700 animate-pulse rounded"></div>
+                                        <Skeleton className="h-2 w-2 rounded-full bg-slate-600" />
+                                        <Skeleton className="h-4 w-32 bg-slate-700" />
                                     </li>
                                 ))}
                             </ul>

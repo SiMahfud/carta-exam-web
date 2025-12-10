@@ -19,7 +19,7 @@ export const test = base.extend<AuthFixtures>({
 
         // Wait for navigation and verify admin dashboard
         await expect(page).toHaveURL(/\/admin/);
-        await expect(page.locator('text=Admin Dashboard')).toBeVisible({ timeout: 10000 });
+        await expect(page.locator('text=Dashboard').first()).toBeVisible({ timeout: 10000 });
 
         // Use the authenticated page
         await use(page);

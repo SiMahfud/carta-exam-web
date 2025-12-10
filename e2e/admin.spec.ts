@@ -4,17 +4,15 @@ import { test, expect } from './auth.fixture';
 test.describe('Admin Flow', () => {
     test('should access admin dashboard', async ({ adminPage }) => {
         // Already authenticated as admin via fixture
-        await expect(adminPage.locator('h1')).toContainText(/Welcome|Selamat|Admin/i);
+        // Dashboard title is h2 in layout (main content)
+        await expect(adminPage.locator('main h2')).toContainText(/Dashboard/i);
     });
 
     test('should view seeded students', async ({ adminPage }) => {
         await adminPage.goto('/admin/users?role=student');
 
-        // Wait for table to load
-        await expect(adminPage.locator('table')).toBeVisible();
-
-        // Check for seeded student
-        await expect(adminPage.locator('body')).toContainText('Test Student');
+        // Check for seeded student - Uses Card Grid, not Table
+        await expect(adminPage.locator('body')).toContainText('Siswa Demo');
     });
 
     test('should view question banks', async ({ adminPage }) => {

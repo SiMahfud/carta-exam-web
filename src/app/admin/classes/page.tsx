@@ -40,6 +40,8 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Plus, Pencil, Trash2, Users, Search, X } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { Skeleton } from "@/components/ui/skeleton";
+import { EmptyState } from "@/components/ui/empty-state";
 
 interface Class {
     id: string;
@@ -345,11 +347,37 @@ export default function ClassesPage() {
             </div>
 
             {loading ? (
-                <div className="text-center py-10">Memuat data...</div>
-            ) : filteredClasses.length === 0 ? (
-                <div className="text-center py-10 border rounded-lg bg-muted/20">
-                    <p className="text-muted-foreground">Belum ada kelas yang dibuat</p>
+                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                    {Array.from({ length: 9 }).map((_, i) => (
+                        <Card key={i}>
+                            <CardHeader className="flex flex-row items-start justify-between space-y-0 pb-2">
+                                <div className="space-y-2">
+                                    <Skeleton className="h-6 w-32" />
+                                    <Skeleton className="h-4 w-24" />
+                                </div>
+                                <Skeleton className="h-5 w-16 rounded-full" />
+                            </CardHeader>
+                            <CardContent>
+                                <Skeleton className="h-4 w-40 mb-4" />
+                                <div className="flex justify-end gap-2">
+                                    <Skeleton className="h-8 w-20" />
+                                    <Skeleton className="h-8 w-8" />
+                                    <Skeleton className="h-8 w-8" />
+                                </div>
+                            </CardContent>
+                        </Card>
+                    ))}
                 </div>
+            ) : filteredClasses.length === 0 ? (
+                <EmptyState
+                    icon={Users}
+                    title="Belum ada kelas"
+                    description={searchQuery ? "Tidak ada kelas yang cocok dengan pencarian." : "Belum ada kelas yang dibuat. Mulai dengan membuat kelas baru."}
+                    action={!searchQuery ? {
+                        label: "Tambah Kelas",
+                        onClick: () => setIsDialogOpen(true)
+                    } : undefined}
+                />
             ) : (
                 <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                     {filteredClasses.map((cls) => (
