@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { questionBanks, subjects, users } from "@/lib/schema";
-import { eq } from "drizzle-orm";
+import { eq, and, like, sql } from "drizzle-orm";
 import { ActivityLogger } from "@/lib/activity-logger";
 import { apiHandler, ApiError } from "@/lib/api-handler";
 
@@ -9,6 +9,9 @@ import { apiHandler, ApiError } from "@/lib/api-handler";
 export const GET = (req: Request) => apiHandler(async () => {
     const { searchParams } = new URL(req.url);
     const subjectId = searchParams.get("subjectId");
+    const search = searchParams.get("search");
+    const startDate = searchParams.get("startDate");
+    const endDate = searchParams.get("endDate");
 
     let query = db.select({
         id: questionBanks.id,
@@ -25,8 +28,25 @@ export const GET = (req: Request) => apiHandler(async () => {
         .innerJoin(subjects, eq(questionBanks.subjectId, subjects.id))
         .leftJoin(users, eq(questionBanks.createdBy, users.id));
 
-    if (subjectId) {
-        query = query.where(eq(questionBanks.subjectId, subjectId));
+    const conditions = [];
+
+    if (subjectId && subjectId !== "all") {
+        conditions.push(eq(questionBanks.subjectId, subjectId));
+    }
+    if (search) {
+        conditions.push(like(questionBanks.name, `%${search}%`));
+    }
+    if (startDate) {
+        conditions.push(sql`${questionBanks.createdAt} >= ${new Date(startDate).getTime()}`);
+    }
+    if (endDate) {
+        const endDateTime = new Date(endDate);
+        endDateTime.setHours(23, 59, 59, 999);
+        conditions.push(sql`${questionBanks.createdAt} <= ${endDateTime.getTime()}`);
+    }
+
+    if (conditions.length > 0) {
+        query = query.where(and(...conditions));
     }
 
     const banks = await query.orderBy(questionBanks.createdAt);

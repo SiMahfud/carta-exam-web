@@ -20,6 +20,10 @@ import { format } from "date-fns";
 import { id as idLocale } from "date-fns/locale";
 import { GradingStatsCard } from "@/components/grading/GradingStatsCard";
 import { GradingTableView } from "@/components/grading/GradingTableView";
+import { SavedFiltersManager } from "@/components/filters/SavedFiltersManager";
+import { AdvancedFilterPanel, FilterSection } from "@/components/filters/AdvancedFilterPanel";
+import { DatePickerWithRange } from "@/components/ui/date-range-picker";
+import { DateRange } from "react-day-picker";
 import {
     AlertDialog,
     AlertDialogAction,
@@ -70,6 +74,15 @@ export default function GradingPage() {
     const [showBatchPublishDialog, setShowBatchPublishDialog] = useState(false);
     const [batchPublishing, setBatchPublishing] = useState(false);
     const [exporting, setExporting] = useState(false);
+    const [dateRange, setDateRange] = useState<DateRange | undefined>();
+
+    // Derived state for active filters count
+    const activeFiltersCount = [
+        statusFilter !== "all",
+        classFilter !== "all",
+        searchQuery !== "",
+        dateRange?.from !== undefined
+    ].filter(Boolean).length;
 
     // Get unique session IDs from submissions
     const getSessionIds = () => {
@@ -134,7 +147,7 @@ export default function GradingPage() {
 
     useEffect(() => {
         fetchSubmissions();
-    }, [page, statusFilter, searchQuery, classFilter, sortBy, sortOrder]);
+    }, [page, statusFilter, searchQuery, classFilter, sortBy, sortOrder, dateRange]);
 
     useEffect(() => {
         fetchClasses();
@@ -169,6 +182,13 @@ export default function GradingPage() {
 
             if (classFilter && classFilter !== "all") {
                 params.append("classId", classFilter);
+            }
+
+            if (dateRange?.from) {
+                params.append("startDate", dateRange.from.toISOString());
+            }
+            if (dateRange?.to) {
+                params.append("endDate", dateRange.to.toISOString());
             }
 
             const response = await fetch(`/api/grading/submissions?${params.toString()}`);
@@ -267,6 +287,41 @@ export default function GradingPage() {
         router.push(`/admin/grading/${submissionId}`);
     };
 
+    const handleApplySavedFilters = (filters: Record<string, any>) => {
+        if (filters.status) setStatusFilter(filters.status);
+        if (filters.classId) setClassFilter(filters.classId);
+        if (filters.search) setSearchQuery(filters.search);
+        if (filters.sortBy) setSortBy(filters.sortBy);
+        if (filters.sortOrder) setSortOrder(filters.sortOrder);
+        // Handle date range if stored (needs parsing back to Date objects)
+        if (filters.dateFrom) {
+            setDateRange({
+                from: new Date(filters.dateFrom),
+                to: filters.dateTo ? new Date(filters.dateTo) : undefined
+            });
+        } else {
+            setDateRange(undefined);
+        }
+    };
+
+    const handleResetFilters = () => {
+        setStatusFilter("all");
+        setClassFilter("all");
+        setSearchQuery("");
+        setDateRange(undefined);
+        setPage(1);
+    };
+
+    const getCurrentFilters = () => ({
+        status: statusFilter,
+        classId: classFilter,
+        search: searchQuery,
+        sortBy,
+        sortOrder,
+        dateFrom: dateRange?.from?.toISOString(),
+        dateTo: dateRange?.to?.toISOString()
+    });
+
     return (
         <div className="space-y-6">
             <div className="flex justify-between items-center">
@@ -322,44 +377,54 @@ export default function GradingPage() {
                     </div>
 
                     <div className="flex items-center gap-2">
-                        <span className="text-sm font-medium">Kelas:</span>
-                        <Select value={classFilter} onValueChange={(val) => {
-                            setClassFilter(val);
-                            setPage(1);
-                        }}>
-                            <SelectTrigger className="w-[180px]">
-                                <SelectValue placeholder="Pilih Kelas" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="all">Semua Kelas</SelectItem>
-                                {classes.map((cls) => (
-                                    <SelectItem key={cls.id} value={cls.id}>
-                                        {cls.name}
-                                    </SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
+                        <AdvancedFilterPanel
+                            activeFiltersCount={activeFiltersCount}
+                            onReset={handleResetFilters}
+                            onApply={() => setPage(1)}
+                        >
+                            <FilterSection title="Rentang Waktu">
+                                <DatePickerWithRange date={dateRange} setDate={setDateRange} />
+                            </FilterSection>
+
+                            <FilterSection title="Kelas">
+                                <Select value={classFilter} onValueChange={setClassFilter}>
+                                    <SelectTrigger className="w-full">
+                                        <SelectValue placeholder="Pilih Kelas" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="all">Semua Kelas</SelectItem>
+                                        {classes.map((cls) => (
+                                            <SelectItem key={cls.id} value={cls.id}>
+                                                {cls.name}
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                            </FilterSection>
+
+                            <FilterSection title="Status Penilaian">
+                                <Select value={statusFilter} onValueChange={setStatusFilter}>
+                                    <SelectTrigger className="w-full">
+                                        <SelectValue placeholder="Filter Status" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="all">Semua</SelectItem>
+                                        <SelectItem value="pending_manual">Perlu Dinilai</SelectItem>
+                                        <SelectItem value="completed">Selesai</SelectItem>
+                                        <SelectItem value="published">Dipublikasi</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                            </FilterSection>
+                        </AdvancedFilterPanel>
+
+                        <SavedFiltersManager
+                            page="grading"
+                            currentFilters={getCurrentFilters()}
+                            onApply={handleApplySavedFilters}
+                        />
                     </div>
 
-                    <div className="flex items-center gap-2">
-                        <span className="text-sm font-medium">Status:</span>
-                        <Select value={statusFilter} onValueChange={(val) => {
-                            setStatusFilter(val);
-                            setPage(1);
-                        }}>
-                            <SelectTrigger className="w-[180px]">
-                                <SelectValue placeholder="Filter Status" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="all">Semua</SelectItem>
-                                <SelectItem value="pending_manual">Perlu Dinilai</SelectItem>
-                                <SelectItem value="completed">Selesai</SelectItem>
-                                <SelectItem value="published">Dipublikasi</SelectItem>
-                            </SelectContent>
-                        </Select>
-                    </div>
-
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 border-l pl-4 ml-auto">
                         <span className="text-sm font-medium">Urutkan:</span>
                         <Select value={`${sortBy}-${sortOrder}`} onValueChange={(val) => {
                             const [newSortBy, newSortOrder] = val.split("-");

@@ -297,7 +297,7 @@ Advanced Features:    ███░░░░░░░░░░░░░░░░�
   - Record and embed tutorial videos
   - **Effort**: 40 hours (content creation)
 
-### 2.2 Advanced Search & Filtering [33%]
+### 2.2 Advanced Search & Filtering [100%]
 
 - [x] **Global search (Cmd+K)** `Priority: HIGH` ✅ **Completed: Dec 4, 2025**
   - [x] Search across questions, exams, students, classes, subjects
@@ -307,16 +307,16 @@ Advanced Features:    ███░░░░░░░░░░░░░░░░�
   - **Files**: `src/components/global-search/GlobalSearch.tsx`, `src/app/api/search/route.ts`
   - **Actual Effort**: 4 hours
   
-- [ ] **Saved filters**
-  - Save common filter combinations
-  - Quick filter presets
-  - **Tech**: Store in user preferences
-  - **Effort**: 12 hours
+- [x] **Saved filters** ✅ **Completed: Dec 10, 2025**
+  - [x] Save common filter combinations
+  - [x] Quick filter presets
+  - [x] **Tech**: Store in `saved_filters` table
+  - **Actual Effort**: 6 hours
   
-- [ ] **Advanced filter UI**
-  - Multi-criteria filter builder
-  - Date range pickers
-  - **Effort**: 16 hours
+- [x] **Advanced filter UI** ✅ **Completed: Dec 10, 2025**
+  - [x] Multi-criteria filter builder (AdvancedFilterPanel)
+  - [x] Date range pickers (DatePickerWithRange)
+  - **Actual Effort**: 6 hours
 
 ### 2.3 Bulk Operations [50%]
 

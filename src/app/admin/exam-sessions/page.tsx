@@ -29,6 +29,10 @@ import {
 import Link from "next/link";
 import { format } from "date-fns";
 import { id as idLocale } from "date-fns/locale";
+import { SavedFiltersManager } from "@/components/filters/SavedFiltersManager";
+import { AdvancedFilterPanel, FilterSection } from "@/components/filters/AdvancedFilterPanel";
+import { DatePickerWithRange } from "@/components/ui/date-range-picker";
+import { DateRange } from "react-day-picker";
 
 interface ExamSession {
     id: string;
@@ -65,6 +69,13 @@ export default function ExamSessionsPage() {
     const [page, setPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
     const [statusFilter, setStatusFilter] = useState("all");
+    const [dateRange, setDateRange] = useState<DateRange | undefined>();
+
+    // Derived state for active filters count
+    const activeFiltersCount = [
+        statusFilter !== "all",
+        dateRange?.from !== undefined
+    ].filter(Boolean).length;
 
     // Delete Confirmation State
     const [deleteId, setDeleteId] = useState<string | null>(null);
@@ -72,7 +83,7 @@ export default function ExamSessionsPage() {
 
     useEffect(() => {
         fetchSessions();
-    }, [page, statusFilter]);
+    }, [page, statusFilter, dateRange]);
 
     const fetchSessions = async () => {
         setLoading(true);
@@ -82,6 +93,13 @@ export default function ExamSessionsPage() {
                 limit: "10",
                 status: statusFilter
             });
+
+            if (dateRange?.from) {
+                params.append("startDate", dateRange.from.toISOString());
+            }
+            if (dateRange?.to) {
+                params.append("endDate", dateRange.to.toISOString());
+            }
 
             const response = await fetch(`/api/exam-sessions?${params.toString()}`);
             if (response.ok) {
@@ -136,6 +154,31 @@ export default function ExamSessionsPage() {
         setIsDeleteDialogOpen(true);
     };
 
+    const handleApplySavedFilters = (filters: Record<string, any>) => {
+        if (filters.status) setStatusFilter(filters.status);
+        // Handle date range if stored
+        if (filters.dateFrom) {
+            setDateRange({
+                from: new Date(filters.dateFrom),
+                to: filters.dateTo ? new Date(filters.dateTo) : undefined
+            });
+        } else {
+            setDateRange(undefined);
+        }
+    };
+
+    const handleResetFilters = () => {
+        setStatusFilter("all");
+        setDateRange(undefined);
+        setPage(1);
+    };
+
+    const getCurrentFilters = () => ({
+        status: statusFilter,
+        dateFrom: dateRange?.from?.toISOString(),
+        dateTo: dateRange?.to?.toISOString()
+    });
+
     const getStatusBadge = (status: string) => {
         switch (status) {
             case "active":
@@ -173,23 +216,35 @@ export default function ExamSessionsPage() {
             </div>
 
             <div className="flex items-center gap-4 bg-muted/30 p-4 rounded-lg border">
-                <div className="flex items-center gap-2">
-                    <span className="text-sm font-medium">Status:</span>
-                    <Select value={statusFilter} onValueChange={(val) => {
-                        setStatusFilter(val);
-                        setPage(1);
-                    }}>
-                        <SelectTrigger className="w-[180px]">
-                            <SelectValue placeholder="Filter Status" />
-                        </SelectTrigger>
-                        <SelectContent>
-                            <SelectItem value="all">Semua Status</SelectItem>
-                            <SelectItem value="scheduled">Terjadwal</SelectItem>
-                            <SelectItem value="active">Sedang Berlangsung</SelectItem>
-                            <SelectItem value="completed">Selesai</SelectItem>
-                        </SelectContent>
-                    </Select>
-                </div>
+                <AdvancedFilterPanel
+                    activeFiltersCount={activeFiltersCount}
+                    onReset={handleResetFilters}
+                    onApply={() => setPage(1)}
+                >
+                    <FilterSection title="Rentang Waktu">
+                        <DatePickerWithRange date={dateRange} setDate={setDateRange} />
+                    </FilterSection>
+
+                    <FilterSection title="Status">
+                        <Select value={statusFilter} onValueChange={setStatusFilter}>
+                            <SelectTrigger className="w-full">
+                                <SelectValue placeholder="Filter Status" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="all">Semua Status</SelectItem>
+                                <SelectItem value="scheduled">Terjadwal</SelectItem>
+                                <SelectItem value="active">Sedang Berlangsung</SelectItem>
+                                <SelectItem value="completed">Selesai</SelectItem>
+                            </SelectContent>
+                        </Select>
+                    </FilterSection>
+                </AdvancedFilterPanel>
+
+                <SavedFiltersManager
+                    page="exam-sessions"
+                    currentFilters={getCurrentFilters()}
+                    onApply={handleApplySavedFilters}
+                />
             </div>
 
             {loading ? (

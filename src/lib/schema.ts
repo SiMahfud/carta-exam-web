@@ -360,3 +360,21 @@ export const examTokens = sqliteTable("exam_tokens", {
     examIdx: index("exam_tokens_exam_idx").on(table.examId),
     tokenIdx: index("exam_tokens_token_idx").on(table.token),
 }));
+
+// ============================================================================
+// USER PREFERENCES & SAVED FILTERS
+// ============================================================================
+
+export const savedFilters = sqliteTable("saved_filters", {
+    id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+    userId: text("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+    name: text("name").notNull(),
+    page: text("page").notNull(), // e.g., "grading", "exam-sessions", "question-banks"
+    filters: text("filters", { mode: "json" }).notNull()
+        .$type<Record<string, string | string[] | boolean | null>>(),
+    isDefault: integer("is_default", { mode: "boolean" }).default(false),
+    createdAt: integer("created_at", { mode: "timestamp" }).default(sql`(unixepoch())`),
+}, (table) => ({
+    userIdx: index("saved_filters_user_idx").on(table.userId),
+    pageIdx: index("saved_filters_page_idx").on(table.page),
+}));

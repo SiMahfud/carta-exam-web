@@ -12,6 +12,8 @@ export const GET = (req: Request) => apiHandler(async () => {
     const page = parseInt(searchParams.get("page") || "1");
     const limit = parseInt(searchParams.get("limit") || "10");
     const status = searchParams.get("status");
+    const startDate = searchParams.get("startDate");
+    const endDate = searchParams.get("endDate");
 
     const offset = (page - 1) * limit;
 
@@ -19,6 +21,15 @@ export const GET = (req: Request) => apiHandler(async () => {
     const conditions = [];
     if (status && status !== "all") {
         conditions.push(eq(examSessions.status, status as any));
+    }
+    if (startDate) {
+        conditions.push(sql`${examSessions.startTime} >= ${new Date(startDate).getTime()}`);
+    }
+    if (endDate) {
+        // Adjust end date to include the entire day
+        const endDateTime = new Date(endDate);
+        endDateTime.setHours(23, 59, 59, 999);
+        conditions.push(sql`${examSessions.startTime} <= ${endDateTime.getTime()}`);
     }
 
     const whereClause = conditions.length > 0 ? and(...conditions) : undefined;

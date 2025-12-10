@@ -27,7 +27,7 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@/components/ui/select";
-import { Plus, Database, ArrowRight, Pencil, Trash2 } from "lucide-react";
+import { Plus, Database, ArrowRight, Pencil, Trash2, Search } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import {
     AlertDialog,
@@ -42,6 +42,10 @@ import {
 import Link from "next/link";
 import { Skeleton } from "@/components/ui/skeleton";
 import { EmptyState } from "@/components/ui/empty-state";
+import { SavedFiltersManager } from "@/components/filters/SavedFiltersManager";
+import { AdvancedFilterPanel, FilterSection } from "@/components/filters/AdvancedFilterPanel";
+import { DatePickerWithRange } from "@/components/ui/date-range-picker";
+import { DateRange } from "react-day-picker";
 
 interface Subject {
     id: string;
@@ -66,7 +70,19 @@ export default function QuestionBanksPage() {
     const [subjects, setSubjects] = useState<Subject[]>([]);
     const [loading, setLoading] = useState(true);
     const [dialogOpen, setDialogOpen] = useState(false);
+
+    // Filter State
     const [selectedSubject, setSelectedSubject] = useState<string>("all");
+    const [searchQuery, setSearchQuery] = useState("");
+    const [dateRange, setDateRange] = useState<DateRange | undefined>();
+
+    // Derived state for active filters count
+    const activeFiltersCount = [
+        selectedSubject !== "all",
+        searchQuery !== "",
+        dateRange?.from !== undefined
+    ].filter(Boolean).length;
+
     const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
     const [bankToDelete, setBankToDelete] = useState<string | null>(null);
     const { toast } = useToast();
@@ -79,12 +95,11 @@ export default function QuestionBanksPage() {
 
     useEffect(() => {
         fetchSubjects();
-        fetchQuestionBanks();
     }, []);
 
     useEffect(() => {
         fetchQuestionBanks();
-    }, [selectedSubject]);
+    }, [selectedSubject, searchQuery, dateRange]);
 
     const fetchSubjects = async () => {
         try {
@@ -100,11 +115,14 @@ export default function QuestionBanksPage() {
 
     const fetchQuestionBanks = async () => {
         try {
-            const url =
-                selectedSubject === "all"
-                    ? "/api/question-banks"
-                    : `/api/question-banks?subjectId=${selectedSubject}`;
-            const response = await fetch(url);
+            setLoading(true);
+            const params = new URLSearchParams();
+            if (selectedSubject !== "all") params.append("subjectId", selectedSubject);
+            if (searchQuery) params.append("search", searchQuery);
+            if (dateRange?.from) params.append("startDate", dateRange.from.toISOString());
+            if (dateRange?.to) params.append("endDate", dateRange.to.toISOString());
+
+            const response = await fetch(`/api/question-banks?${params.toString()}`);
             if (response.ok) {
                 const result = await response.json();
                 setQuestionBanks(result.data || []);
@@ -128,7 +146,7 @@ export default function QuestionBanksPage() {
             const response = await fetch("/api/question-banks", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(formData), // createdBy is now optional
+                body: JSON.stringify(formData),
             });
 
             if (response.ok) {
@@ -200,6 +218,33 @@ export default function QuestionBanksPage() {
         setFormData({ name: "", description: "", subjectId: "" });
     };
 
+    const handleApplySavedFilters = (filters: Record<string, any>) => {
+        if (filters.subjectId) setSelectedSubject(filters.subjectId);
+        if (filters.search) setSearchQuery(filters.search);
+        // Handle date range if stored
+        if (filters.dateFrom) {
+            setDateRange({
+                from: new Date(filters.dateFrom),
+                to: filters.dateTo ? new Date(filters.dateTo) : undefined
+            });
+        } else {
+            setDateRange(undefined);
+        }
+    };
+
+    const handleResetFilters = () => {
+        setSelectedSubject("all");
+        setSearchQuery("");
+        setDateRange(undefined);
+    };
+
+    const getCurrentFilters = () => ({
+        subjectId: selectedSubject,
+        search: searchQuery,
+        dateFrom: dateRange?.from?.toISOString(),
+        dateTo: dateRange?.to?.toISOString()
+    });
+
     return (
         <div className="container mx-auto py-8">
             <div className="flex justify-between items-center mb-8">
@@ -220,22 +265,51 @@ export default function QuestionBanksPage() {
                 </Button>
             </div>
 
-            {/* Filter by Subject */}
-            <div className="mb-6">
-                <Label>Filter by Mata Pelajaran</Label>
-                <Select value={selectedSubject} onValueChange={setSelectedSubject}>
-                    <SelectTrigger className="w-64">
-                        <SelectValue placeholder="Pilih mata pelajaran" />
-                    </SelectTrigger>
-                    <SelectContent>
-                        <SelectItem value="all">Semua Mata Pelajaran</SelectItem>
-                        {subjects.map((subject) => (
-                            <SelectItem key={subject.id} value={subject.id}>
-                                {subject.name} ({subject.code})
-                            </SelectItem>
-                        ))}
-                    </SelectContent>
-                </Select>
+            {/* Filters */}
+            <div className="mb-6 space-y-4 bg-muted/30 p-4 rounded-lg border">
+                <div className="flex flex-wrap items-center gap-4">
+                    <div className="flex items-center gap-2 flex-1 min-w-[200px]">
+                        <Search className="h-4 w-4 text-muted-foreground" />
+                        <Input
+                            placeholder="Cari bank soal..."
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                            className="flex-1"
+                        />
+                    </div>
+
+                    <AdvancedFilterPanel
+                        activeFiltersCount={activeFiltersCount}
+                        onReset={handleResetFilters}
+                        onApply={() => { }}
+                    >
+                        <FilterSection title="Rentang Waktu">
+                            <DatePickerWithRange date={dateRange} setDate={setDateRange} />
+                        </FilterSection>
+
+                        <FilterSection title="Mata Pelajaran">
+                            <Select value={selectedSubject} onValueChange={setSelectedSubject}>
+                                <SelectTrigger className="w-full">
+                                    <SelectValue placeholder="Pilih mata pelajaran" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="all">Semua Mata Pelajaran</SelectItem>
+                                    {subjects.map((subject) => (
+                                        <SelectItem key={subject.id} value={subject.id}>
+                                            {subject.name} ({subject.code})
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                        </FilterSection>
+                    </AdvancedFilterPanel>
+
+                    <SavedFiltersManager
+                        page="question-banks"
+                        currentFilters={getCurrentFilters()}
+                        onApply={handleApplySavedFilters}
+                    />
+                </div>
             </div>
 
             {loading ? (
