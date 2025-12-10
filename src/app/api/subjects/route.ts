@@ -9,6 +9,10 @@ import { apiHandler, ApiError } from "@/lib/api-handler";
 export const GET = () => apiHandler(async () => {
     const allSubjects = await db.select().from(subjects).orderBy(subjects.name);
     return allSubjects;
+}, {
+    headers: {
+        'Cache-Control': 'public, s-maxage=60, stale-while-revalidate=300'
+    }
 });
 
 // POST /api/subjects - Create new subject

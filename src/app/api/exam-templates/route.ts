@@ -79,6 +79,10 @@ export const GET = (req: Request) => apiHandler(async () => {
             totalPages: Math.ceil(total / limit)
         }
     };
+}, {
+    headers: {
+        'Cache-Control': 'public, s-maxage=60, stale-while-revalidate=300'
+    }
 });
 
 // POST /api/exam-templates - Create new template

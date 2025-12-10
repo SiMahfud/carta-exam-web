@@ -17,7 +17,8 @@ export class ApiError extends Error {
 }
 
 export async function apiHandler<T>(
-    handler: () => Promise<{ data: T; metadata?: any } | T>
+    handler: () => Promise<{ data: T; metadata?: any } | T>,
+    options?: ResponseInit
 ): Promise<NextResponse<ApiResponse<T>>> {
     try {
         const result = await handler();
@@ -27,7 +28,7 @@ export async function apiHandler<T>(
             ? result
             : { data: result };
 
-        return NextResponse.json(response);
+        return NextResponse.json(response, options);
     } catch (error: any) {
         console.error("API Error:", error);
 
