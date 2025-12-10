@@ -1,6 +1,8 @@
 import { useState, useRef, useEffect } from "react";
 // @ts-ignore
 import mammoth from "mammoth";
+import { saveAs } from "file-saver";
+import { DocxGenerator } from "@/lib/docx-generator";
 import katex from "katex";
 import "katex/dist/katex.min.css";
 
@@ -15,7 +17,7 @@ import {
     DialogTrigger,
 } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
-import { Upload, FileText, Check, AlertCircle, Loader2 } from "lucide-react";
+import { Upload, FileText, Check, AlertCircle, Loader2, Download } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { MatchingQuestionRenderer } from "@/components/exam/MatchingQuestionRenderer";
 import { QuestionPreviewCard } from "./QuestionPreviewCard";
@@ -135,6 +137,20 @@ export function ImportQuestionsDialog({ bankId, onSuccess }: ImportQuestionsDial
         }
     };
 
+    const handleDownloadTemplate = async () => {
+        try {
+            const blob = await DocxGenerator.generateQuestionBankTemplate();
+            saveAs(blob, "template_soal_cartaexam.docx");
+        } catch (error) {
+            console.error("Failed to generate template", error);
+            toast({
+                title: "Gagal",
+                description: "Gagal membuat file template.",
+                variant: "destructive"
+            });
+        }
+    };
+
     const parseQuestionsFromHtml = (html: string) => {
         const parser = new DOMParser();
         const doc = parser.parseFromString(html, "text/html");
@@ -241,6 +257,21 @@ export function ImportQuestionsDialog({ bankId, onSuccess }: ImportQuestionsDial
                 if (val) q.answers.push(val);
             }
         }
+        // True / False (Type 6)
+        else if (jenis === "6") {
+            // Expecting "Benar" or "Salah" in startIndex (C1) or C1=Label, C3=V?
+            // Based on generated template: C1="Salah", C3="v" is mostly for MC visuals?
+            // Actually template has: C1="Salah", C3="v".
+            // Let's look for "Benar" or "Salah" in C1.
+            if (cellArray[startIndex]) {
+                const val = cellArray[startIndex].innerText.trim().toLowerCase();
+                if (val) {
+                    // Normalize "benar"/"salah"
+                    if (val.includes("benar") || val.includes("true") || val.includes("ya") || val.includes("yes")) q.answers.push("true");
+                    if (val.includes("salah") || val.includes("false") || val.includes("tidak") || val.includes("no")) q.answers.push("false");
+                }
+            }
+        }
     };
 
     const formatQuestionForApi = (q: any, jenis: string) => {
@@ -332,6 +363,23 @@ export function ImportQuestionsDialog({ bankId, onSuccess }: ImportQuestionsDial
             };
         }
 
+        if (jenis === "6") {
+            // q.answers contains "true" or "false" string based on parsing
+            const ans = q.answers[0];
+            const isTrue = ans === "true";
+            // answerKey: correct is 0 for True, 1 for False (matching TrueFalseEditor)
+            // Or use answer string? Schema says `answer`, Editor says `correct`.
+            // Let's use `correct` to be safe with existing editor if it saves `correct` index 0/1.
+            // Using 0=True, 1=False.
+            return {
+                ...base,
+                type: "true_false",
+                // Validations/Schema might expect `content.options`?
+                // TrueFalseEditor uses implicit options.
+                answerKey: { correct: isTrue ? 0 : 1 }
+            };
+        }
+
         return null;
     };
 
@@ -399,6 +447,14 @@ export function ImportQuestionsDialog({ bankId, onSuccess }: ImportQuestionsDial
                         >
                             {isLoading ? <Loader2 className="animate-spin mr-2" /> : <FileText className="mr-2" />}
                             Pilih File DOCX
+                        </Button>
+                        <Button
+                            variant="outline"
+                            onClick={handleDownloadTemplate}
+                            title="Download template import soal"
+                        >
+                            <Download className="h-4 w-4 mr-2" />
+                            Template
                         </Button>
                         <input
                             type="file"
