@@ -85,6 +85,7 @@ ${requirementDesc} with difficulty "${qDiff}".
 Topic: ${options?.topic || "Context provided"}.
 
 IMPORTANT: For "short" type questions, the generated question must be answerable with a single word or a short phrase (1-2 words max). The "acceptedAnswers" in the output MUST NOT be full sentences.
+For "matching" type questions, you CAN generate one-to-many relationships (e.g., one left item matches multiple right items).
 
 OUTPUT FORMAT:
 Return a single valid JSON object with the key "questions".
@@ -109,12 +110,16 @@ Example of expected JSON structure:
       "type": "matching",
       "difficulty": "medium",
       "content": {
-        "question": "Match items",
-        "leftItems": [{"id": "l1", "text": "Apple"}, {"id": "l2", "text": "Banana"}],
-        "rightItems": [{"id": "r1", "text": "Red"}, {"id": "r2", "text": "Yellow"}]
+        "question": "Match items (One-to-Many supported)",
+        "leftItems": [{"id": "l1", "text": "Fruits"}, {"id": "l2", "text": "Vegetables"}],
+        "rightItems": [{"id": "r1", "text": "Apple"}, {"id": "r2", "text": "Banana"}, {"id": "r3", "text": "Carrot"}]
       },
       "answerKey": {
-        "matches": [{"leftId": "l1", "rightId": "r1"}, {"leftId": "l2", "rightId": "r2"}]
+        "matches": [
+          {"leftId": "l1", "rightId": "r1"}, 
+          {"leftId": "l1", "rightId": "r2"}, 
+          {"leftId": "l2", "rightId": "r3"}
+        ]
       }
     },
     {
@@ -128,6 +133,12 @@ Example of expected JSON structure:
       "difficulty": "medium",
       "content": { "question": "What is 2+2?" },
       "answerKey": { "acceptedAnswers": ["4", "Four"] } 
+    },
+    {
+        "type": "essay",
+        "difficulty": "medium",
+        "content": { "question": "Jelaskan kenapa bumi bulat!" },
+        "answerKey": { "modelAnswer": "Bumi bulat karena..." }
     }
   ]
 }
