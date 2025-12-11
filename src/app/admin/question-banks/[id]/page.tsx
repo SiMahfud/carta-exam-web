@@ -57,6 +57,7 @@ import { MatchingEditor } from "@/components/question-editor/MatchingEditor";
 import { EssayEditor } from "@/components/question-editor/EssayEditor";
 import { TrueFalseEditor } from "@/components/question-editor/TrueFalseEditor";
 import { ImportQuestionsDialog } from "@/components/question-editor/ImportQuestionsDialog";
+import { GenerateQuestionsDialog } from "@/components/question-editor/GenerateQuestionsDialog";
 import { MathHtmlRenderer } from "@/components/ui/math-html-renderer";
 
 interface BankQuestion {
@@ -258,6 +259,13 @@ export default function QuestionBankDetailPage() {
                     </div>
                     <div className="flex gap-2">
                         <ImportQuestionsDialog
+                            bankId={bankId}
+                            onSuccess={() => {
+                                fetchQuestions();
+                                fetchTags();
+                            }}
+                        />
+                        <GenerateQuestionsDialog
                             bankId={bankId}
                             onSuccess={() => {
                                 fetchQuestions();
