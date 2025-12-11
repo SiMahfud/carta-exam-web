@@ -59,7 +59,7 @@ Anda dapat mengatur provider database melalui environment variable `DATABASE_PRO
     > **Note**: Database akan diinisialisasi secara otomatis pada startup pertama:
     > - Membuat semua tabel yang diperlukan
     > - Menyediakan user default: `admin`/`password123` dan `siswa`/`password123`
-5.  Buka [http://localhost:3000](http://localhost:3000) di browser.
+5.  Buka [http://localhost:3333](http://localhost:3333) di browser.
 
 ### Testing
 
