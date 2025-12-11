@@ -356,7 +356,7 @@
 ### AI-Powered
 | Feature | Status | Notes |
 |---------|--------|-------|
-| Question generation | ❌ | Phase 4 |
+| **Question Generation** | ✅ | **Dec 11** - Gemini 2.5 Flash Integration with Custom Mix & Multimodal |
 | Auto-grading essays | ❌ | Phase 4 |
 | Plagiarism detection | ❌ | Phase 4 |
 | Predictive analytics | ❌ | Phase 4 |

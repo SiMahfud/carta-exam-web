@@ -73,6 +73,21 @@ Bank Soal memungkinkan Anda membuat dan menggunakan kembali soal untuk berbagai 
 5. Atur **Tingkat Kesulitan** dan **Tag** (opsional).
 6. Klik **Simpan Soal** (Save Question).
 
+### Menggunakan AI Generator (Baru)
+Fitur ini menggunakan kecerdasan buatan (Google Gemini) untuk membuat soal secara otomatis dari materi yang Anda berikan.
+
+1. Di halaman Bank Soal, klik tombol **"AI Generator"** (ikon ✨).
+2. **Input Materi**:
+   - **Topik/Teks**: Ketik topik (misal: "Perang Diponegoro") atau paste materi pelajaran.
+   - **Upload File**: Anda bisa mengupload gambar atau PDF berisi materi pelajaran.
+3. **Konfigurasi Soal**:
+   - **Tipe Soal**: Pilih tipe spesifik (MC, Essay, dll) atau **Custom Mix (Advanced)**.
+   - **Custom Mix**: Jika dipilih, Anda bisa menentukan jumlah soal untuk setiap tipe secara spesifik (misal: 5 MC, 3 Essay, 2 Matching).
+   - **Kesulitan**: Mudah, Sedang, atau Sulit.
+4. Klik **Generate Questions**. Tunggu beberapa saat hingga AI selesai memproses.
+5. **Preview & Edit**: Hasil generate akan muncul di sebelah kanan. Anda bisa mengedit, menghapus, atau memperbaiki soal sebelum disimpan.
+6. Klik **Save Questions** untuk menyimpan semua soal yang valid ke dalam Bank Soal.
+
 ## Membuat & Menjadwalkan Ujian
 
 ### Langkah 1: Buat Template Ujian

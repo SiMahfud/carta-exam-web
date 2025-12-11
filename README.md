@@ -118,6 +118,11 @@ Dokumentasi lengkap tersedia untuk membantu Anda memahami dan berkontribusi pada
   - **Empty States**: Tampilan informatif saat tidak ada data dengan instruksi jelas
   - **Smooth Animations**: Transisi halaman dan interaksi mikro yang mulus
 
+**AI Power (NEW)**:
+- ✅ **Gemini Integration**: Integrasi Google Gemini 2.5 Flash untuk generate soal otomatis
+- ✅ **Multimodal Input**: Generate soal dari Teks, Topik, atau Upload Gambar/PDF
+- ✅ **Custom Mix Mode**: Generate kombinasi soal (MC, Essay, Matching, dll) dengan jumlah spesifik dalam sekali proses
+
 ### 🗺️ Pengembangan & Roadmap
 - [ROADMAP.md](ROADMAP.md) - **Roadmap pengembangan lengkap** dengan checklist fitur, spesifikasi teknis, dan prioritas
 - [FEATURES.md](FEATURES.md) - **Status fitur saat ini** - Lihat apa yang sudah, sedang, dan akan dikembangkan
