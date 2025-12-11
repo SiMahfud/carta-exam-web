@@ -34,6 +34,19 @@ export function MatchingResultViewer({ question, studentPairs, correctPairs }: M
 
     const getColor = (index: number) => colors[index % colors.length];
 
+    // Helper to get text from item (string or object)
+    const getItemText = (item: any) => {
+        if (typeof item === 'string') return item;
+        if (typeof item === 'object' && item !== null && 'text' in item) return item.text;
+        return "";
+    };
+
+    // Helper to get ID from item (if object) or use index/value
+    const getItemId = (item: any) => {
+        if (typeof item === 'object' && item !== null && 'id' in item) return item.id;
+        return item; // fallback for string
+    };
+
     // Calculate line positions
     useEffect(() => {
         if (!containerRef.current) return;
@@ -51,13 +64,28 @@ export function MatchingResultViewer({ question, studentPairs, correctPairs }: M
                 if (typeof pair.left === 'number') {
                     leftIndex = pair.left;
                 } else {
-                    leftIndex = leftItems.indexOf(pair.left);
+                    // Try to find by value (string) or ID
+                    leftIndex = leftItems.findIndex((item) => {
+                        const itemVal = getItemId(item);
+                        return itemVal === pair.left || getItemText(item) === pair.left;
+                    });
+                    // specific fix for older logic if needed:
+                    if (leftIndex === -1 && typeof pair.left === 'string') {
+                        leftIndex = leftItems.findIndex((item) => String(item) === pair.left);
+                    }
                 }
 
                 if (typeof pair.right === 'number') {
                     rightIndex = pair.right;
                 } else {
-                    rightIndex = rightItems.indexOf(pair.right);
+                    rightIndex = rightItems.findIndex((item) => {
+                        const itemVal = getItemId(item);
+                        return itemVal === pair.right || getItemText(item) === pair.right;
+                    });
+                    // specific fix for older logic if needed:
+                    if (rightIndex === -1 && typeof pair.right === 'string') {
+                        rightIndex = rightItems.findIndex((item) => String(item) === pair.right);
+                    }
                 }
 
                 if (leftIndex === -1 || rightIndex === -1) return;
@@ -75,14 +103,19 @@ export function MatchingResultViewer({ question, studentPairs, correctPairs }: M
                     const y2 = rightRect.top + rightRect.height / 2 - containerRect.top;
 
                     // Check correctness
-                    const correctRightIndices = correctPairs[leftIndex];
-                    const isCorrect = Array.isArray(correctRightIndices)
-                        ? correctRightIndices.includes(rightIndex)
-                        : correctRightIndices === rightIndex;
+                    // Use loose comparison or string conversion for keys
+                    const correctRightIndices = correctPairs[leftIndex] ?? correctPairs[String(leftIndex) as any];
+
+                    let isCorrect = false;
+                    if (Array.isArray(correctRightIndices)) {
+                        isCorrect = correctRightIndices.some(idx => String(idx) === String(rightIndex));
+                    } else if (correctRightIndices !== undefined) {
+                        isCorrect = String(correctRightIndices) === String(rightIndex);
+                    }
 
                     newLines.push({
                         x1, y1, x2, y2,
-                        color: isCorrect ? "#22c55e" : "#ef4444", // Green or Red for the line itself
+                        color: isCorrect ? "#22c55e" : "#ef4444", // Green or Red
                         isCorrect
                     });
                 }
@@ -148,7 +181,11 @@ export function MatchingResultViewer({ question, studentPairs, correctPairs }: M
                         // Check if this item has any student connections
                         const hasConnection = studentPairs.some((p: any) => {
                             if (typeof p.left === 'number') return p.left === idx;
-                            return p.left === item;
+
+                            const itemText = getItemText(item);
+                            const itemId = getItemId(item);
+
+                            return p.left === itemText || p.left === itemId || p.left === item;
                         });
                         const color = getColor(idx);
 
@@ -163,7 +200,7 @@ export function MatchingResultViewer({ question, studentPairs, correctPairs }: M
                                 `}
                                 style={{ borderColor: hasConnection ? color : undefined }}
                             >
-                                <span className="font-medium text-sm">{item}</span>
+                                <span className="font-medium text-sm">{getItemText(item)}</span>
                                 {/* Connection indicator dot */}
                                 <div className={`
                                     w-3 h-3 rounded-full border transition-colors
@@ -182,7 +219,11 @@ export function MatchingResultViewer({ question, studentPairs, correctPairs }: M
                     {rightItems.map((item, idx) => {
                         const hasConnection = studentPairs.some((p: any) => {
                             if (typeof p.right === 'number') return p.right === idx;
-                            return p.right === item;
+
+                            const itemText = getItemText(item);
+                            const itemId = getItemId(item);
+
+                            return p.right === itemText || p.right === itemId || p.right === item;
                         });
 
                         return (
@@ -200,7 +241,7 @@ export function MatchingResultViewer({ question, studentPairs, correctPairs }: M
                                     w-3 h-3 rounded-full border transition-colors shrink-0
                                     ${hasConnection ? "bg-primary border-primary" : "bg-muted border-muted-foreground/30"}
                                 `} />
-                                <span className="font-medium text-sm flex-1 text-right">{item}</span>
+                                <span className="font-medium text-sm flex-1 text-right">{getItemText(item)}</span>
                             </div>
                         );
                     })}

@@ -11,6 +11,19 @@ import { useToast } from "@/hooks/use-toast";
 import { ArrowLeft, Save, Send, Check, X, ChevronLeft, ChevronRight, SkipForward } from "lucide-react";
 import Link from "next/link";
 import { MatchingResultViewer } from "@/components/exam/MatchingResultViewer";
+import { MathHtmlRenderer } from "@/components/ui/math-html-renderer";
+
+const safeParseJSON = (data: any) => {
+    if (typeof data === 'string') {
+        try {
+            return JSON.parse(data);
+        } catch (e) {
+            console.error("Failed to parse JSON:", e);
+            return data;
+        }
+    }
+    return data;
+};
 
 interface Answer {
     answerId: string;
@@ -311,20 +324,61 @@ export default function GradingDetailPage() {
         }
 
         if (answer.type === "matching") {
+            const leftItems = (answer.questionContent as any)?.leftItems || [];
+            const rightItems = (answer.questionContent as any)?.rightItems || [];
+
+            // Build UUID -> index lookup maps
+            const leftIdToIndex: Record<string, number> = {};
+            const rightIdToIndex: Record<string, number> = {};
+            leftItems.forEach((item: any, idx: number) => {
+                const id = typeof item === 'object' ? item.id : item;
+                leftIdToIndex[id] = idx;
+            });
+            rightItems.forEach((item: any, idx: number) => {
+                const id = typeof item === 'object' ? item.id : item;
+                rightIdToIndex[id] = idx;
+            });
+
+            // Convert studentPairs to index-based format
             let studentPairs: any[] = [];
             if (Array.isArray(answer.studentAnswer)) {
-                studentPairs = answer.studentAnswer;
+                studentPairs = answer.studentAnswer.map((pair: any) => {
+                    // Handle both {left, right} and {leftId, rightId} formats
+                    const leftKey = pair.left || pair.leftId;
+                    const rightKey = pair.right || pair.rightId;
+                    return {
+                        left: leftIdToIndex[leftKey] ?? leftKey,
+                        right: rightIdToIndex[rightKey] ?? rightKey
+                    };
+                });
             } else if (typeof answer.studentAnswer === 'object' && answer.studentAnswer !== null) {
-                // Convert legacy object format { "left": "right" } to array [{ left: "left", right: "right" }]
                 studentPairs = Object.entries(answer.studentAnswer).map(([left, right]) => ({
-                    left,
-                    right
+                    left: leftIdToIndex[left] ?? left,
+                    right: rightIdToIndex[right as string] ?? right
                 }));
             }
 
-            const correctPairs = (answer.correctAnswer as any)?.pairs || {};
-            const leftItems = (answer.questionContent as any)?.leftItems || [];
-            const rightItems = (answer.questionContent as any)?.rightItems || [];
+            // Convert correctPairs to index-based { leftIndex: rightIndex } format
+            const parsedCorrect = safeParseJSON(answer.correctAnswer);
+            let correctPairsIndexed: Record<number, number> = {};
+
+            // Handle new format: { matches: [{leftId, rightId}] }
+            if (parsedCorrect?.matches && Array.isArray(parsedCorrect.matches)) {
+                parsedCorrect.matches.forEach((match: any) => {
+                    const leftIdx = leftIdToIndex[match.leftId];
+                    const rightIdx = rightIdToIndex[match.rightId];
+                    if (leftIdx !== undefined && rightIdx !== undefined) {
+                        correctPairsIndexed[leftIdx] = rightIdx;
+                    }
+                });
+            }
+            // Handle old format: { pairs: {0: 1} } or direct {0: 1}
+            else if (parsedCorrect?.pairs) {
+                correctPairsIndexed = parsedCorrect.pairs;
+            } else if (typeof parsedCorrect === 'object' && !Array.isArray(parsedCorrect)) {
+                correctPairsIndexed = parsedCorrect;
+            }
+
 
             return (
                 <div className="space-y-4">
@@ -347,22 +401,28 @@ export default function GradingDetailPage() {
                             rightItems
                         }}
                         studentPairs={studentPairs}
-                        correctPairs={correctPairs}
+                        correctPairs={correctPairsIndexed}
                     />
 
                     {/* Legacy Key View (Optional, maybe hidden or collapsed) */}
                     <details className="text-xs text-muted-foreground cursor-pointer">
                         <summary>Lihat Kunci Jawaban (Teks)</summary>
                         <div className="mt-2 p-2 bg-muted/20 rounded border">
-                            {Object.entries(correctPairs).map(([left, right]: [string, any], idx) => {
+                            {Object.entries(correctPairsIndexed).map(([left, right]: [string, any], idx) => {
                                 const rightIndices = Array.isArray(right) ? right : [right];
-                                return rightIndices.map((rIndex: number, rIdx: number) => (
-                                    <div key={`${idx}-${rIdx}`} className="flex gap-2 py-1">
-                                        <span className="font-medium">{leftItems[parseInt(left)]}</span>
-                                        <span>→</span>
-                                        <span>{rightItems[rIndex]}</span>
-                                    </div>
-                                ));
+                                const leftItem = leftItems[parseInt(left)];
+                                const leftText = typeof leftItem === 'object' ? leftItem?.text : leftItem;
+                                return rightIndices.map((rIndex: number, rIdx: number) => {
+                                    const rightItem = rightItems[rIndex];
+                                    const rightText = typeof rightItem === 'object' ? rightItem?.text : rightItem;
+                                    return (
+                                        <div key={`${idx}-${rIdx}`} className="flex gap-2 py-1">
+                                            <span className="font-medium">{leftText}</span>
+                                            <span>→</span>
+                                            <span>{rightText}</span>
+                                        </div>
+                                    );
+                                });
                             })}
                         </div>
                     </details>
@@ -372,7 +432,12 @@ export default function GradingDetailPage() {
 
         if (answer.type === "complex_mc") {
             const selectedOptions = Array.isArray(answer.studentAnswer) ? answer.studentAnswer : [];
-            const correctOptions = (answer.correctAnswer as any)?.correctOptions || [];
+
+            const parsedCorrect = safeParseJSON(answer.correctAnswer);
+            // Handle object structure { correctOptions: [...] } or { correctIndices: [...] } or direct array [...]
+            const correctOptions = Array.isArray(parsedCorrect)
+                ? parsedCorrect
+                : parsedCorrect?.correctOptions || parsedCorrect?.correctIndices || [];
             const options = (answer.questionContent as any)?.options || [];
 
             return (
@@ -395,20 +460,25 @@ export default function GradingDetailPage() {
                             <div className="text-center">Kunci</div>
                         </div>
                         <div className="divide-y">
-                            {options.map((opt: any) => {
-                                const isSelected = selectedOptions.includes(opt.label);
-                                const isCorrect = correctOptions.includes(opt.label);
+                            {options.map((opt: any, idx: number) => {
+                                const isString = typeof opt === 'string';
+                                const label = isString ? String.fromCharCode(65 + idx) : (opt.label || String.fromCharCode(65 + idx));
+                                const text = isString ? opt : (opt.text || opt.html || "");
+
+                                const isSelected = selectedOptions.includes(label);
+                                // Check correctness by Label ("A") or Index (0) or String Index ("0")
+                                const isCorrect = correctOptions.includes(label) || correctOptions.includes(idx) || correctOptions.includes(String(idx));
                                 let rowClass = "";
 
-                                if (isSelected && isCorrect) rowClass = "bg-green-50";
-                                else if (isSelected && !isCorrect) rowClass = "bg-red-50";
-                                else if (!isSelected && isCorrect) rowClass = "bg-yellow-50";
+                                if (isSelected && isCorrect) rowClass = "bg-green-50 dark:bg-green-900/20";
+                                else if (isSelected && !isCorrect) rowClass = "bg-red-50 dark:bg-red-900/20";
+                                else if (!isSelected && isCorrect) rowClass = "bg-yellow-50 dark:bg-yellow-900/20";
 
                                 return (
-                                    <div key={opt.label} className={`px-4 py-3 grid grid-cols-[1fr,100px,100px] gap-4 text-sm items-center ${rowClass}`}>
+                                    <div key={label} className={`px-4 py-3 grid grid-cols-[1fr,100px,100px] gap-4 text-sm items-center ${rowClass}`}>
                                         <div>
-                                            <span className="font-semibold mr-2">{opt.label}.</span>
-                                            {opt.text}
+                                            <span className="font-semibold mr-2">{label}.</span>
+                                            <MathHtmlRenderer html={text} className="inline-block" />
                                         </div>
                                         <div className="flex justify-center">
                                             {isSelected && (
@@ -427,6 +497,67 @@ export default function GradingDetailPage() {
                     </div>
                 </div>
             );
+        }
+
+        if (answer.type === "mc") {
+            const options = (answer.questionContent as any)?.options || [];
+
+            return (
+                <div className="space-y-4">
+                    <div className="flex items-center gap-2 mb-2">
+                        {answer.isCorrect ? (
+                            <Badge className="bg-green-500"><Check className="h-3 w-3 mr-1" /> Benar</Badge>
+                        ) : (
+                            <Badge variant="destructive"><X className="h-3 w-3 mr-1" /> Salah</Badge>
+                        )}
+                        <span className="text-sm">
+                            Poin: {answer.partialPoints}/{answer.maxPoints}
+                        </span>
+                    </div>
+
+                    <div className="space-y-2">
+                        {options.map((opt: any, idx: number) => {
+                            const isString = typeof opt === 'string';
+                            const label = isString ? String.fromCharCode(65 + idx) : (opt.label || String.fromCharCode(65 + idx));
+                            const text = isString ? opt : (opt.text || opt.html || "");
+
+                            const isSelected = answer.studentAnswer === label;
+                            const isCorrect = answer.correctAnswer === label;
+                            let borderClass = "border-muted";
+                            let bgClass = "bg-background";
+
+                            if (isSelected && isCorrect) {
+                                borderClass = "border-green-500";
+                                bgClass = "bg-green-50 dark:bg-green-900/20";
+                            } else if (isSelected && !isCorrect) {
+                                borderClass = "border-red-500";
+                                bgClass = "bg-red-50 dark:bg-red-900/20";
+                            } else if (isCorrect) {
+                                borderClass = "border-green-500";
+                                bgClass = "bg-green-50/50 dark:bg-green-900/10";
+                            }
+
+                            return (
+                                <div key={label} className={`flex items-start gap-3 p-3 rounded-lg border-2 ${borderClass} ${bgClass}`}>
+                                    <div className={`mt-0.5 w-6 h-6 rounded-full border-2 flex items-center justify-center text-xs font-bold shrink-0 
+                                         ${isSelected ? "bg-primary text-primary-foreground border-primary" : "border-muted-foreground text-muted-foreground"}`}>
+                                        {label}
+                                    </div>
+                                    <div className="flex-1">
+                                        <MathHtmlRenderer html={text} />
+                                    </div>
+                                    {isSelected && (
+                                        <span className="text-xs font-semibold px-2 py-1 rounded bg-primary/10 text-primary">Dijawab</span>
+                                    )}
+                                    {isCorrect && (
+                                        <Check className="h-4 w-4 text-green-600" />
+                                    )}
+                                </div>
+                            )
+                        })}
+                    </div>
+                </div>
+            )
         }
 
         // Default fallback for MC and Short Answer
@@ -572,7 +703,9 @@ export default function GradingDetailPage() {
                             </CardTitle>
                         </CardHeader>
                         <CardContent>
-                            <p className="font-medium mb-4">{answer.questionText}</p>
+                            <div className="font-medium mb-4">
+                                <MathHtmlRenderer html={answer.questionText} />
+                            </div>
                             {renderAnswer(answer)}
                         </CardContent>
                     </Card>
@@ -581,3 +714,4 @@ export default function GradingDetailPage() {
         </div>
     );
 }
+

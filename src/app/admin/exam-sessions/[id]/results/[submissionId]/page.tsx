@@ -237,13 +237,20 @@ export default function SubmissionDetailPage() {
                             <div className="mt-2 p-2 bg-muted/20 rounded border">
                                 {Object.entries(correctPairs).map(([left, right]: [string, any], idx) => {
                                     const rightIndices = Array.isArray(right) ? right : [right];
-                                    return rightIndices.map((rIndex: number, rIdx: number) => (
-                                        <div key={`${idx}-${rIdx}`} className="flex gap-2 py-1">
-                                            <span className="font-medium">{leftItems[parseInt(left)]}</span>
-                                            <span>→</span>
-                                            <span>{rightItems[rIndex]}</span>
-                                        </div>
-                                    ));
+                                    return rightIndices.map((rIndex: number, rIdx: number) => {
+                                        const leftItem = leftItems[parseInt(left)];
+                                        const rightItem = rightItems[rIndex];
+                                        const leftText = typeof leftItem === 'object' && leftItem?.text ? leftItem.text : leftItem;
+                                        const rightText = typeof rightItem === 'object' && rightItem?.text ? rightItem.text : rightItem;
+
+                                        return (
+                                            <div key={`${idx}-${rIdx}`} className="flex gap-2 py-1">
+                                                <span className="font-medium">{leftText}</span>
+                                                <span>→</span>
+                                                <span>{rightText}</span>
+                                            </div>
+                                        );
+                                    });
                                 })}
                             </div>
                         </details>
