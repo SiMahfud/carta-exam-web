@@ -45,6 +45,7 @@ export default function TakeExamPage() {
     const [violationCount, setViolationCount] = useState(0);
     const [showViolationBanner, setShowViolationBanner] = useState(false);
     const [lastViolationType, setLastViolationType] = useState<string>("");
+    const [isTerminated, setIsTerminated] = useState(false);
     const [examName, setExamName] = useState<string>("");
     const [minSubmitMinutes, setMinSubmitMinutes] = useState(0);
     const [startTime, setStartTime] = useState<Date | null>(null);
@@ -369,6 +370,13 @@ export default function TakeExamPage() {
                     });
                     setAnswers(restoredAnswers);
                 }
+            } else if (response.status === 403) {
+                // Check if terminated
+                const data = await response.json();
+                if (data.terminated) {
+                    setIsTerminated(true);
+                    setViolationCount(data.violationCount || 0);
+                }
             } else {
                 throw new Error("Failed to load questions");
             }
@@ -476,6 +484,36 @@ export default function TakeExamPage() {
                     <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
                     <p className="text-muted-foreground animate-pulse">Memuat soal ujian...</p>
                 </div>
+            </div>
+        );
+    }
+
+    // Show terminated page if exam was stopped due to violations
+    if (isTerminated) {
+        return (
+            <div className="flex items-center justify-center min-h-screen bg-background">
+                <Card className="max-w-md mx-4 p-8 text-center">
+                    <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-red-100 flex items-center justify-center">
+                        <svg className="w-8 h-8 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                        </svg>
+                    </div>
+                    <h2 className="text-2xl font-bold text-red-600 mb-2">Ujian Dihentikan</h2>
+                    <p className="text-muted-foreground mb-4">
+                        Ujian Anda telah dihentikan karena melebihi batas pelanggaran yang diizinkan.
+                    </p>
+                    <div className="bg-red-50 rounded-lg p-4 mb-6">
+                        <p className="text-sm text-red-700">
+                            <strong>Total pelanggaran:</strong> {violationCount}
+                        </p>
+                        <p className="text-sm text-red-700 mt-2">
+                            Hubungi pengawas ujian jika Anda ingin melanjutkan ujian ini.
+                        </p>
+                    </div>
+                    <Button onClick={() => router.push("/student/exams")} className="w-full">
+                        Kembali ke Daftar Ujian
+                    </Button>
+                </Card>
             </div>
         );
     }

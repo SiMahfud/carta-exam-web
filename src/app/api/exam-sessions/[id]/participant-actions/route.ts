@@ -40,11 +40,29 @@ export async function POST(
                 break;
 
             case "reset_violations":
-                // Reset violations only: clear violation count and log
+                // Reset violations only: clear violation count and log, set status back to in_progress if terminated
                 await db.update(submissions)
                     .set({
                         violationCount: 0,
-                        violationLog: []
+                        violationLog: [],
+                        status: "in_progress"  // Allow terminated students to continue
+                    })
+                    .where(
+                        and(
+                            eq(submissions.sessionId, sessionId),
+                            inArray(submissions.userId, studentIds)
+                        )
+                    );
+                break;
+
+            case "reset_permission":
+                // Reset permission for terminated students: allow them to continue exam
+                await db.update(submissions)
+                    .set({
+                        violationCount: 0,
+                        violationLog: [],
+                        status: "in_progress",
+                        endTime: null  // Clear endTime that was set during termination
                     })
                     .where(
                         and(

@@ -36,6 +36,20 @@ export async function GET(
         }
 
         let submission = submissionData[0];
+
+        // Check if submission is terminated due to violations
+        if (submission.status === "terminated") {
+            return NextResponse.json(
+                {
+                    error: "Ujian dihentikan karena pelanggaran",
+                    terminated: true,
+                    violationCount: submission.violationCount || 0,
+                    message: "Ujian Anda telah dihentikan karena melebihi batas pelanggaran. Hubungi pengawas untuk melanjutkan."
+                },
+                { status: 403 }
+            );
+        }
+
         const questionOrder = submission.questionOrder as string[];
 
         // If startTime is null (after reset), set it to current time

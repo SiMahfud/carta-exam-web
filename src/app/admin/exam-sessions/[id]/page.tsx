@@ -459,7 +459,7 @@ export default function SessionMonitorPage() {
                         </span>
                         <div className="flex flex-wrap gap-2 items-center">
                             <select
-                                className="flex h-9 rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring disabled:cursor-not-allowed disabled:opacity-50 w-36"
+                                className="flex h-9 rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring disabled:cursor-not-allowed disabled:opacity-50 w-44"
                                 value={selectedAction}
                                 onChange={(e) => setSelectedAction(e.target.value)}
                                 disabled={selectedStudentIds.length === 0}
@@ -468,6 +468,7 @@ export default function SessionMonitorPage() {
                                 <option value="add_time">Tambah Waktu</option>
                                 <option value="reset_time">Reset Waktu</option>
                                 <option value="reset_violations">Reset Pelanggaran</option>
+                                <option value="reset_permission">Izinkan Lanjut Ujian</option>
                                 <option value="force_finish">Paksa Selesai</option>
                                 <option value="retake">Ulang Ujian</option>
                             </select>
@@ -587,8 +588,9 @@ export default function SessionMonitorPage() {
                                 {selectedAction === 'add_time' ? `Tambah Waktu (+${selectedMinutes} menit)` :
                                     selectedAction === 'reset_time' ? 'Reset Waktu' :
                                         selectedAction === 'reset_violations' ? 'Reset Pelanggaran' :
-                                            selectedAction === 'force_finish' ? 'Paksa Selesai' :
-                                                selectedAction === 'retake' ? 'Ulang Ujian' : selectedAction}
+                                            selectedAction === 'reset_permission' ? 'Izinkan Lanjut Ujian' :
+                                                selectedAction === 'force_finish' ? 'Paksa Selesai' :
+                                                    selectedAction === 'retake' ? 'Ulang Ujian' : selectedAction}
                             </strong> pada {selectedStudentIds.length} peserta yang dipilih?
                         </DialogDescription>
                     </DialogHeader>
