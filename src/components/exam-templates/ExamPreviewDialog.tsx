@@ -187,14 +187,14 @@ export default function ExamPreviewDialog({ templateId, open, onOpenChange }: Ex
 
                                                             const isCorrect = correctLabel === option.label;
                                                             return (
-                                                                <div key={option.label} className={`flex items-start gap-3 p-2 rounded ${isCorrect ? 'bg-green-100 border border-green-500' : 'hover:bg-muted/50'}`}>
+                                                                <div key={option.label} className={`flex items-start gap-3 p-2 rounded ${isCorrect ? 'bg-green-100 dark:bg-green-900/30 border border-green-500 dark:border-green-600' : 'hover:bg-muted/50'}`}>
                                                                     <input type="radio" name={`q${question.number}`} className="mt-0.5" defaultChecked={isCorrect} />
                                                                     <div className="flex gap-2 flex-1">
                                                                         <span className="font-medium min-w-[24px]">{option.label}.</span>
                                                                         <div className="text-sm w-full">
                                                                             <MathHtmlRenderer html={option.text} />
                                                                         </div>
-                                                                        {isCorrect && <span className="ml-auto text-green-600 font-semibold text-xs whitespace-nowrap">✓ BENAR</span>}
+                                                                        {isCorrect && <span className="ml-auto text-green-600 dark:text-green-400 font-semibold text-xs whitespace-nowrap">✓ BENAR</span>}
                                                                     </div>
                                                                 </div>
                                                             );
@@ -221,14 +221,14 @@ export default function ExamPreviewDialog({ templateId, open, onOpenChange }: Ex
                                                             }
                                                             const isCorrect = correctLabels.includes(option.label);
                                                             return (
-                                                                <div key={option.label} className={`flex items-start gap-3 p-2 rounded ${isCorrect ? 'bg-green-100 border border-green-500' : 'hover:bg-muted/50'}`}>
+                                                                <div key={option.label} className={`flex items-start gap-3 p-2 rounded ${isCorrect ? 'bg-green-100 dark:bg-green-900/30 border border-green-500 dark:border-green-600' : 'hover:bg-muted/50'}`}>
                                                                     <input type="checkbox" className="mt-0.5" defaultChecked={isCorrect} />
                                                                     <div className="flex gap-2 flex-1">
                                                                         <span className="font-medium min-w-[24px]">{option.label}.</span>
                                                                         <div className="text-sm w-full">
                                                                             <MathHtmlRenderer html={option.text} />
                                                                         </div>
-                                                                        {isCorrect && <span className="ml-auto text-green-600 font-semibold text-xs whitespace-nowrap">✓ BENAR</span>}
+                                                                        {isCorrect && <span className="ml-auto text-green-600 dark:text-green-400 font-semibold text-xs whitespace-nowrap">✓ BENAR</span>}
                                                                     </div>
                                                                 </div>
                                                             );
@@ -241,9 +241,9 @@ export default function ExamPreviewDialog({ templateId, open, onOpenChange }: Ex
                                             {question.type === 'short' && (
                                                 <div className="space-y-2">
                                                     <p className="text-xs text-blue-600 italic">💡 Cara menjawab: Ketik jawaban singkat Anda pada kotak di bawah</p>
-                                                    <input type="text" value={question.acceptableAnswers && question.acceptableAnswers.length > 0 ? question.acceptableAnswers.join(' / ') : ''} placeholder="Ketik jawaban Anda di sini..." className="w-full p-3 border rounded-lg bg-green-50 text-green-800 font-semibold" disabled readOnly />
+                                                    <input type="text" value={question.acceptableAnswers && question.acceptableAnswers.length > 0 ? question.acceptableAnswers.join(' / ') : ''} placeholder="Ketik jawaban Anda di sini..." className="w-full p-3 border rounded-lg bg-green-50 dark:bg-green-900/30 text-green-800 dark:text-green-300 font-semibold" disabled readOnly />
                                                     {question.acceptableAnswers && question.acceptableAnswers.length > 0 && (
-                                                        <p className="text-xs text-green-700 italic">🔑 Jawaban yang ditampilkan di atas adalah kunci jawaban</p>
+                                                        <p className="text-xs text-green-700 dark:text-green-400 italic">🔑 Jawaban yang ditampilkan di atas adalah kunci jawaban</p>
                                                     )}
                                                 </div>
                                             )}
@@ -252,16 +252,16 @@ export default function ExamPreviewDialog({ templateId, open, onOpenChange }: Ex
                                             {question.type === 'essay' && (
                                                 <div className="space-y-2">
                                                     <p className="text-xs text-blue-600 italic">💡 Cara menjawab: Tulis jawaban uraian Anda dengan lengkap dan jelas</p>
-                                                    <textarea placeholder="Tulis jawaban uraian Anda di sini..." rows={6} className="w-full p-3 border rounded-lg resize-none" disabled />
-                                                    <div className="p-3 bg-blue-50 border border-blue-300 rounded-lg">
-                                                        <p className="text-xs font-semibold text-blue-800 mb-1">Panduan Penilaian:</p>
-                                                        <p className="text-xs text-blue-700">{question.guidelines || 'Jawab dengan lengkap dan jelas'}</p>
+                                                    <textarea placeholder="Tulis jawaban uraian Anda di sini..." rows={6} className="w-full p-3 border rounded-lg resize-none bg-background" disabled />
+                                                    <div className="p-3 bg-blue-50 dark:bg-blue-900/30 border border-blue-300 dark:border-blue-600 rounded-lg">
+                                                        <p className="text-xs font-semibold text-blue-800 dark:text-blue-300 mb-1">Panduan Penilaian:</p>
+                                                        <p className="text-xs text-blue-700 dark:text-blue-400">{question.guidelines || 'Jawab dengan lengkap dan jelas'}</p>
                                                         {question.rubric && question.rubric.length > 0 && (
                                                             <div className="mt-2">
-                                                                <p className="text-xs font-semibold text-blue-800 mb-1">Rubrik:</p>
+                                                                <p className="text-xs font-semibold text-blue-800 dark:text-blue-300 mb-1">Rubrik:</p>
                                                                 {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
                                                                 {question.rubric.map((r: any, idx: number) => (
-                                                                    <div key={idx} className="text-xs text-blue-700">• {r.criterion} ({r.points} poin)</div>
+                                                                    <div key={idx} className="text-xs text-blue-700 dark:text-blue-400">• {r.criterion} ({r.points} poin)</div>
                                                                 ))}
                                                             </div>
                                                         )}
@@ -283,14 +283,14 @@ export default function ExamPreviewDialog({ templateId, open, onOpenChange }: Ex
                                                             );
 
                                                             return (
-                                                                <div key={i} className={`flex items-start gap-3 p-2 rounded ${isCorrect ? 'bg-green-100 border border-green-500' : 'hover:bg-muted/50'}`}>
+                                                                <div key={i} className={`flex items-start gap-3 p-2 rounded ${isCorrect ? 'bg-green-100 dark:bg-green-900/30 border border-green-500 dark:border-green-600' : 'hover:bg-muted/50'}`}>
                                                                     <input type="radio" name={`q${question.number}`} className="mt-0.5" defaultChecked={!!isCorrect} />
                                                                     <div className="flex gap-2 flex-1">
                                                                         <span className="font-medium min-w-[24px]">{opt === "Benar" ? "B" : "S"}.</span>
                                                                         <div className="text-sm w-full font-medium">
                                                                             {opt}
                                                                         </div>
-                                                                        {isCorrect && <span className="ml-auto text-green-600 font-semibold text-xs whitespace-nowrap">✓ BENAR</span>}
+                                                                        {isCorrect && <span className="ml-auto text-green-600 dark:text-green-400 font-semibold text-xs whitespace-nowrap">✓ BENAR</span>}
                                                                     </div>
                                                                 </div>
                                                             );
@@ -303,7 +303,7 @@ export default function ExamPreviewDialog({ templateId, open, onOpenChange }: Ex
                                             {question.type === 'matching' && question.leftItems && question.rightItems && (
                                                 <div className="space-y-3 pl-4">
                                                     <p className="text-xs text-blue-600 italic mb-3">💡 Cara menjawab: Pasangkan item kiri dengan item kanan yang sesuai</p>
-                                                    <p className="text-sm font-semibold text-gray-700 mb-3">Kunci Jawaban (Pasangan Benar):</p>
+                                                    <p className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">Kunci Jawaban (Pasangan Benar):</p>
 
                                                     <div className="border rounded-lg p-4 bg-muted/10">
                                                         <MatchingQuestionRenderer

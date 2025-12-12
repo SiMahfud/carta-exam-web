@@ -262,7 +262,11 @@ export default function GradingDetailPage() {
                     <div>
                         <h4 className="font-semibold mb-2">Jawaban Siswa:</h4>
                         <div className="p-4 bg-muted rounded-lg whitespace-pre-wrap">
-                            {answer.studentAnswer || <span className="text-muted-foreground italic">Tidak ada jawaban</span>}
+                            {typeof answer.studentAnswer === 'string' ? (
+                                <MathHtmlRenderer html={answer.studentAnswer} />
+                            ) : (
+                                answer.studentAnswer || <span className="text-muted-foreground italic">Tidak ada jawaban</span>
+                            )}
                         </div>
                     </div>
 
@@ -417,9 +421,9 @@ export default function GradingDetailPage() {
                                     const rightText = typeof rightItem === 'object' ? rightItem?.text : rightItem;
                                     return (
                                         <div key={`${idx}-${rIdx}`} className="flex gap-2 py-1">
-                                            <span className="font-medium">{leftText}</span>
+                                            <div className="font-medium"><MathHtmlRenderer html={leftText} /></div>
                                             <span>→</span>
-                                            <span>{rightText}</span>
+                                            <div><MathHtmlRenderer html={rightText} /></div>
                                         </div>
                                     );
                                 });

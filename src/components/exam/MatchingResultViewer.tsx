@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect, useMemo } from "react";
+import { MathHtmlRenderer } from "@/components/ui/math-html-renderer";
 
 interface MatchingResultViewerProps {
     question: {
@@ -206,7 +207,7 @@ export function MatchingResultViewer({ question, studentPairs, correctPairs }: M
                                 `}
                                 style={{ borderColor: hasConnection ? color : undefined }}
                             >
-                                <span className="font-medium text-sm">{getItemText(item)}</span>
+                                <div className="font-medium text-sm"><MathHtmlRenderer html={getItemText(item)} /></div>
                                 {/* Connection indicator dot */}
                                 <div className={`
                                     w-3 h-3 rounded-full border transition-colors
@@ -248,7 +249,7 @@ export function MatchingResultViewer({ question, studentPairs, correctPairs }: M
                                     w-3 h-3 rounded-full border transition-colors shrink-0
                                     ${hasConnection ? "bg-primary border-primary" : "bg-muted border-muted-foreground/30"}
                                 `} />
-                                <span className="font-medium text-sm flex-1 text-right">{getItemText(item)}</span>
+                                <div className="font-medium text-sm flex-1 text-right"><MathHtmlRenderer html={getItemText(item)} /></div>
                             </div>
                         );
                     })}

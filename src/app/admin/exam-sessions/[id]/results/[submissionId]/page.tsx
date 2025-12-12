@@ -11,6 +11,20 @@ import Link from "next/link";
 import { format } from "date-fns";
 import { id as idLocale } from "date-fns/locale";
 import { MatchingResultViewer } from "@/components/exam/MatchingResultViewer";
+import { MathHtmlRenderer } from "@/components/ui/math-html-renderer";
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const safeParseJSON = (data: any) => {
+    if (typeof data === 'string') {
+        try {
+            return JSON.parse(data);
+        } catch (e) {
+            console.error("Failed to parse JSON:", e);
+            return data;
+        }
+    }
+    return data;
+};
 
 interface Answer {
     answerId: string;
@@ -88,7 +102,7 @@ export default function SubmissionDetailPage() {
                 return (
                     <div className="space-y-3">
                         <div>
-                            <h4 className="font-medium mb-2">{answer.questionText}</h4>
+                            <div className="font-medium mb-2"><MathHtmlRenderer html={answer.questionText} /></div>
                             {answer.questionContent?.options && (
                                 <div className="space-y-2">
                                     {(answer.questionContent.options as any[]).map((opt: any, idx: number) => {
@@ -100,20 +114,20 @@ export default function SubmissionDetailPage() {
                                             <div
                                                 key={idx}
                                                 className={`p-3 rounded-lg border ${isCorrectAnswer
-                                                    ? "bg-green-50 border-green-300"
+                                                    ? "bg-green-50 dark:bg-green-900/30 border-green-300 dark:border-green-600"
                                                     : isStudentAnswer
-                                                        ? "bg-red-50 border-red-300"
+                                                        ? "bg-red-50 dark:bg-red-900/30 border-red-300 dark:border-red-600"
                                                         : "bg-muted/30"
                                                     }`}
                                             >
                                                 <div className="flex items-center gap-2">
                                                     <span className="font-semibold">{optLabel}.</span>
-                                                    <span>{opt}</span>
+                                                    <div className="flex-1"><MathHtmlRenderer html={opt} /></div>
                                                     {isCorrectAnswer && (
-                                                        <CheckCircle className="h-4 w-4 text-green-600 ml-auto" />
+                                                        <CheckCircle className="h-4 w-4 text-green-600 dark:text-green-400 ml-auto" />
                                                     )}
                                                     {isStudentAnswer && !isCorrectAnswer && (
-                                                        <XCircle className="h-4 w-4 text-red-600 ml-auto" />
+                                                        <XCircle className="h-4 w-4 text-red-600 dark:text-red-400 ml-auto" />
                                                     )}
                                                 </div>
                                             </div>
@@ -135,58 +149,66 @@ export default function SubmissionDetailPage() {
                     </div>
                 );
 
-            case "complex_mc":
+            case "complex_mc": {
+                const options = (answer.questionContent as any)?.options || [];
+                const studentAnswers = Array.isArray(answer.studentAnswer) ? answer.studentAnswer : [];
+
+                // Robustly parse correctAnswer: handle { correctOptions: [...] }, { correctIndices: [...] }, or direct array
+                const parsedCorrect = safeParseJSON(answer.correctAnswer);
+                const correctAnswers = Array.isArray(parsedCorrect)
+                    ? parsedCorrect
+                    : parsedCorrect?.correctOptions || parsedCorrect?.correctIndices || [];
+
                 return (
                     <div className="space-y-3">
                         <div>
-                            <h4 className="font-medium mb-2">{answer.questionText}</h4>
-                            {answer.questionContent?.options && (
-                                <div className="space-y-2">
-                                    {(answer.questionContent.options as any[]).map((opt: any, idx: number) => {
-                                        const optLabel = String.fromCharCode(65 + idx);
-                                        const studentAnswers = Array.isArray(answer.studentAnswer) ? answer.studentAnswer : [];
-                                        const correctAnswers = Array.isArray(answer.correctAnswer) ? answer.correctAnswer : [];
+                            <div className="font-medium mb-2"><MathHtmlRenderer html={answer.questionText} /></div>
+                            <div className="space-y-2">
+                                {options.map((opt: any, idx: number) => {
+                                    const isString = typeof opt === 'string';
+                                    const optLabel = isString ? String.fromCharCode(65 + idx) : (opt.label || String.fromCharCode(65 + idx));
+                                    const optText = isString ? opt : (opt.text || opt.html || "");
 
-                                        const isStudentAnswer = studentAnswers.includes(optLabel);
-                                        const isCorrectAnswer = correctAnswers.includes(optLabel);
+                                    const isStudentAnswer = studentAnswers.includes(optLabel);
+                                    // Check correctness by Label ("A") or Index (0) or String Index ("0")
+                                    const isCorrectAnswer = correctAnswers.includes(optLabel) || correctAnswers.includes(idx) || correctAnswers.includes(String(idx));
 
-                                        return (
-                                            <div
-                                                key={idx}
-                                                className={`p-3 rounded-lg border ${isCorrectAnswer && isStudentAnswer
-                                                    ? "bg-green-50 border-green-300"
-                                                    : isCorrectAnswer
-                                                        ? "bg-yellow-50 border-yellow-300"
-                                                        : isStudentAnswer
-                                                            ? "bg-red-50 border-red-300"
-                                                            : "bg-muted/30"
-                                                    }`}
-                                            >
-                                                <div className="flex items-center gap-2">
-                                                    <span className="font-semibold">{optLabel}.</span>
-                                                    <span>{opt}</span>
-                                                    {isCorrectAnswer && isStudentAnswer && (
-                                                        <CheckCircle className="h-4 w-4 text-green-600 ml-auto" />
-                                                    )}
-                                                    {isCorrectAnswer && !isStudentAnswer && (
-                                                        <span className="text-xs bg-yellow-100 px-2 py-1 rounded ml-auto">
-                                                            Benar (dilewatkan)
-                                                        </span>
-                                                    )}
-                                                    {!isCorrectAnswer && isStudentAnswer && (
-                                                        <XCircle className="h-4 w-4 text-red-600 ml-auto" />
-                                                    )}
-                                                </div>
+                                    return (
+                                        <div
+                                            key={idx}
+                                            className={`p-3 rounded-lg border ${isCorrectAnswer && isStudentAnswer
+                                                ? "bg-green-50 dark:bg-green-900/30 border-green-300 dark:border-green-600"
+                                                : isCorrectAnswer
+                                                    ? "bg-yellow-50 dark:bg-yellow-900/30 border-yellow-300 dark:border-yellow-600"
+                                                    : isStudentAnswer
+                                                        ? "bg-red-50 dark:bg-red-900/30 border-red-300 dark:border-red-600"
+                                                        : "bg-muted/30"
+                                                }`}
+                                        >
+                                            <div className="flex items-center gap-2">
+                                                <span className="font-semibold">{optLabel}.</span>
+                                                <div className="flex-1"><MathHtmlRenderer html={optText} /></div>
+                                                {isCorrectAnswer && isStudentAnswer && (
+                                                    <CheckCircle className="h-4 w-4 text-green-600 dark:text-green-400 ml-auto" />
+                                                )}
+                                                {isCorrectAnswer && !isStudentAnswer && (
+                                                    <span className="text-xs bg-yellow-100 dark:bg-yellow-900/50 dark:text-yellow-200 px-2 py-1 rounded ml-auto">
+                                                        Benar (dilewatkan)
+                                                    </span>
+                                                )}
+                                                {!isCorrectAnswer && isStudentAnswer && (
+                                                    <XCircle className="h-4 w-4 text-red-600 dark:text-red-400 ml-auto" />
+                                                )}
                                             </div>
-                                        );
-                                    })}
-                                </div>
-                            )}
+                                        </div>
+                                    );
+                                })}
+                            </div>
                         </div>
                         <div className="flex items-center gap-2 text-sm flex-wrap">
                             <span className="font-medium">Jawaban Siswa:</span>
-                            {Array.isArray(answer.studentAnswer) && answer.studentAnswer.length > 0 ? (
-                                answer.studentAnswer.map((ans: any, idx: number) => (
+                            {studentAnswers.length > 0 ? (
+                                studentAnswers.map((ans: any, idx: number) => (
                                     <Badge key={idx} variant="outline">{typeof ans === 'object' ? JSON.stringify(ans) : String(ans)}</Badge>
                                 ))
                             ) : (
@@ -195,32 +217,73 @@ export default function SubmissionDetailPage() {
                         </div>
                         <div className="flex items-center gap-2 text-sm flex-wrap">
                             <span className="font-medium">Jawaban Benar:</span>
-                            {Array.isArray(answer.correctAnswer) && answer.correctAnswer.map((ans: any, idx: number) => (
-                                <Badge key={idx} className="bg-green-600">{typeof ans === 'object' ? JSON.stringify(ans) : String(ans)}</Badge>
+                            {correctAnswers.map((ans: any, idx: number) => (
+                                <Badge key={idx} className="bg-green-600">{typeof ans === 'number' ? String.fromCharCode(65 + ans) : String(ans)}</Badge>
                             ))}
                         </div>
                     </div>
                 );
+            }
 
-            case "matching":
-                let studentPairs: any[] = [];
-                if (Array.isArray(answer.studentAnswer)) {
-                    studentPairs = answer.studentAnswer;
-                } else if (typeof answer.studentAnswer === 'object' && answer.studentAnswer !== null) {
-                    // Convert legacy object format { "left": "right" } to array [{ left: "left", right: "right" }]
-                    studentPairs = Object.entries(answer.studentAnswer).map(([left, right]) => ({
-                        left,
-                        right
-                    }));
-                }
-
-                const correctPairs = (answer.correctAnswer as any)?.pairs || {};
+            case "matching": {
                 const leftItems = (answer.questionContent as any)?.leftItems || [];
                 const rightItems = (answer.questionContent as any)?.rightItems || [];
 
+                // Build UUID -> index lookup maps
+                const leftIdToIndex: Record<string, number> = {};
+                const rightIdToIndex: Record<string, number> = {};
+                leftItems.forEach((item: any, idx: number) => {
+                    const id = typeof item === 'object' ? item.id : item;
+                    leftIdToIndex[id] = idx;
+                });
+                rightItems.forEach((item: any, idx: number) => {
+                    const id = typeof item === 'object' ? item.id : item;
+                    rightIdToIndex[id] = idx;
+                });
+
+                // Convert studentPairs to index-based format
+                let studentPairs: any[] = [];
+                if (Array.isArray(answer.studentAnswer)) {
+                    studentPairs = answer.studentAnswer.map((pair: any) => {
+                        // Handle both {left, right} and {leftId, rightId} formats
+                        const leftKey = pair.left ?? pair.leftId;
+                        const rightKey = pair.right ?? pair.rightId;
+                        return {
+                            left: leftIdToIndex[leftKey] ?? leftKey,
+                            right: rightIdToIndex[rightKey] ?? rightKey
+                        };
+                    });
+                } else if (typeof answer.studentAnswer === 'object' && answer.studentAnswer !== null) {
+                    studentPairs = Object.entries(answer.studentAnswer).map(([left, right]) => ({
+                        left: leftIdToIndex[left] ?? left,
+                        right: rightIdToIndex[right as string] ?? right
+                    }));
+                }
+
+                // Convert correctPairs to index-based { leftIndex: rightIndex } format
+                const parsedCorrect = safeParseJSON(answer.correctAnswer);
+                let correctPairsIndexed: Record<number, number> = {};
+
+                // Handle new format: { matches: [{leftId, rightId}] }
+                if (parsedCorrect?.matches && Array.isArray(parsedCorrect.matches)) {
+                    parsedCorrect.matches.forEach((match: any) => {
+                        const leftIdx = leftIdToIndex[match.leftId];
+                        const rightIdx = rightIdToIndex[match.rightId];
+                        if (leftIdx !== undefined && rightIdx !== undefined) {
+                            correctPairsIndexed[leftIdx] = rightIdx;
+                        }
+                    });
+                }
+                // Handle old format: { pairs: {0: 1} } or direct {0: 1}
+                else if (parsedCorrect?.pairs) {
+                    correctPairsIndexed = parsedCorrect.pairs;
+                } else if (typeof parsedCorrect === 'object' && !Array.isArray(parsedCorrect)) {
+                    correctPairsIndexed = parsedCorrect;
+                }
+
                 return (
                     <div className="space-y-3">
-                        <h4 className="font-medium mb-2">{answer.questionText}</h4>
+                        <div className="font-medium mb-2"><MathHtmlRenderer html={answer.questionText} /></div>
                         <MatchingResultViewer
                             question={{
                                 id: answer.questionId,
@@ -229,25 +292,25 @@ export default function SubmissionDetailPage() {
                                 rightItems
                             }}
                             studentPairs={studentPairs}
-                            correctPairs={correctPairs}
+                            correctPairs={correctPairsIndexed}
                         />
                         {/* Legacy Key View (Optional, maybe hidden or collapsed) */}
                         <details className="text-xs text-muted-foreground cursor-pointer mt-4">
                             <summary>Lihat Kunci Jawaban (Teks)</summary>
                             <div className="mt-2 p-2 bg-muted/20 rounded border">
-                                {Object.entries(correctPairs).map(([left, right]: [string, any], idx) => {
+                                {Object.entries(correctPairsIndexed).map(([left, right]: [string, any], idx) => {
                                     const rightIndices = Array.isArray(right) ? right : [right];
+                                    const leftItem = leftItems[parseInt(left)];
+                                    const leftText = typeof leftItem === 'object' && leftItem?.text ? leftItem.text : leftItem;
                                     return rightIndices.map((rIndex: number, rIdx: number) => {
-                                        const leftItem = leftItems[parseInt(left)];
                                         const rightItem = rightItems[rIndex];
-                                        const leftText = typeof leftItem === 'object' && leftItem?.text ? leftItem.text : leftItem;
                                         const rightText = typeof rightItem === 'object' && rightItem?.text ? rightItem.text : rightItem;
 
                                         return (
                                             <div key={`${idx}-${rIdx}`} className="flex gap-2 py-1">
-                                                <span className="font-medium">{leftText}</span>
+                                                <div className="font-medium flex-1"><MathHtmlRenderer html={leftText} /></div>
                                                 <span>→</span>
-                                                <span>{rightText}</span>
+                                                <div className="flex-1"><MathHtmlRenderer html={rightText} /></div>
                                             </div>
                                         );
                                     });
@@ -256,6 +319,7 @@ export default function SubmissionDetailPage() {
                         </details>
                     </div>
                 );
+            }
 
             case "short":
                 const studentAns = typeof answer.studentAnswer === 'string' ? answer.studentAnswer : JSON.stringify(answer.studentAnswer);
@@ -263,15 +327,15 @@ export default function SubmissionDetailPage() {
 
                 return (
                     <div className="space-y-3">
-                        <h4 className="font-medium">{answer.questionText}</h4>
+                        <div className="font-medium"><MathHtmlRenderer html={answer.questionText} /></div>
                         <div className="grid gap-3 md:grid-cols-2">
-                            <div className={`p-4 rounded-lg border ${answer.isCorrect ? "bg-green-50 border-green-300" : "bg-red-50 border-red-300"}`}>
+                            <div className={`p-4 rounded-lg border ${answer.isCorrect ? "bg-green-50 dark:bg-green-900/30 border-green-300 dark:border-green-600" : "bg-red-50 dark:bg-red-900/30 border-red-300 dark:border-red-600"}`}>
                                 <p className="text-sm text-muted-foreground mb-1">Jawaban Siswa:</p>
                                 <p className="font-medium">{studentAns || "(tidak dijawab)"}</p>
                             </div>
-                            <div className="p-4 rounded-lg border bg-green-50 border-green-300">
+                            <div className="p-4 rounded-lg border bg-green-50 dark:bg-green-900/30 border-green-300 dark:border-green-600">
                                 <p className="text-sm text-muted-foreground mb-1">Jawaban Benar:</p>
-                                <p className="font-medium">{correctAns}</p>
+                                <div className="font-medium"><MathHtmlRenderer html={correctAns} /></div>
                             </div>
                         </div>
                     </div>
@@ -280,7 +344,7 @@ export default function SubmissionDetailPage() {
             case "essay":
                 return (
                     <div className="space-y-3">
-                        <h4 className="font-medium">{answer.questionText}</h4>
+                        <div className="font-medium"><MathHtmlRenderer html={answer.questionText} /></div>
                         <div className="p-4 rounded-lg border bg-muted/30">
                             <p className="text-sm text-muted-foreground mb-2">Jawaban Siswa:</p>
                             <p className="whitespace-pre-wrap">
@@ -288,7 +352,7 @@ export default function SubmissionDetailPage() {
                             </p>
                         </div>
                         {answer.gradingStatus === "manual" && answer.gradingNotes && (
-                            <div className="p-4 rounded-lg border bg-blue-50 border-blue-300">
+                            <div className="p-4 rounded-lg border bg-blue-50 dark:bg-blue-900/30 border-blue-300 dark:border-blue-600">
                                 <p className="text-sm text-muted-foreground mb-2">Catatan Guru:</p>
                                 <p>{answer.gradingNotes}</p>
                             </div>
@@ -369,7 +433,7 @@ export default function SubmissionDetailPage() {
                             <Award className="h-5 w-5 text-muted-foreground" />
                             <div>
                                 <p className="text-sm text-muted-foreground">Total Skor</p>
-                                <p className="text-2xl font-bold text-green-600">
+                                <p className="text-2xl font-bold text-green-600 dark:text-green-400">
                                     {data.submission.score || 0} / 100
                                 </p>
                                 <p className="text-xs text-muted-foreground">
