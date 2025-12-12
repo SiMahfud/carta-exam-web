@@ -11,14 +11,25 @@ import { z } from "zod";
 const createFilterSchema = z.object({
     name: z.string().min(1, "Nama filter wajib diisi").max(100),
     page: z.string().min(1),
-    filters: z.record(z.union([z.string(), z.array(z.string()), z.boolean(), z.null()])),
+    // Fix: z.record requires 2 arguments (key type, value type) OR just value type in older Zod versions. 
+    // Assuming Zod 3.x, z.record(valueType) uses string keys.
+    // If explicit key needed: z.record(z.string(), valueType)
+    filters: z.record(z.string(), z.union([z.string(), z.array(z.string()), z.boolean(), z.null()])),
     isDefault: z.boolean().optional().default(false),
 });
 
 // Helper to get user ID from cookie
 async function getUserId(): Promise<string | null> {
     const cookieStore = await cookies();
-    return cookieStore.get("userId")?.value || null;
+    const sessionCookie = cookieStore.get("user_session");
+    if (!sessionCookie) return null;
+
+    try {
+        const session = JSON.parse(sessionCookie.value);
+        return session.id || null;
+    } catch {
+        return null;
+    }
 }
 
 // GET /api/saved-filters?page=grading
@@ -77,7 +88,7 @@ export async function POST(request: NextRequest) {
 
         if (!parsed.success) {
             return NextResponse.json(
-                { error: parsed.error.errors[0].message },
+                { error: parsed.error.issues[0].message },
                 { status: 400 }
             );
         }

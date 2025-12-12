@@ -132,7 +132,7 @@ export default function AdminLayout({
                     <div className="p-4 border-t border-slate-800 bg-slate-900/50">
                         <div className="flex items-center gap-3 mb-4 px-2">
                             <Avatar className="h-9 w-9 border border-slate-700">
-                                <AvatarImage src="/placeholder-avatar.jpg" />
+                                <AvatarImage src="" />
                                 <AvatarFallback className="bg-slate-800 text-slate-300">AD</AvatarFallback>
                             </Avatar>
                             <div className="flex-1 overflow-hidden">
@@ -204,7 +204,7 @@ export default function AdminLayout({
                             <DropdownMenuTrigger asChild>
                                 <Button variant="ghost" className="relative h-9 w-9 rounded-full">
                                     <Avatar className="h-9 w-9">
-                                        <AvatarImage src="/placeholder-avatar.jpg" />
+                                        <AvatarImage src="" />
                                         <AvatarFallback>AD</AvatarFallback>
                                     </Avatar>
                                 </Button>

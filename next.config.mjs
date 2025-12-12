@@ -5,6 +5,12 @@ const nextConfig = {
     experimental: {
         instrumentationHook: true,
     },
+    webpack: (config) => {
+        config.ignoreWarnings = [
+            { module: /node_modules\/require-in-the-middle/ },
+        ];
+        return config;
+    },
     async headers() {
         return [
             {
