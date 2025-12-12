@@ -44,6 +44,7 @@ export default function TakeExamPage() {
     const [examStarted, setExamStarted] = useState(false);
     const [violationCount, setViolationCount] = useState(0);
     const [showViolationBanner, setShowViolationBanner] = useState(false);
+    const [lastViolationType, setLastViolationType] = useState<string>("");
     const [examName, setExamName] = useState<string>("");
     const [minSubmitMinutes, setMinSubmitMinutes] = useState(0);
     const [startTime, setStartTime] = useState<Date | null>(null);
@@ -62,6 +63,7 @@ export default function TakeExamPage() {
         enabled: examStarted,
         onViolation: (violation) => {
             setViolationCount(prev => prev + 1);
+            setLastViolationType(violation.type);
             setShowViolationBanner(true);
             // Auto-hide banner after 5 seconds
             setTimeout(() => setShowViolationBanner(false), 5000);
@@ -102,9 +104,12 @@ export default function TakeExamPage() {
                     enterFullscreen();
                 }, 100);
 
-                // Log this as a violation
+                // Log this as a violation and show banner
                 logSecurityViolation("FULLSCREEN_EXIT", "User attempted to exit fullscreen");
                 setViolationCount(prev => prev + 1);
+                setLastViolationType("FULLSCREEN_EXIT");
+                setShowViolationBanner(true);
+                setTimeout(() => setShowViolationBanner(false), 5000);
             }
         };
 
@@ -134,9 +139,12 @@ export default function TakeExamPage() {
                         enterFullscreen();
                     }, 100);
 
-                    // Log this as a violation
+                    // Log this as a violation and show banner
                     logSecurityViolation("BACK_BUTTON", "User pressed back button on Android");
                     setViolationCount(prev => prev + 1);
+                    setLastViolationType("BACK_BUTTON");
+                    setShowViolationBanner(true);
+                    setTimeout(() => setShowViolationBanner(false), 5000);
                 }
             }
         };
@@ -462,6 +470,7 @@ export default function TakeExamPage() {
             {showViolationBanner && (
                 <SecurityWarningBanner
                     violationCount={violationCount}
+                    violationType={lastViolationType}
                     onDismiss={() => setShowViolationBanner(false)}
                 />
             )}
