@@ -31,7 +31,7 @@ export async function middleware(request: NextRequest) {
         const ip = request.headers.get('x-forwarded-for') || '127.0.0.1';
         try {
             await apiRateLimiter.getCheck()(100, ip) // 100 req/min
-        } catch (error) {
+        } catch {
             return new NextResponse('Too Many Requests', { status: 429 });
         }
     }
@@ -43,7 +43,7 @@ export async function middleware(request: NextRequest) {
     if (sessionCookie) {
         try {
             userSession = JSON.parse(sessionCookie.value)
-        } catch (e) {
+        } catch {
             // Invalid cookie value
         }
     }

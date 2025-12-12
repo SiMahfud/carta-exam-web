@@ -1,11 +1,10 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { RichTextEditor } from "@/components/ui/rich-text-editor";
 import { Textarea } from "@/components/ui/textarea";
-import { Check, Edit2, Save, X, Trash2 } from "lucide-react";
+import { Edit2, Save, X, Trash2 } from "lucide-react";
 import { MatchingQuestionRenderer } from "@/components/exam/MatchingQuestionRenderer";
 import { Checkbox } from "@/components/ui/checkbox";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
@@ -156,7 +155,7 @@ export function QuestionPreviewCard({ question, index, onUpdate, onDelete }: Que
                             value={edited.answerKey.acceptedAnswers?.join('\n') || ''}
                             onChange={(e) => {
                                 const val = e.target.value;
-                                const answers = val.split('\n').filter(s => s.trim().length > 0);
+                                const answers = val.split('\n').filter((s: string) => s.trim().length > 0);
                                 setEdited({ ...edited, answerKey: { ...edited.answerKey, acceptedAnswers: answers } });
                             }}
                             rows={4}

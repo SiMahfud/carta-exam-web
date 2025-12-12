@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { apiHandler, ApiError } from '../api-handler'
-import { ZodError, z } from 'zod'
+import { z } from 'zod'
 
 // Mock NextResponse
 vi.mock('next/server', () => ({
@@ -11,6 +11,12 @@ vi.mock('next/server', () => ({
         })),
     },
 }))
+
+interface MockNextResponse {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    data: any;
+    status: number;
+}
 
 describe('api-handler', () => {
     beforeEach(() => {
@@ -40,8 +46,9 @@ describe('api-handler', () => {
         it('should wrap successful response in data object', async () => {
             const handler = async () => ({ id: 1, name: 'Test' })
             const response = await apiHandler(handler)
+            const json = response as unknown as MockNextResponse
 
-            expect(response.data).toEqual({
+            expect(json.data).toEqual({
                 data: { id: 1, name: 'Test' }
             })
         })
@@ -52,9 +59,10 @@ describe('api-handler', () => {
                 metadata: { total: 3 }
             })
             const response = await apiHandler(handler)
+            const json = response as unknown as MockNextResponse
 
-            expect(response.data.data).toEqual([1, 2, 3])
-            expect(response.data.metadata).toEqual({ total: 3 })
+            expect(json.data.data).toEqual([1, 2, 3])
+            expect(json.data.metadata).toEqual({ total: 3 })
         })
 
         it('should handle ApiError with custom status', async () => {
@@ -62,9 +70,10 @@ describe('api-handler', () => {
                 throw new ApiError('Bad request', 400)
             }
             const response = await apiHandler(handler)
+            const json = response as unknown as MockNextResponse
 
-            expect(response.status).toBe(400)
-            expect(response.data.error).toBe('Bad request')
+            expect(json.status).toBe(400)
+            expect(json.data.error).toBe('Bad request')
         })
 
         it('should handle generic errors with 500 status', async () => {
@@ -72,9 +81,10 @@ describe('api-handler', () => {
                 throw new Error('Something went wrong')
             }
             const response = await apiHandler(handler)
+            const json = response as unknown as MockNextResponse
 
-            expect(response.status).toBe(500)
-            expect(response.data.error).toBe('Something went wrong')
+            expect(json.status).toBe(500)
+            expect(json.data.error).toBe('Something went wrong')
         })
 
         it('should handle ZodError with validation details', async () => {
@@ -84,31 +94,35 @@ describe('api-handler', () => {
                 return {}
             }
             const response = await apiHandler(handler)
+            const json = response as unknown as MockNextResponse
 
-            expect(response.status).toBe(400)
-            expect(response.data.error).toBe('Validation Error')
-            expect(response.data.details).toBeDefined()
+            expect(json.status).toBe(400)
+            expect(json.data.error).toBe('Validation Error')
+            expect(json.data.details).toBeDefined()
         })
 
         it('should handle null/undefined results', async () => {
             const handler = async () => null
             const response = await apiHandler(handler)
+            const json = response as unknown as MockNextResponse
 
-            expect(response.data.data).toBeNull()
+            expect(json.data.data).toBeNull()
         })
 
         it('should handle array results', async () => {
             const handler = async () => [1, 2, 3]
             const response = await apiHandler(handler)
+            const json = response as unknown as MockNextResponse
 
-            expect(response.data.data).toEqual([1, 2, 3])
+            expect(json.data.data).toEqual([1, 2, 3])
         })
 
         it('should handle empty object results', async () => {
             const handler = async () => ({})
             const response = await apiHandler(handler)
+            const json = response as unknown as MockNextResponse
 
-            expect(response.data.data).toEqual({})
+            expect(json.data.data).toEqual({})
         })
     })
 })

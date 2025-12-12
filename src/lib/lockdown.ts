@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useCallback, useRef } from 'react'
+import { useEffect, useRef } from 'react'
 
 export type ViolationType =
     | 'tab_switch'

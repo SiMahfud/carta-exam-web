@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
     DropdownMenu,
@@ -18,7 +17,6 @@ import {
     Calendar,
     Database,
     FileCode,
-    X,
 } from "lucide-react";
 import { useRecentItems, RecentItem, typeLabels } from "@/hooks/use-recent-items";
 import { cn } from "@/lib/utils";

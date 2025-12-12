@@ -2,6 +2,21 @@
 
 import { useState, useCallback, useEffect } from "react";
 
+interface VendorElement extends HTMLElement {
+    webkitRequestFullscreen?: () => Promise<void>;
+    mozRequestFullScreen?: () => Promise<void>;
+    msRequestFullscreen?: () => Promise<void>;
+}
+
+interface VendorDocument extends Document {
+    webkitExitFullscreen?: () => Promise<void>;
+    mozCancelFullScreen?: () => Promise<void>;
+    msExitFullscreen?: () => Promise<void>;
+    webkitFullscreenElement?: Element;
+    mozFullScreenElement?: Element;
+    msFullscreenElement?: Element;
+}
+
 interface UseFullscreenReturn {
     isFullscreen: boolean;
     enterFullscreen: () => Promise<void>;
@@ -15,21 +30,21 @@ export function useFullscreen(): UseFullscreenReturn {
 
     const isSupported = typeof document !== "undefined" &&
         !!(document.documentElement.requestFullscreen ||
-            (document.documentElement as any).webkitRequestFullscreen ||
-            (document.documentElement as any).mozRequestFullScreen ||
-            (document.documentElement as any).msRequestFullscreen);
+            (document.documentElement as unknown as VendorElement).webkitRequestFullscreen ||
+            (document.documentElement as unknown as VendorElement).mozRequestFullScreen ||
+            (document.documentElement as unknown as VendorElement).msRequestFullscreen);
 
     const enterFullscreen = useCallback(async () => {
         try {
-            const elem = document.documentElement;
+            const elem = document.documentElement as unknown as VendorElement;
             if (elem.requestFullscreen) {
                 await elem.requestFullscreen();
-            } else if ((elem as any).webkitRequestFullscreen) {
-                await (elem as any).webkitRequestFullscreen();
-            } else if ((elem as any).mozRequestFullScreen) {
-                await (elem as any).mozRequestFullScreen();
-            } else if ((elem as any).msRequestFullscreen) {
-                await (elem as any).msRequestFullscreen();
+            } else if (elem.webkitRequestFullscreen) {
+                await elem.webkitRequestFullscreen();
+            } else if (elem.mozRequestFullScreen) {
+                await elem.mozRequestFullScreen();
+            } else if (elem.msRequestFullscreen) {
+                await elem.msRequestFullscreen();
             }
         } catch (error) {
             console.error("Failed to enter fullscreen:", error);
@@ -38,14 +53,15 @@ export function useFullscreen(): UseFullscreenReturn {
 
     const exitFullscreen = useCallback(async () => {
         try {
+            const doc = document as unknown as VendorDocument;
             if (document.exitFullscreen) {
                 await document.exitFullscreen();
-            } else if ((document as any).webkitExitFullscreen) {
-                await (document as any).webkitExitFullscreen();
-            } else if ((document as any).mozCancelFullScreen) {
-                await (document as any).mozCancelFullScreen();
-            } else if ((document as any).msExitFullscreen) {
-                await (document as any).msExitFullscreen();
+            } else if (doc.webkitExitFullscreen) {
+                await doc.webkitExitFullscreen();
+            } else if (doc.mozCancelFullScreen) {
+                await doc.mozCancelFullScreen();
+            } else if (doc.msExitFullscreen) {
+                await doc.msExitFullscreen();
             }
         } catch (error) {
             console.error("Failed to exit fullscreen:", error);
@@ -62,11 +78,12 @@ export function useFullscreen(): UseFullscreenReturn {
 
     useEffect(() => {
         const handleFullscreenChange = () => {
+            const doc = document as unknown as VendorDocument;
             setIsFullscreen(
                 !!(document.fullscreenElement ||
-                    (document as any).webkitFullscreenElement ||
-                    (document as any).mozFullScreenElement ||
-                    (document as any).msFullscreenElement)
+                    doc.webkitFullscreenElement ||
+                    doc.mozFullScreenElement ||
+                    doc.msFullscreenElement)
             );
         };
 

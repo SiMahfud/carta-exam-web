@@ -56,7 +56,8 @@ export async function PATCH(
         const body = await request.json();
         const { sessionName, startTime, endTime, status, targetIds } = body;
 
-        const updateData: any = {};
+        // Use a Record to avoid 'any', but ensure keys match schema
+        const updateData: Record<string, unknown> = {};
 
         // Use 'in' operator to check if field exists in body, allowing empty strings/null
         if ('sessionName' in body && sessionName !== undefined) {
@@ -152,10 +153,11 @@ export async function DELETE(
         );
 
         return NextResponse.json({ message: "Session deleted successfully" });
-    } catch (error: any) {
+    } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : "Failed to delete session";
         console.error("Error deleting session:", error);
         return NextResponse.json(
-            { error: error.message || "Failed to delete session" },
+            { error: errorMessage },
             { status: 500 }
         );
     }

@@ -13,6 +13,7 @@ interface ExportData {
         lowestScore: number;
         completionRate: number;
     };
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     results: any[];
 }
 
@@ -68,8 +69,10 @@ export function exportToExcel(data: ExportData) {
     XLSX.utils.book_append_sheet(workbook, ws1, 'Nilai Otomatis');
 
     // Sheet 2: Essay Results
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const essayData: any[] = [];
     data.results.forEach(result => {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         result.essayQuestions.forEach((essay: any, idx: number) => {
             essayData.push({
                 'Nama Siswa': result.studentName,

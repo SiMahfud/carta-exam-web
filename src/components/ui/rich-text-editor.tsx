@@ -36,7 +36,7 @@ interface RichTextEditorProps {
     placeholder?: string;
 }
 
-export function RichTextEditor({ value, onChange, placeholder }: RichTextEditorProps) {
+export function RichTextEditor({ value, onChange }: RichTextEditorProps) {
     const [imageUrl, setImageUrl] = useState("");
     const [imageDialogOpen, setImageDialogOpen] = useState(false);
 

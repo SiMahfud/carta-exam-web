@@ -10,6 +10,7 @@ import * as schema from './schema';
 const provider = process.env.DATABASE_PROVIDER || 'sqlite';
 const dbUrl = process.env.DATABASE_URL || 'file:local.db';
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 let db: any;
 
 if (provider === 'mysql') {

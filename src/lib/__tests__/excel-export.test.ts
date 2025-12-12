@@ -14,21 +14,7 @@ describe('excel-export', () => {
 
             // Just verify the function accepts the expected structure
             // Actual file generation would require mocking XLSX
-            const mockData = {
-                session: {
-                    name: 'Test Exam',
-                    templateName: 'Test Template'
-                },
-                statistics: {
-                    totalStudents: 10,
-                    completedStudents: 8,
-                    averageScore: 75.5,
-                    highestScore: 95,
-                    lowestScore: 45,
-                    completionRate: 80
-                },
-                results: []
-            }
+            // Actual file generation would require mocking XLSX
 
             // Function should not throw with valid data
             // Note: In actual environment, this would create a file

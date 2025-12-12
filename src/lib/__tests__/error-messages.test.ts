@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { getErrorInfo, formatApiError, type ErrorInfo } from '../error-messages'
+import { getErrorInfo, formatApiError } from '../error-messages'
 
 describe('error-messages', () => {
     describe('getErrorInfo', () => {

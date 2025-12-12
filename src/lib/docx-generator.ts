@@ -8,11 +8,9 @@ import {
     TableRow,
     WidthType,
     TextRun,
-    HeightRule,
-    BorderStyle,
     AlignmentType,
     VerticalAlign,
-    convertInchesToTwip
+    BorderStyle,
 } from "docx";
 
 export class DocxGenerator {
@@ -272,6 +270,7 @@ export class DocxGenerator {
     }
 
     // Helper for Type 1 & 2
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     private static createTableType1_2(type: string, data: any[], isGreen = false): Table {
         const headerColor = isGreen ? "C6EFCE" : "B4C6E7"; // Excel-like colors
 
@@ -288,14 +287,17 @@ export class DocxGenerator {
                     ),
                     tableHeader: true,
                 }),
-                ...data.flatMap(d => this.createRowsForType1_2(d))
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                ...data.flatMap((d: any) => this.createRowsForType1_2(d))
             ],
             borders: this.getBorders()
         });
     }
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     private static createRowsForType1_2(data: any): TableRow[] {
         const rows: TableRow[] = [];
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         data.options.forEach((opt: any, index: number) => {
             const isFirst = index === 0;
             rows.push(new TableRow({
@@ -325,6 +327,7 @@ export class DocxGenerator {
     }
 
     // Helper for Type 3 (Matching)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     private static createTableType3(data: any[]): Table {
         const r1 = this.createType3HeaderRow1();
         const r2 = this.createType3HeaderRow2();
@@ -334,7 +337,8 @@ export class DocxGenerator {
             rows: [
                 r1,
                 r2,
-                ...data.flatMap(d => this.createRowsForType3(d))
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                ...data.flatMap((d: any) => this.createRowsForType3(d))
             ],
             borders: this.getBorders()
         });
@@ -372,8 +376,10 @@ export class DocxGenerator {
         });
     }
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     private static createRowsForType3(data: any): TableRow[] {
         const rows: TableRow[] = [];
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         data.options.forEach((opt: any, index: number) => {
             const isFirst = index === 0;
             rows.push(new TableRow({
@@ -393,14 +399,15 @@ export class DocxGenerator {
         return rows;
     }
 
-    // Header helper (unused mostly due to specific needs)
-    private static createHeaderCell(text: string, colSpan = 1, rowSpan = 1, isContinue = false): TableCell {
+    // Linker helper (unused mostly due to specific needs)
+    private static createHeaderCell(text: string): TableCell {
         return new TableCell({
             children: [new Paragraph({ children: [new TextRun({ text, bold: true })], alignment: AlignmentType.CENTER })],
         });
     }
 
     // Helper for Type 4, 5, 6 (Simple tables)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     private static createTableType4_5_6(type: string, title: string, colorTheme: string, data: any[]): Table {
         const color = colorTheme === "kuning" ? "FFFF00" : (colorTheme === "hijau" ? "E2EFDA" : "DDEBF7"); // Yellow, Green, Blueish
 
@@ -416,7 +423,8 @@ export class DocxGenerator {
                     ],
                     tableHeader: true
                 }),
-                ...data.map(d => new TableRow({
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                ...data.map((d: any) => new TableRow({
                     children: [
                         new TableCell({ children: [new Paragraph(d.no)] }),
                         new TableCell({ children: [new Paragraph(d.question)] }),

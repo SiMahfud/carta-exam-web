@@ -16,6 +16,7 @@ export interface RandomizationRules {
 export interface Question {
     id: string;
     type: string;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     [key: string]: any;
 }
 

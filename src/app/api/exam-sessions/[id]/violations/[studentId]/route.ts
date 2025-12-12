@@ -3,6 +3,12 @@ import { db } from "@/lib/db";
 import { submissions } from "@/lib/schema";
 import { eq, and } from "drizzle-orm";
 
+interface Violation {
+    type: string;
+    details: string;
+    timestamp: string;
+}
+
 // GET /api/exam-sessions/[id]/violations/[studentId] - Get violation details
 export async function GET(
     request: Request,
@@ -29,11 +35,12 @@ export async function GET(
         }
 
         const submission = submissionData[0];
-        const violations = (submission.violationLog as any) || [];
+        // Cast violationLog to Violation[] or default to empty array if null
+        const violations = (submission.violationLog as unknown as Violation[]) || [];
 
         return NextResponse.json({
             violationCount: submission.violationCount || 0,
-            violations: violations.map((v: any) => ({
+            violations: violations.map((v: Violation) => ({
                 type: v.type,
                 details: v.details,
                 timestamp: v.timestamp,
