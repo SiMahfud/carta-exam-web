@@ -29,6 +29,7 @@ interface QuestionEditorProps {
     bankId: string;
     onSuccess: () => void;
     availableTags: string[];
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     questionToEdit?: any;
 }
 

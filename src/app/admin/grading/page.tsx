@@ -147,10 +147,12 @@ export default function GradingPage() {
 
     useEffect(() => {
         fetchSubmissions();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [page, statusFilter, searchQuery, classFilter, sortBy, sortOrder, dateRange]);
 
     useEffect(() => {
         fetchClasses();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
     const fetchClasses = async () => {
@@ -287,6 +289,7 @@ export default function GradingPage() {
         router.push(`/admin/grading/${submissionId}`);
     };
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const handleApplySavedFilters = (filters: Record<string, any>) => {
         if (filters.status) setStatusFilter(filters.status);
         if (filters.classId) setClassFilter(filters.classId);

@@ -42,8 +42,8 @@ export default async function QuestionManagerPage({ params }: { params: { id: st
                         </CardHeader>
                         <CardContent>
                             <div className="prose max-w-none line-clamp-2">
-                                {/* @ts-ignore */}
-                                <div dangerouslySetInnerHTML={{ __html: q.content.question }} />
+                                {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+                                <div dangerouslySetInnerHTML={{ __html: (q.content as any).question }} />
                             </div>
                             <div className="mt-4 flex gap-2">
                                 <Button variant="outline" size="sm">Edit</Button>
