@@ -56,13 +56,16 @@ const cleanJson = (text: string): string => {
     // Remove markdown code blocks if present
     text = text.replace(/```json\n?|\n?```/g, "");
 
-    // Fix common LaTeX backslash issues in JSON
-    // Only allow standard JSON escapes: " \ / n
-    // We explicitly exclude b, f, r, t because they confuse LaTeX macros (\beta, \frac, \rho, \theta)
-    // We exclude u because \underline causes "Bad escaped character" (expecting hex)
-    text = text.replace(/\\(?!["\\/n])/g, "\\\\");
-
-    return text;
+    // Robust cleaning to handle LaTeX backslashes
+    // Strategy:
+    // 1. Match known SAFE escape sequences first and preserve them (Double backslashes, newline, quotes, unicode).
+    // 2. Any other backslash is considered a "bad" LaTeX escape (e.g., \alpha instead of \\alpha) and is doubled.
+    // Note: We deliberately exclude \b, \f, \r, \t from safe list because in the context of LaTeX, 
+    // \beta, \frac, \rho, \theta are common and we want them to become \\beta, \\frac, etc.
+    return text.replace(/(\\\\|\\n|\\"|\\\/|\\u[0-9a-fA-F]{4})|(\\)/g, (match, safe, unsafe) => {
+        if (safe) return safe;
+        return "\\\\";
+    });
 };
 
 export async function generateQuestions(
