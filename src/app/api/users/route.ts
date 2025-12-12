@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { users, classStudents, classes } from "@/lib/schema";
-import { eq, sql } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import bcrypt from "bcryptjs";
 
 export async function GET(request: Request) {
@@ -38,11 +38,12 @@ export async function GET(request: Request) {
                 }>,
                 student: typeof studentsWithClasses[0]
             ) => {
-                const existing = acc.find((s: any) => s.id === student.id);
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                const existing = acc.find((s: { id: string }) => s.id === student.id);
                 if (existing) {
                     if (student.className) {
                         existing.classes = existing.classes || [];
-                        if (!existing.classes.find((c: any) => c.id === student.classId)) {
+                        if (!existing.classes.find((c: { id: string }) => c.id === student.classId)) {
                             existing.classes.push({
                                 id: student.classId!,
                                 name: student.className
@@ -82,7 +83,7 @@ export async function GET(request: Request) {
         }).from(users);
 
         if (role) {
-            // @ts-ignore - role is validated by enum in schema but here it's string
+            // @ts-expect-error - role is validated by enum in schema but here it's string
             query = query.where(eq(users.role, role));
         }
 

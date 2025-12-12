@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Calendar, Clock, FileText, Play, CheckCircle, XCircle, Timer, AlertCircle } from "lucide-react";
+import { Calendar, Clock, FileText, Play, CheckCircle, XCircle, Timer } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 import { id as idLocale } from "date-fns/locale";
@@ -114,16 +114,17 @@ export default function StudentExamsPage() {
             });
 
             if (response.ok) {
-                const data = await response.json();
+                const _data = await response.json();
                 router.push(`/student/exams/${sessionId}`);
             } else {
                 const error = await response.json();
                 throw new Error(error.error || "Failed to start exam");
             }
-        } catch (error: any) {
+        } catch (error: unknown) {
+            const errorMessage = error instanceof Error ? error.message : 'Unknown error';
             toast({
                 title: "Error",
-                description: error.message,
+                description: errorMessage,
                 variant: "destructive",
             });
         }

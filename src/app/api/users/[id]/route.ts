@@ -88,6 +88,7 @@ export async function PUT(
         }
 
         // Build update data
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const updateData: Record<string, any> = {};
         if (name) updateData.name = name;
         if (username) updateData.username = username;

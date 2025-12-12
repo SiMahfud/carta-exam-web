@@ -154,26 +154,26 @@ export function ImportQuestionsDialog({ bankId, onSuccess }: ImportQuestionsDial
         const doc = parser.parseFromString(html, "text/html");
         const rows = Array.from(doc.querySelectorAll("table tr"));
 
-        let allQuestions: any[] = [];
+        const allQuestions: any[] = [];
         let i = 0;
 
         while (i < rows.length) {
-            let row = rows[i];
-            let cells = row.querySelectorAll("td");
+            const row = rows[i];
+            const cells = row.querySelectorAll("td");
 
             if (cells.length < 2) {
                 i++;
                 continue;
             }
 
-            let colNo = cells[0].innerText.trim();
+            const colNo = cells[0].innerText.trim();
 
             if (colNo && !isNaN(parseInt(colNo))) {
-                let rowspanAttr = cells[0].getAttribute("rowspan");
-                let totalRows = rowspanAttr ? parseInt(rowspanAttr) : 1;
-                let jenis = cells.length > 2 ? cells[2].innerText.trim() : "1";
+                const rowspanAttr = cells[0].getAttribute("rowspan");
+                const totalRows = rowspanAttr ? parseInt(rowspanAttr) : 1;
+                const jenis = cells.length > 2 ? cells[2].innerText.trim() : "1";
 
-                let q: any = {
+                const q: any = {
                     metadata: { originalNo: colNo, originalType: jenis },
                     rawQuestion: cells[1].innerHTML,
                     options: [],
@@ -186,8 +186,8 @@ export function ImportQuestionsDialog({ bankId, onSuccess }: ImportQuestionsDial
                 if (totalRows > 1) {
                     for (let j = 1; j < totalRows; j++) {
                         if ((i + j) < rows.length) {
-                            let childRow = rows[i + j];
-                            let childCells = childRow.querySelectorAll("td");
+                            const childRow = rows[i + j];
+                            const childCells = childRow.querySelectorAll("td");
                             processDataRow(childCells, q, 0, jenis);
                         }
                     }
@@ -229,11 +229,11 @@ export function ImportQuestionsDialog({ bankId, onSuccess }: ImportQuestionsDial
         // MC / Complex MC (Type 1 & 2)
         else if (jenis === "1" || jenis === "2") {
             for (let k = startIndex; k < cellArray.length; k++) {
-                let cellText = cellArray[k].innerText.trim();
+                const cellText = cellArray[k].innerText.trim();
                 // Match A-E
                 if (/^[A-Z]$/.test(cellText)) {
-                    let label = cellText;
-                    let text = cellArray[k + 1] ? cellArray[k + 1].innerHTML : "";
+                    const label = cellText;
+                    const text = cellArray[k + 1] ? cellArray[k + 1].innerHTML : "";
 
                     q.options.push({ label, text });
 

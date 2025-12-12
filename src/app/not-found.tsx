@@ -1,6 +1,6 @@
 'use client'
 
-import { AlertTriangle, Home, ArrowLeft } from 'lucide-react'
+import { Home, ArrowLeft } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
