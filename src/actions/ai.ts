@@ -102,8 +102,19 @@ Topic: ${options?.topic || "Context provided"}.
 
 IMPORTANT: For "short" type questions, the generated question must be answerable with a single word or a short phrase (1-2 words max). The "acceptedAnswers" in the output MUST NOT be full sentences.
 For "matching" type questions, you CAN generate one-to-many relationships (e.g., one left item matches multiple right items).
-CRITICAL: When using LaTeX for math formulas (e.g., \\frac, \\theta), you MUST escape the backslashes in your JSON output.
-Example: Use "\\\\frac" instead of "\\frac", and "\\\\theta" instead of "\\theta".
+MATH/LATEX FORMATTING (CRITICAL - YOU MUST FOLLOW THIS):
+1. ALL mathematical expressions, formulas, symbols, and equations MUST be wrapped with dollar signs ($...$) for KaTeX/LaTeX rendering.
+2. This applies to EVERYTHING containing math: questions, answer options, model answers, and accepted answers.
+3. Examples of what needs $ wrapping:
+   - Variables: $x$, $y$, $n$
+   - Fractions: $\\\\frac{1}{2}$
+   - Exponents: $x^2$, $e^{-x}$
+   - Greek letters: $\\\\alpha$, $\\\\beta$, $\\\\theta$
+   - Equations: $E = mc^2$, $F = ma$
+   - Expressions in options: "$2x + 3$", "$\\\\frac{a}{b}$", "$\\\\sqrt{16}$"
+4. WRONG: "2x + 3" or "x^2" or "\\\\frac{1}{2}" (without $ signs)
+5. CORRECT: "$2x + 3$" or "$x^2$" or "$\\\\frac{1}{2}$" (with $ signs)
+6. When using LaTeX commands, escape backslashes in JSON: use "$\\\\\\\\frac{1}{2}$" not "$\\\\frac{1}{2}$"
 Output valid JSON only.
 
 LANGUAGE INSTRUCTION:
@@ -122,8 +133,8 @@ Example of expected JSON structure:
     {
       "type": "mc",
       "difficulty": "medium",
-      "content": { "question": "Question with math: $\\\\frac{1}{2}$", "options": ["Opsi A", "Opsi B", "Opsi C", "Opsi D", "Opsi E"] },
-      "answerKey": { "correct": 0 }
+      "content": { "question": "Berapakah hasil dari $\\\\frac{1}{2} + \\\\frac{1}{4}$?", "options": ["$\\\\frac{1}{4}$", "$\\\\frac{2}{4}$", "$\\\\frac{3}{4}$", "$\\\\frac{4}{4}$", "$\\\\frac{5}{4}$"] },
+      "answerKey": { "correct": 2 }
     },
     {
       "type": "complex_mc",
