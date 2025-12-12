@@ -71,13 +71,27 @@ export default function TakeExamPage() {
         }
     });
 
-    // Prevent escape from fullscreen during exam
+    // Prevent escape from fullscreen during exam (including Android back button)
     useEffect(() => {
         if (!examStarted) return;
 
+        // Push a dummy state to history so back button stays on this page
+        const pushDummyState = () => {
+            window.history.pushState({ examInProgress: true }, '', window.location.href);
+        };
+
+        // Initial push
+        pushDummyState();
+
         const handleFullscreenChange = () => {
             // If user tries to exit fullscreen during exam, re-enter
-            if (!document.fullscreenElement && examStarted && !submitting) {
+            const isCurrentlyFullscreen = !!(
+                document.fullscreenElement ||
+                (document as unknown as { webkitFullscreenElement?: Element }).webkitFullscreenElement ||
+                (document as unknown as { mozFullScreenElement?: Element }).mozFullScreenElement
+            );
+
+            if (!isCurrentlyFullscreen && examStarted && !submitting) {
                 toast({
                     title: "Mode Layar Penuh Diperlukan",
                     description: "Anda tidak dapat keluar dari layar penuh selama ujian berlangsung.",
@@ -94,9 +108,68 @@ export default function TakeExamPage() {
             }
         };
 
+        // Handle Android back button
+        const handlePopState = (e: PopStateEvent) => {
+            if (examStarted && !submitting) {
+                // Prevent going back
+                e.preventDefault();
+
+                // Push state again to keep user on this page
+                pushDummyState();
+
+                // Re-enter fullscreen if not in fullscreen
+                const isCurrentlyFullscreen = !!(
+                    document.fullscreenElement ||
+                    (document as unknown as { webkitFullscreenElement?: Element }).webkitFullscreenElement
+                );
+
+                if (!isCurrentlyFullscreen) {
+                    toast({
+                        title: "Mode Layar Penuh Diperlukan",
+                        description: "Tekan tombol 'Kumpulkan' untuk mengakhiri ujian.",
+                        variant: "destructive",
+                    });
+
+                    setTimeout(() => {
+                        enterFullscreen();
+                    }, 100);
+
+                    // Log this as a violation
+                    logSecurityViolation("BACK_BUTTON", "User pressed back button on Android");
+                    setViolationCount(prev => prev + 1);
+                }
+            }
+        };
+
+        // Handle visibility change (for when back button minimizes app briefly)
+        const handleVisibilityChange = () => {
+            if (document.visibilityState === 'visible' && examStarted && !submitting) {
+                // When page becomes visible again, check fullscreen
+                setTimeout(() => {
+                    const isCurrentlyFullscreen = !!(
+                        document.fullscreenElement ||
+                        (document as unknown as { webkitFullscreenElement?: Element }).webkitFullscreenElement
+                    );
+
+                    if (!isCurrentlyFullscreen) {
+                        enterFullscreen();
+                    }
+                }, 200);
+            }
+        };
+
         document.addEventListener("fullscreenchange", handleFullscreenChange);
+        document.addEventListener("webkitfullscreenchange", handleFullscreenChange);
+        document.addEventListener("mozfullscreenchange", handleFullscreenChange);
+        window.addEventListener("popstate", handlePopState);
+        document.addEventListener("visibilitychange", handleVisibilityChange);
+
         return () => {
             document.removeEventListener("fullscreenchange", handleFullscreenChange);
+            document.removeEventListener("webkitfullscreenchange", handleFullscreenChange);
+            document.removeEventListener("mozfullscreenchange", handleFullscreenChange);
+            window.removeEventListener("popstate", handlePopState);
+            document.removeEventListener("visibilitychange", handleVisibilityChange);
         };
     }, [examStarted, submitting, enterFullscreen, toast]);
 

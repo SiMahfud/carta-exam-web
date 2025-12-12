@@ -253,11 +253,29 @@ export default function SessionMonitorPage() {
 
     const getViolationTypeLabel = (type: string) => {
         const labels: Record<string, string> = {
+            // From use-exam-security.ts
+            TAB_SWITCH: "Pindah Tab",
+            WINDOW_BLUR: "Keluar Jendela",
+            RIGHT_CLICK: "Klik Kanan",
+            KEYBOARD_SHORTCUT: "Shortcut Keyboard",
+            PRINT_ATTEMPT: "Cetak Halaman",
+            DEVTOOLS: "Developer Tools",
+            SCREENSHOT: "Screenshot",
+            // From lockdown.ts
             tab_switch: "Pindah Tab",
+            window_blur: "Keluar Jendela",
+            context_menu: "Klik Kanan",
+            copy: "Copy",
+            paste: "Paste",
+            cut: "Cut",
+            screenshot_attempt: "Screenshot",
+            // Legacy/Other
             copy_paste: "Copy/Paste",
             right_click: "Klik Kanan",
             screenshot: "Screenshot",
             fullscreen_exit: "Keluar Fullscreen",
+            FULLSCREEN_EXIT: "Keluar Fullscreen",
+            BACK_BUTTON: "Tombol Kembali",
         };
         return labels[type] || type;
     };

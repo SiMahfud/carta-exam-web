@@ -14,6 +14,7 @@ interface UseExamSecurityOptions {
     disableRightClick?: boolean;
     detectTabSwitch?: boolean;
     detectWindowBlur?: boolean;
+    detectScreenshot?: boolean;
     enabled?: boolean;
     cooldownMs?: number;
 }
@@ -25,12 +26,17 @@ export function useExamSecurity(options: UseExamSecurityOptions = {}) {
         disableRightClick = true,
         detectTabSwitch = true,
         detectWindowBlur = false, // Disabled by default to avoid double counting
+        detectScreenshot = true, // Enable mobile screenshot detection by default
         enabled = true,
         cooldownMs = 5000 // 5 second cooldown between same violation types
     } = options;
 
     const violations = useRef<ViolationLog[]>([]);
     const lastViolationTime = useRef<Record<string, number>>({});
+
+    // For mobile screenshot detection
+    const lastHiddenTime = useRef<number>(0);
+    const screenDimensions = useRef({ width: 0, height: 0 });
 
     const logViolation = useCallback((type: string, details?: string) => {
         const now = Date.now();
@@ -56,10 +62,34 @@ export function useExamSecurity(options: UseExamSecurityOptions = {}) {
     useEffect(() => {
         if (!enabled) return;
 
-        // Detect tab switching (most reliable way)
+        // Store initial screen dimensions for comparison
+        screenDimensions.current = {
+            width: window.screen.width,
+            height: window.screen.height
+        };
+
+        // Detect tab switching and mobile screenshot pattern
         const handleVisibilityChange = () => {
-            if (detectTabSwitch && document.hidden) {
-                logViolation("TAB_SWITCH", "User switched to another tab");
+            const now = Date.now();
+
+            if (document.hidden) {
+                // Record when page became hidden
+                lastHiddenTime.current = now;
+
+                if (detectTabSwitch) {
+                    logViolation("TAB_SWITCH", "User switched to another tab");
+                }
+            } else if (detectScreenshot && lastHiddenTime.current > 0) {
+                // Page became visible again
+                const hiddenDuration = now - lastHiddenTime.current;
+
+                // Android screenshot pattern: very brief visibility change (< 1500ms)
+                // This happens when power+volume is pressed for screenshot
+                if (hiddenDuration < 1500 && hiddenDuration > 50) {
+                    logViolation("SCREENSHOT", `Screenshot detected (mobile) - pola singkat ${hiddenDuration}ms`);
+                }
+
+                lastHiddenTime.current = 0;
             }
         };
 
@@ -68,6 +98,28 @@ export function useExamSecurity(options: UseExamSecurityOptions = {}) {
             if (detectWindowBlur) {
                 logViolation("WINDOW_BLUR", "Window lost focus");
             }
+        };
+
+        // Detect touch + visibility pattern (power+volume button on Android)
+        let touchStartTime = 0;
+        const handleTouchStart = () => {
+            touchStartTime = Date.now();
+        };
+
+        const handleTouchEnd = () => {
+            if (detectScreenshot && touchStartTime > 0) {
+                const touchDuration = Date.now() - touchStartTime;
+                // Power+Volume buttons are usually held for 100-500ms for screenshot
+                if (touchDuration >= 100 && touchDuration <= 500) {
+                    // Check if visibility will change soon (screenshot indicator)
+                    setTimeout(() => {
+                        if (document.hidden) {
+                            logViolation("SCREENSHOT", "Screenshot detected (touch pattern)");
+                        }
+                    }, 100);
+                }
+            }
+            touchStartTime = 0;
         };
 
         // Disable right-click
@@ -97,15 +149,27 @@ export function useExamSecurity(options: UseExamSecurityOptions = {}) {
                 e.preventDefault();
                 logViolation("DEVTOOLS", "F12 DevTools attempted");
             }
-            // Prevent screenshot shortcuts
-            if (e.key === "PrintScreen") {
-                e.preventDefault();
-                logViolation("SCREENSHOT", "PrintScreen attempted");
-            }
-            // Windows Snipping Tool
-            if (e.shiftKey && e.key === "S" && (e.metaKey || e.ctrlKey)) {
-                e.preventDefault();
-                logViolation("SCREENSHOT", "Snipping tool shortcut attempted");
+            // Prevent screenshot shortcuts (Desktop)
+            if (detectScreenshot) {
+                if (e.key === "PrintScreen") {
+                    e.preventDefault();
+                    logViolation("SCREENSHOT", "PrintScreen attempted");
+                }
+                // Windows Snipping Tool
+                if (e.shiftKey && e.key === "S" && (e.metaKey || e.ctrlKey)) {
+                    e.preventDefault();
+                    logViolation("SCREENSHOT", "Snipping tool shortcut attempted");
+                }
+                // Mac screenshot shortcuts (Cmd+Shift+3, Cmd+Shift+4, Cmd+Shift+5)
+                if (e.metaKey && e.shiftKey && ["3", "4", "5"].includes(e.key)) {
+                    e.preventDefault();
+                    logViolation("SCREENSHOT", `Mac screenshot (Cmd+Shift+${e.key}) attempted`);
+                }
+                // Alt+PrintScreen (Windows active window screenshot)
+                if (e.altKey && e.key === "PrintScreen") {
+                    e.preventDefault();
+                    logViolation("SCREENSHOT", "Alt+PrintScreen (window capture) attempted");
+                }
             }
         };
 
@@ -123,14 +187,25 @@ export function useExamSecurity(options: UseExamSecurityOptions = {}) {
         document.addEventListener("keydown", handleKeyDown);
         document.addEventListener("selectstart", handleSelectStart);
 
+        // Mobile-specific listeners
+        if (detectScreenshot) {
+            document.addEventListener("touchstart", handleTouchStart, { passive: true });
+            document.addEventListener("touchend", handleTouchEnd, { passive: true });
+        }
+
         return () => {
             document.removeEventListener("visibilitychange", handleVisibilityChange);
             window.removeEventListener("blur", handleBlur);
             document.removeEventListener("contextmenu", handleContextMenu);
             document.removeEventListener("keydown", handleKeyDown);
             document.removeEventListener("selectstart", handleSelectStart);
+
+            if (detectScreenshot) {
+                document.removeEventListener("touchstart", handleTouchStart);
+                document.removeEventListener("touchend", handleTouchEnd);
+            }
         };
-    }, [enabled, disableCopyPaste, disableRightClick, detectTabSwitch, detectWindowBlur, logViolation]);
+    }, [enabled, disableCopyPaste, disableRightClick, detectTabSwitch, detectWindowBlur, detectScreenshot, logViolation]);
 
     return {
         violations: violations.current,
