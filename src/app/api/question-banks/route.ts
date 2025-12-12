@@ -52,10 +52,6 @@ export const GET = (req: Request) => apiHandler(async () => {
     const banks = await query.orderBy(questionBanks.createdAt);
 
     return banks;
-}, {
-    headers: {
-        'Cache-Control': 'public, s-maxage=60, stale-while-revalidate=300'
-    }
 });
 
 // POST /api/question-banks - Create new question bank
