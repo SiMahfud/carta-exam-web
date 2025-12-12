@@ -245,6 +245,8 @@ export default function SessionMonitorPage() {
                 return <Badge className="bg-blue-500">Mengerjakan</Badge>;
             case "completed":
                 return <Badge className="bg-green-500">Selesai</Badge>;
+            case "terminated":
+                return <Badge className="bg-red-600">Dihentikan</Badge>;
             case "not_started":
             default:
                 return <Badge variant="outline">Belum Mulai</Badge>;

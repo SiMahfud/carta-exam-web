@@ -182,14 +182,37 @@ export default function TakeExamPage() {
         };
     }, [examStarted, submitting, enterFullscreen, toast]);
 
-    // Log security violations to backend
+    // Log security violations to backend and check for termination
     const logSecurityViolation = async (type: string, details?: string) => {
         try {
-            await fetch(`/api/student/exams/${sessionId}/violation`, {
+            const response = await fetch(`/api/student/exams/${sessionId}/violation`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ studentId, type, details, timestamp: new Date().toISOString() }),
             });
+
+            if (response.ok) {
+                const data = await response.json();
+
+                // Update violation count from server
+                if (data.violationCount !== undefined) {
+                    setViolationCount(data.violationCount);
+                }
+
+                // Check if should terminate - immediately show terminated page
+                if (data.shouldTerminate) {
+                    setIsTerminated(true);
+                    // Exit fullscreen
+                    if (isFullscreen) {
+                        await exitFullscreen();
+                    }
+                    toast({
+                        title: "Ujian Dihentikan",
+                        description: data.message || "Batas pelanggaran tercapai. Ujian dihentikan.",
+                        variant: "destructive",
+                    });
+                }
+            }
         } catch (error) {
             console.error("Failed to log violation:", error);
         }
