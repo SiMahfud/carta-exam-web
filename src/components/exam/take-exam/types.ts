@@ -11,6 +11,7 @@ export interface Question {
 
 export interface Answer {
     questionId: string;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     answer: any;
     isFlagged: boolean;
 }

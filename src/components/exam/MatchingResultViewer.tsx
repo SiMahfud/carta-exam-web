@@ -9,6 +9,7 @@ interface MatchingResultViewerProps {
         leftItems?: string[];
         rightItems?: string[];
     };
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     studentPairs: any[]; // Can be { left: number, right: number } or { left: string, right: string }
     correctPairs: { [key: number]: number | number[] }; // Left Index -> Right Index(es)
 }
@@ -35,6 +36,7 @@ export function MatchingResultViewer({ question, studentPairs, correctPairs }: M
     const getColor = (index: number) => colors[index % colors.length];
 
     // Helper to get text from item (string or object)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const getItemText = (item: any) => {
         if (typeof item === 'string') return item;
         if (typeof item === 'object' && item !== null && 'text' in item) return item.text;
@@ -42,6 +44,7 @@ export function MatchingResultViewer({ question, studentPairs, correctPairs }: M
     };
 
     // Helper to get ID from item (if object) or use index/value
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const getItemId = (item: any) => {
         if (typeof item === 'object' && item !== null && 'id' in item) return item.id;
         return item; // fallback for string
@@ -56,6 +59,7 @@ export function MatchingResultViewer({ question, studentPairs, correctPairs }: M
             const containerRect = containerRef.current?.getBoundingClientRect();
             if (!containerRect) return;
 
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             studentPairs.forEach((pair: any) => {
                 // Determine if pair uses indices or values
                 let leftIndex = -1;
@@ -104,6 +108,7 @@ export function MatchingResultViewer({ question, studentPairs, correctPairs }: M
 
                     // Check correctness
                     // Use loose comparison or string conversion for keys
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
                     const correctRightIndices = correctPairs[leftIndex] ?? correctPairs[String(leftIndex) as any];
 
                     let isCorrect = false;
@@ -179,6 +184,7 @@ export function MatchingResultViewer({ question, studentPairs, correctPairs }: M
                     <h3 className="font-semibold text-center mb-4 text-muted-foreground text-sm uppercase tracking-wider">Pernyataan</h3>
                     {leftItems.map((item, idx) => {
                         // Check if this item has any student connections
+                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
                         const hasConnection = studentPairs.some((p: any) => {
                             if (typeof p.left === 'number') return p.left === idx;
 
@@ -217,6 +223,7 @@ export function MatchingResultViewer({ question, studentPairs, correctPairs }: M
                 <div className="flex-1 space-y-4 z-20">
                     <h3 className="font-semibold text-center mb-4 text-muted-foreground text-sm uppercase tracking-wider">Pasangan</h3>
                     {rightItems.map((item, idx) => {
+                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
                         const hasConnection = studentPairs.some((p: any) => {
                             if (typeof p.right === 'number') return p.right === idx;
 

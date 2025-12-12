@@ -5,7 +5,9 @@ import { Question } from "./types";
 
 interface QuestionRendererProps {
     question: Question;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     answer: any;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     onChange: (answer: any) => void;
 }
 

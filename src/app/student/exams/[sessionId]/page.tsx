@@ -50,7 +50,7 @@ export default function TakeExamPage() {
 
     // Token states
     const [showTokenDialog, setShowTokenDialog] = useState(false);
-    const [tokenRequired, setTokenRequired] = useState(false);
+    const [_tokenRequired, setTokenRequired] = useState(false);
     const [tokenError, setTokenError] = useState<string | null>(null);
     const [verifyingToken, setVerifyingToken] = useState(false);
 
@@ -161,7 +161,7 @@ export default function TakeExamPage() {
                 const data = await response.json();
                 setTokenError(data.error || "Token tidak valid");
             }
-        } catch (error) {
+        } catch (_error) {
             setTokenError("Gagal memverifikasi token. Silakan coba lagi.");
         } finally {
             setVerifyingToken(false);
@@ -236,6 +236,7 @@ export default function TakeExamPage() {
                 // Restore answers if available
                 if (data.answers) {
                     const restoredAnswers = new Map<string, Answer>();
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
                     Object.entries(data.answers).forEach(([qId, ans]: [string, any]) => {
                         restoredAnswers.set(qId, {
                             questionId: qId,
@@ -248,7 +249,7 @@ export default function TakeExamPage() {
             } else {
                 throw new Error("Failed to load questions");
             }
-        } catch (error) {
+        } catch (_error) {
             toast({
                 title: "Error",
                 description: "Gagal memuat soal ujian",
@@ -259,6 +260,7 @@ export default function TakeExamPage() {
         }
     };
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const saveAnswer = useCallback(async (questionId: string, answer: any, isFlagged: boolean = false) => {
         setAutoSaving(true);
         try {
@@ -274,6 +276,7 @@ export default function TakeExamPage() {
         }
     }, [sessionId, studentId]);
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const handleAnswerChange = (questionId: string, answer: any) => {
         const newAnswers = new Map(answers);
         const existing = newAnswers.get(questionId);
@@ -318,7 +321,7 @@ export default function TakeExamPage() {
             } else {
                 throw new Error("Failed to submit");
             }
-        } catch (error) {
+        } catch (_error) {
             toast({
                 title: "Error",
                 description: "Gagal mengumpulkan ujian",

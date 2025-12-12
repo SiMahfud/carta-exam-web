@@ -178,7 +178,7 @@ export default function ExamPreviewDialog({ templateId, open, onOpenChange }: Ex
                                                 <div className="space-y-3">
                                                     <p className="text-xs text-blue-600 italic">💡 Cara menjawab: Klik salah satu pilihan jawaban</p>
                                                     <div className="space-y-2 pl-4">
-                                                        {question.options.map((option, _idx) => {
+                                                        {question.options.map((option) => {
                                                             let correctLabel = question.correctAnswer;
                                                             // Handle numeric index (0, 1, 2...) or string index ("0", "1"...)
                                                             if (typeof correctLabel === 'number' || !isNaN(Number(correctLabel))) {
@@ -208,7 +208,7 @@ export default function ExamPreviewDialog({ templateId, open, onOpenChange }: Ex
                                                 <div className="space-y-3">
                                                     <p className="text-xs text-blue-600 italic">💡 Cara menjawab: Centang satu atau lebih pilihan jawaban yang benar</p>
                                                     <div className="space-y-2 pl-4">
-                                                        {question.options.map((option, _idx) => {
+                                                        {question.options.map((option) => {
                                                             let correctLabels: string[] = [];
                                                             if (Array.isArray(question.correctAnswer)) {
                                                                 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -259,7 +259,7 @@ export default function ExamPreviewDialog({ templateId, open, onOpenChange }: Ex
                                                         {question.rubric && question.rubric.length > 0 && (
                                                             <div className="mt-2">
                                                                 <p className="text-xs font-semibold text-blue-800 mb-1">Rubrik:</p>
-                                                                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                                                                {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
                                                                 {question.rubric.map((r: any, idx: number) => (
                                                                     <div key={idx} className="text-xs text-blue-700">• {r.criterion} ({r.points} poin)</div>
                                                                 ))}
