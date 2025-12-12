@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { submissions, answers } from "@/lib/schema";
-import { eq, and, sum } from "drizzle-orm";
+import { eq, and } from "drizzle-orm";
 
 // POST /api/student/exams/[sessionId]/submit - Submit exam
 export async function POST(

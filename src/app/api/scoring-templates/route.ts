@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { scoringTemplates } from "@/lib/schema";
-import { eq } from "drizzle-orm";
+// eq is imported but unused in this file - removed
 
 // GET /api/scoring-templates - List all scoring templates
 export async function GET() {

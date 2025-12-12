@@ -1,7 +1,7 @@
 import { NextResponse, NextRequest } from "next/server";
 import { db } from "@/lib/db";
 import { users, classStudents, classes } from "@/lib/schema";
-import { eq, and, inArray } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import * as XLSX from 'xlsx';
 import bcrypt from "bcryptjs";
 

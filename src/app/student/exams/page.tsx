@@ -114,7 +114,8 @@ export default function StudentExamsPage() {
             });
 
             if (response.ok) {
-                const _data = await response.json();
+                const data = await response.json();
+                void data; // Response needed for success verification
                 router.push(`/student/exams/${sessionId}`);
             } else {
                 const error = await response.json();

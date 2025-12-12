@@ -1,7 +1,7 @@
 import { NextResponse, NextRequest } from "next/server";
 import { db } from "@/lib/db";
 import { users, classStudents, classes } from "@/lib/schema";
-import { eq, inArray } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import * as XLSX from 'xlsx';
 
 export async function GET(request: NextRequest) {

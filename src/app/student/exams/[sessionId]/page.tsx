@@ -50,7 +50,8 @@ export default function TakeExamPage() {
 
     // Token states
     const [showTokenDialog, setShowTokenDialog] = useState(false);
-    const [_tokenRequired, setTokenRequired] = useState(false);
+    const [tokenRequired, setTokenRequired] = useState(false);
+    void tokenRequired; // Used to track token state
     const [tokenError, setTokenError] = useState<string | null>(null);
     const [verifyingToken, setVerifyingToken] = useState(false);
 
@@ -161,7 +162,8 @@ export default function TakeExamPage() {
                 const data = await response.json();
                 setTokenError(data.error || "Token tidak valid");
             }
-        } catch (_error) {
+        } catch (error) {
+            void error;
             setTokenError("Gagal memverifikasi token. Silakan coba lagi.");
         } finally {
             setVerifyingToken(false);
@@ -249,7 +251,8 @@ export default function TakeExamPage() {
             } else {
                 throw new Error("Failed to load questions");
             }
-        } catch (_error) {
+        } catch (error) {
+            void error;
             toast({
                 title: "Error",
                 description: "Gagal memuat soal ujian",

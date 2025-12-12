@@ -1,7 +1,7 @@
 import { NextResponse, NextRequest } from "next/server";
 import { db } from "@/lib/db";
 import { users, classes, subjects, bankQuestions, examTemplates, examSessions, questionBanks } from "@/lib/schema";
-import { like, or, eq } from "drizzle-orm";
+import { like, or } from "drizzle-orm";
 
 interface SearchResult {
     questions: Array<{ id: string; text: string; type: string; subjectName: string }>;

@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { bankQuestions } from "@/lib/schema";
-import { eq, sql } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 
 // GET /api/question-banks/[id]/questions/tags - Get all unique tags
 export async function GET(

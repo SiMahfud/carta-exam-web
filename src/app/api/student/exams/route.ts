@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { examSessions, examTemplates, classStudents, submissions } from "@/lib/schema";
-import { eq, and, inArray, sql } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 
 // GET /api/student/exams - List exams assigned to current student
 export async function GET(request: Request) {

@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+// NextResponse not used - using apiHandler instead
 import { db } from "@/lib/db";
 import { subjects, users } from "@/lib/schema";
 import { eq } from "drizzle-orm";
