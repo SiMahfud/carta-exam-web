@@ -67,8 +67,11 @@ export async function POST(
             isCorrect = answer === correctAnswer;
             earnedPoints = isCorrect ? maxPoints : 0;
         } else if (question.type === 'complex_mc') {
-            // Extract correct answers  (may be {correct: [0,2,4]} or {correctAnswers: ["A","C","E"]})
-            let correctAnswers = answerKey.correct !== undefined ? answerKey.correct : (answerKey.correctAnswers || []);
+            // Extract correct answers (handle multiple formats)
+            // Formats: {correct: [0,2,4]} or {correctAnswers: ["A","C","E"]} or {correctIndices: [0,2,4]}
+            let correctAnswers = answerKey.correct !== undefined
+                ? answerKey.correct
+                : (answerKey.correctAnswers || answerKey.correctIndices || answerKey.correctOptions || []);
 
             // Convert indices to letters if array of numbers
             if (Array.isArray(correctAnswers) && correctAnswers.length > 0 && typeof correctAnswers[0] === 'number') {
@@ -83,8 +86,8 @@ export async function POST(
                 isCorrect = true;
                 earnedPoints = maxPoints;
             } else {
-                // Partial credit
-                earnedPoints = Math.max(0, (correctCount - incorrectCount) / correctAnswers.length * maxPoints);
+                // Partial credit: each correct answer adds points, each incorrect subtracts
+                earnedPoints = Math.max(0, Math.round((correctCount - incorrectCount) / correctAnswers.length * maxPoints * 100) / 100);
             }
         } else if (question.type === 'short') {
             const acceptedAnswers = answerKey.acceptedAnswers || [];
@@ -95,32 +98,63 @@ export async function POST(
             const content = question.content as any;
             const leftItems = content.leftItems || [];
             const rightItems = content.rightItems || [];
-            const keyPairs = answerKey.pairs || {}; // { "0": 1, "1": 0 } (indices)
 
-            // Convert index-based key to value-based pairs (supports 1-to-many)
-            const correctPairs: { left: string; right: string }[] = [];
-            Object.entries(keyPairs).forEach(([leftIdx, rightValue]) => {
-                const leftItem = leftItems[parseInt(leftIdx)];
-                // Handle both single value (legacy) and array (new)
-                const rightIndices = Array.isArray(rightValue) ? rightValue : [rightValue];
-
-                rightIndices.forEach((rIdx: any) => {
-                    const rightItem = rightItems[rIdx as number];
-                    if (leftItem && rightItem) {
-                        correctPairs.push({ left: leftItem, right: rightItem });
-                    }
-                });
+            // Build lookup maps for UUID-based matching
+            const leftIdToIndex: { [id: string]: number } = {};
+            const rightIdToIndex: { [id: string]: number } = {};
+            leftItems.forEach((item: any, idx: number) => {
+                const id = typeof item === 'object' ? item.id : item;
+                leftIdToIndex[id] = idx;
+            });
+            rightItems.forEach((item: any, idx: number) => {
+                const id = typeof item === 'object' ? item.id : item;
+                rightIdToIndex[id] = idx;
             });
 
-            const studentPairs = answer || []; // Array of { left, right }
+            // Handle different answer key formats:
+            // 1. New format: { matches: [{leftId, rightId}] }
+            // 2. Old format: { pairs: {0: 1} } (indices)
+            let correctPairsList: { leftIdx: number; rightIdx: number }[] = [];
 
-            const correctCount = studentPairs.filter((sp: any) =>
-                correctPairs.some((cp: any) => cp.left === sp.left && cp.right === sp.right)
+            if (answerKey.matches && Array.isArray(answerKey.matches)) {
+                // New UUID-based format
+                answerKey.matches.forEach((match: any) => {
+                    const leftIdx = leftIdToIndex[match.leftId];
+                    const rightIdx = rightIdToIndex[match.rightId];
+                    if (leftIdx !== undefined && rightIdx !== undefined) {
+                        correctPairsList.push({ leftIdx, rightIdx });
+                    }
+                });
+            } else if (answerKey.pairs) {
+                // Old index-based format
+                Object.entries(answerKey.pairs).forEach(([leftIdx, rightValue]) => {
+                    const rightIndices = Array.isArray(rightValue) ? rightValue : [rightValue];
+                    rightIndices.forEach((rIdx: any) => {
+                        correctPairsList.push({ leftIdx: parseInt(leftIdx), rightIdx: rIdx as number });
+                    });
+                });
+            }
+
+            const studentPairs = answer || []; // Array of { left, right } with UUIDs or indices
+
+            // Convert student pairs to index format
+            const studentPairsIndexed = studentPairs.map((sp: any) => ({
+                leftIdx: typeof sp.left === 'string' && leftIdToIndex[sp.left] !== undefined
+                    ? leftIdToIndex[sp.left]
+                    : (typeof sp.left === 'number' ? sp.left : parseInt(sp.left) || -1),
+                rightIdx: typeof sp.right === 'string' && rightIdToIndex[sp.right] !== undefined
+                    ? rightIdToIndex[sp.right]
+                    : (typeof sp.right === 'number' ? sp.right : parseInt(sp.right) || -1)
+            }));
+
+            const correctCount = studentPairsIndexed.filter((sp: any) =>
+                correctPairsList.some((cp: any) => cp.leftIdx === sp.leftIdx && cp.rightIdx === sp.rightIdx)
             ).length;
 
-            // Avoid division by zero
-            earnedPoints = correctPairs.length > 0 ? (correctCount / correctPairs.length) * maxPoints : 0;
-            isCorrect = correctCount === correctPairs.length && correctCount > 0;
+            // Calculate partial credit
+            const totalPairs = correctPairsList.length;
+            earnedPoints = totalPairs > 0 ? Math.round((correctCount / totalPairs) * maxPoints * 100) / 100 : 0;
+            isCorrect = correctCount === totalPairs && totalPairs > 0;
         } else if (question.type === 'essay') {
             // Essay requires manual grading
             earnedPoints = 0;
