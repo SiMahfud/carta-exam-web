@@ -250,14 +250,14 @@ export default function QuestionBankDetailPage() {
                         Kembali ke Bank Soal
                     </Button>
                 </Link>
-                <div className="flex justify-between items-start">
+                <div className="flex flex-col md:flex-row md:justify-between md:items-start gap-4">
                     <div>
                         <h1 className="text-3xl font-bold">{bank.name}</h1>
                         <p className="text-muted-foreground mt-2">
                             {bank.description || "No description"}
                         </p>
                     </div>
-                    <div className="flex gap-2">
+                    <div className="flex flex-wrap gap-2">
                         <ImportQuestionsDialog
                             bankId={bankId}
                             onSuccess={() => {

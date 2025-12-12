@@ -10,6 +10,8 @@ import { MatchingQuestionRenderer } from "@/components/exam/MatchingQuestionRend
 import { Checkbox } from "@/components/ui/checkbox";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 
+import { MathHtmlRenderer } from "@/components/ui/math-html-renderer";
+
 interface QuestionPreviewCardProps {
     question: any;
     index: number;
@@ -207,9 +209,9 @@ export function QuestionPreviewCard({ question, index, onUpdate, onDelete }: Que
                 </div>
             </div>
 
-            <div
-                className="text-sm font-medium prose dark:prose-invert max-w-none"
-                dangerouslySetInnerHTML={{ __html: question.content.question }}
+            <MathHtmlRenderer
+                className="text-sm font-medium"
+                html={question.content.question}
             />
 
             {/* MC Preview */}
@@ -223,7 +225,9 @@ export function QuestionPreviewCard({ question, index, onUpdate, onDelete }: Que
                                     <div className="flex items-center justify-center h-5 w-5 rounded-full border border-primary text-[10px] flex-shrink-0 mt-0.5">
                                         {["A", "B", "C", "D", "E"][i]}
                                     </div>
-                                    <div className="text-sm flex-1" dangerouslySetInnerHTML={{ __html: opt }} />
+                                    <div className="flex-1">
+                                        <MathHtmlRenderer className="text-sm" html={opt} />
+                                    </div>
                                     {isCorrect && <span className="ml-auto text-green-600 font-semibold text-xs">✓ KUNCI</span>}
                                 </div>
                             );
@@ -241,7 +245,9 @@ export function QuestionPreviewCard({ question, index, onUpdate, onDelete }: Que
                             return (
                                 <div key={i} className={`flex items-start gap-3 p-2 rounded ${isCorrect ? 'bg-green-100 dark:bg-green-900/30 border border-green-500' : 'hover:bg-muted/50'}`}>
                                     <div className="h-4 w-4 border rounded-sm flex-shrink-0 mt-1" />
-                                    <div className="text-sm flex-1" dangerouslySetInnerHTML={{ __html: opt }} />
+                                    <div className="flex-1">
+                                        <MathHtmlRenderer className="text-sm" html={opt} />
+                                    </div>
                                     {isCorrect && <span className="ml-auto text-green-600 font-semibold text-xs">✓ KUNCI</span>}
                                 </div>
                             );
@@ -278,9 +284,11 @@ export function QuestionPreviewCard({ question, index, onUpdate, onDelete }: Que
                     <div className="p-3 bg-muted/20 border rounded-lg">
                         <p className="text-xs font-semibold text-muted-foreground mb-1">Kunci Jawaban:</p>
                         <div className="text-sm text-green-700 dark:text-green-400 font-medium">
-                            {question.type === 'short'
-                                ? question.answerKey.acceptedAnswers?.join(' / ')
-                                : question.answerKey.modelAnswer}
+                            {question.type === 'short' ? (
+                                <span>{question.answerKey.acceptedAnswers?.join(' / ')}</span>
+                            ) : (
+                                <MathHtmlRenderer html={question.answerKey.modelAnswer || ''} className="whitespace-pre-wrap" />
+                            )}
                         </div>
                     </div>
                 </div>

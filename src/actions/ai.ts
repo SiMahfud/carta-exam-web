@@ -52,6 +52,19 @@ export type GenerationOptions = {
     questionDistribution?: Partial<Record<"mc" | "essay" | "short" | "true_false" | "matching" | "complex_mc", number>>;
 };
 
+const cleanJson = (text: string): string => {
+    // Remove markdown code blocks if present
+    text = text.replace(/```json\n?|\n?```/g, "");
+
+    // Fix common LaTeX backslash issues in JSON
+    // Only allow standard JSON escapes: " \ / n
+    // We explicitly exclude b, f, r, t because they confuse LaTeX macros (\beta, \frac, \rho, \theta)
+    // We exclude u because \underline causes "Bad escaped character" (expecting hex)
+    text = text.replace(/\\(?!["\\/n])/g, "\\\\");
+
+    return text;
+};
+
 export async function generateQuestions(
     promptText: string,
     contextFile?: { base64: string; mimeType: string },
@@ -86,6 +99,15 @@ Topic: ${options?.topic || "Context provided"}.
 
 IMPORTANT: For "short" type questions, the generated question must be answerable with a single word or a short phrase (1-2 words max). The "acceptedAnswers" in the output MUST NOT be full sentences.
 For "matching" type questions, you CAN generate one-to-many relationships (e.g., one left item matches multiple right items).
+CRITICAL: When using LaTeX for math formulas (e.g., \\frac, \\theta), you MUST escape the backslashes in your JSON output.
+Example: Use "\\\\frac" instead of "\\frac", and "\\\\theta" instead of "\\theta".
+Output valid JSON only.
+
+LANGUAGE INSTRUCTION:
+Generate ALL content (questions, options, answers) in INDONESIAN (Bahasa Indonesia), UNLESS the topic is explicitly about learning a foreign language (e.g., "English Lesson", "Japanese Grammar"). In that case, use the target language where appropriate.
+
+OPTION COUNT INSTRUCTION:
+For "mc" (Multiple Choice) questions, you MUST provide EXACTLY 5 options (A, B, C, D, E). Do not provide fewer than 5 options.
 
 OUTPUT FORMAT:
 Return a single valid JSON object with the key "questions".
@@ -97,7 +119,7 @@ Example of expected JSON structure:
     {
       "type": "mc",
       "difficulty": "medium",
-      "content": { "question": "Question?", "options": ["A", "B"] },
+      "content": { "question": "Question with math: $\\\\frac{1}{2}$", "options": ["Opsi A", "Opsi B", "Opsi C", "Opsi D", "Opsi E"] },
       "answerKey": { "correct": 0 }
     },
     {
@@ -111,8 +133,8 @@ Example of expected JSON structure:
       "difficulty": "medium",
       "content": {
         "question": "Match items (One-to-Many supported)",
-        "leftItems": [{"id": "l1", "text": "Fruits"}, {"id": "l2", "text": "Vegetables"}],
-        "rightItems": [{"id": "r1", "text": "Apple"}, {"id": "r2", "text": "Banana"}, {"id": "r3", "text": "Carrot"}]
+        "leftItems": [{"id": "l1", "text": "Buah"}, {"id": "l2", "text": "Sayur"}],
+        "rightItems": [{"id": "r1", "text": "Apel"}, {"id": "r2", "text": "Pisang"}, {"id": "r3", "text": "Wortel"}]
       },
       "answerKey": {
         "matches": [
@@ -125,20 +147,20 @@ Example of expected JSON structure:
     {
       "type": "true_false",
       "difficulty": "easy",
-      "content": { "question": "Is the sky blue?", "options": ["True", "False"] },
+      "content": { "question": "Langit berwarna biru?", "options": ["Benar", "Salah"] },
       "answerKey": { "correct": 0 } 
     },
     {
       "type": "short",
       "difficulty": "medium",
-      "content": { "question": "What is 2+2?" },
-      "answerKey": { "acceptedAnswers": ["4", "Four"] } 
+      "content": { "question": "1 + 1 = ?" },
+      "answerKey": { "acceptedAnswers": ["2", "Dua"] } 
     },
     {
-        "type": "essay",
-        "difficulty": "medium",
-        "content": { "question": "Jelaskan kenapa bumi bulat!" },
-        "answerKey": { "modelAnswer": "Bumi bulat karena..." }
+      "type": "essay",
+      "difficulty": "medium",
+      "content": { "question": "Jelaskan kenapa bumi bulat!" },
+      "answerKey": { "modelAnswer": "Bumi bulat karena..." }
     }
   ]
 }
@@ -176,7 +198,16 @@ Ensure complete adherence to this schema for every question.
         // Debug logging
         console.log("Gemini Raw Response:", text);
 
-        const json = JSON.parse(text);
+        // Sanitize JSON before parsing
+        const cleanedText = cleanJson(text);
+
+        let json;
+        try {
+            json = JSON.parse(cleanedText);
+        } catch (parseError) {
+            console.warn("JSON Parse failed even after cleaning. Trying original...", parseError);
+            json = JSON.parse(text); // Fallback to original if regex broke something, though unlikely for valid JSON
+        }
 
         // Validate with Zod
         // We expect { questions: [...] }

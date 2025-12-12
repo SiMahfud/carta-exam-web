@@ -186,8 +186,8 @@ export function GenerateQuestionsDialog({ bankId, onSuccess }: GenerateQuestions
                     AI Generator
                 </Button>
             </DialogTrigger>
-            <DialogContent className="max-w-5xl max-h-[90vh] flex flex-col p-0 gap-0">
-                <DialogHeader className="p-6 pb-2 border-b">
+            <DialogContent className="max-w-5xl max-h-[90vh] flex flex-col p-0 gap-0 overflow-hidden">
+                <DialogHeader className="p-6 pb-2 border-b flex-shrink-0">
                     <DialogTitle className="flex items-center gap-2 text-xl">
                         <Sparkles className="h-5 w-5 text-purple-600" />
                         Generate Questions with Gemini AI
@@ -197,9 +197,9 @@ export function GenerateQuestionsDialog({ bankId, onSuccess }: GenerateQuestions
                     </DialogDescription>
                 </DialogHeader>
 
-                <div className="flex-1 overflow-hidden flex flex-col md:flex-row divide-y md:divide-y-0 md:divide-x">
+                <div className="flex-1 overflow-y-auto md:overflow-hidden flex flex-col md:flex-row divide-y md:divide-y-0 md:divide-x">
                     {/* Left: Controls */}
-                    <div className="w-full md:w-1/3 p-6 space-y-4 overflow-y-auto bg-muted/30">
+                    <div className="w-full md:w-1/3 p-4 md:p-6 space-y-4 md:overflow-y-auto bg-muted/30 flex-shrink-0">
                         <div className="space-y-2">
                             <Label>Topic / Context Text</Label>
                             <Textarea
@@ -339,7 +339,7 @@ export function GenerateQuestionsDialog({ bankId, onSuccess }: GenerateQuestions
                     </div>
 
                     {/* Right: Preview */}
-                    <div className="w-full md:w-2/3 p-6 flex flex-col bg-background">
+                    <div className="w-full md:w-2/3 p-4 md:p-6 flex flex-col bg-background md:overflow-hidden min-h-[400px] md:min-h-0">
                         <div className="flex items-center justify-between mb-4">
                             <h3 className="font-semibold text-lg">Preview</h3>
                             {generatedQuestions.length > 0 && (
@@ -349,7 +349,7 @@ export function GenerateQuestionsDialog({ bankId, onSuccess }: GenerateQuestions
                             )}
                         </div>
 
-                        <div className="flex-1 overflow-y-auto min-h-[300px] border rounded-md p-4 bg-slate-50 dark:bg-slate-900/50">
+                        <div className="flex-1 md:overflow-y-auto min-h-[300px] border rounded-md p-4 bg-slate-50 dark:bg-slate-900/50">
                             {generatedQuestions.length === 0 ? (
                                 <div className="h-full flex flex-col items-center justify-center text-muted-foreground p-8 text-center">
                                     <Sparkles className="h-12 w-12 mb-4 text-purple-200" />
