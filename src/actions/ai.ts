@@ -2,7 +2,7 @@
 
 import { GoogleGenAI } from "@google/genai";
 import { z } from "zod";
-import { zodToJsonSchema } from "zod-to-json-schema";
+// zodToJsonSchema removed - not currently used after commenting out responseSchema
 
 const apiKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY!;
 const modelName = process.env.GOOGLE_GENERATIVE_AI_MODEL || "gemini-2.5-flash";

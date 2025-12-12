@@ -114,7 +114,7 @@ export async function POST(
             // Handle different answer key formats:
             // 1. New format: { matches: [{leftId, rightId}] }
             // 2. Old format: { pairs: {0: 1} } (indices)
-            let correctPairsList: { leftIdx: number; rightIdx: number }[] = [];
+            const correctPairsList: { leftIdx: number; rightIdx: number }[] = [];
 
             if (answerKey.matches && Array.isArray(answerKey.matches)) {
                 // New UUID-based format

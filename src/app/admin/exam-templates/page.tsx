@@ -346,7 +346,7 @@ export default function ExamTemplatesPage() {
                     <AlertDialogHeader>
                         <AlertDialogTitle>Apakah Anda yakin?</AlertDialogTitle>
                         <AlertDialogDescription>
-                            Anda akan menghapus template "{templateToDelete?.name}". Tindakan ini tidak dapat dibatalkan.
+                            Anda akan menghapus template &quot;{templateToDelete?.name}&quot;. Tindakan ini tidak dapat dibatalkan.
                         </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>

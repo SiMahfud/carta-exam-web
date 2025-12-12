@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { submissions } from "@/lib/schema";
-import { eq, inArray, sql } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 
 // POST /api/grading/batch-publish - Batch publish multiple submissions
 export async function POST(request: Request) {

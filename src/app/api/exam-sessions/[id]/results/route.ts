@@ -49,8 +49,8 @@ export async function GET(
 
         const session = sessionResult[0];
 
-        // 2. Get all submissions for this session
-        let submissionsQuery = db.select({
+        // 2. Get all submissions for this session (defined for potential future use)
+        const _submissionsQuery = db.select({
             submissionId: submissions.id,
             userId: submissions.userId,
             studentName: users.name,

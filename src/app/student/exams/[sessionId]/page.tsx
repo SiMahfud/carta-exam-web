@@ -324,7 +324,8 @@ export default function TakeExamPage() {
             } else {
                 throw new Error("Failed to submit");
             }
-        } catch (_error) {
+        } catch (error) {
+            void error;
             toast({
                 title: "Error",
                 description: "Gagal mengumpulkan ujian",

@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { submissions, users, examSessions, examTemplates, classStudents, classes } from "@/lib/schema";
-import { eq, or, desc, asc, and, sql, like } from "drizzle-orm";
+import { submissions, users, examSessions, examTemplates, classStudents } from "@/lib/schema";
+import { eq, desc, asc, and, sql } from "drizzle-orm";
 
 // GET /api/grading/submissions - List submissions needing grading
 export async function GET(request: Request) {

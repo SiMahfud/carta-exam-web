@@ -29,7 +29,7 @@ export async function GET(request: Request) {
         }
 
         // Get sessions where student's class is targeted
-        let sessionsQuery = db.select({
+        const sessionsQuery = db.select({
             id: examSessions.id,
             sessionName: examSessions.sessionName,
             status: examSessions.status,

@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { submissions } from "@/lib/schema";
-import { eq, sql } from "drizzle-orm";
+import { sql } from "drizzle-orm";
 
 // GET /api/grading/stats - Get grading statistics
 export async function GET() {

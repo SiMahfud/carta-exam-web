@@ -57,7 +57,7 @@ export async function GET(
         const limit = parseInt(searchParams.get("limit") || "20");
         const offset = (page - 1) * limit;
 
-        let conditions = [eq(bankQuestions.bankId, params.id)];
+        const conditions = [eq(bankQuestions.bankId, params.id)];
 
         if (type) {
             conditions.push(eq(bankQuestions.type, type as any));
@@ -67,7 +67,7 @@ export async function GET(
             conditions.push(eq(bankQuestions.difficulty, difficulty as any));
         }
 
-        let query = db.select()
+        const query = db.select()
             .from(bankQuestions)
             .where(and(...conditions))
             .limit(limit)
