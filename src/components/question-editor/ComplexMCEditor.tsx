@@ -47,7 +47,7 @@ export function ComplexMCEditor({
         options: ["", ""], // Minimum 2 options
         correctAnswers: [] as number[], // Multiple correct answers
         difficulty: "medium",
-        defaultPoints: 1,
+        defaultPoints: 2,
         tags: [] as string[],
     });
     const [newTag, setNewTag] = useState("");
@@ -125,7 +125,7 @@ export function ComplexMCEditor({
             options: ["", ""],
             correctAnswers: [],
             difficulty: "medium",
-            defaultPoints: 1,
+            defaultPoints: 2,
             tags: [],
         });
         setNewTag("");

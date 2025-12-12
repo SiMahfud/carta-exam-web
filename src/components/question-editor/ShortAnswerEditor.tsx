@@ -48,7 +48,7 @@ export function ShortAnswerEditor({
         caseSensitive: false,
         exactMatch: true,
         difficulty: "medium",
-        defaultPoints: 1,
+        defaultPoints: 2,
         tags: [] as string[],
     });
     const [newTag, setNewTag] = useState("");
@@ -129,7 +129,7 @@ export function ShortAnswerEditor({
             caseSensitive: false,
             exactMatch: true,
             difficulty: "medium",
-            defaultPoints: 1,
+            defaultPoints: 2,
             tags: [],
         });
         setNewTag("");

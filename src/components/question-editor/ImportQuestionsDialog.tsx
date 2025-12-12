@@ -273,11 +273,24 @@ export function ImportQuestionsDialog({ bankId, onSuccess }: ImportQuestionsDial
     };
 
     const formatQuestionForApi = (q: any, jenis: string) => {
+        // Type-based default points: MC=1, Complex=2, Matching=3, Short=2, TrueFalse=1, Essay=0
+        const getDefaultPoints = (type: string) => {
+            switch (type) {
+                case "1": return 1;  // MC
+                case "2": return 2;  // Complex MC
+                case "3": return 3;  // Matching
+                case "4": return 2;  // Short Answer
+                case "5": return 0;  // Essay
+                case "6": return 1;  // True/False
+                default: return 1;
+            }
+        };
+
         const base = {
             content: { question: q.rawQuestion },
             tags: [],
             difficulty: "medium",
-            defaultPoints: 1,
+            defaultPoints: getDefaultPoints(jenis),
             metadata: { imported: true, originalNo: q.metadata.originalNo }
         };
 

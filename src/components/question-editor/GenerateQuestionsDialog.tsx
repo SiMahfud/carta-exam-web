@@ -116,11 +116,24 @@ export function GenerateQuestionsDialog({ bankId, onSuccess }: GenerateQuestions
 
             // Post-process questions. Backend now returns validated Zod schema match.
             // We ensure it has metadata matching ImportQuestionsDialog needs.
+            // Type-based default points: MC=1, Complex=2, Matching=3, Short=2, TrueFalse=1, Essay=0
+            const getDefaultPoints = (type: string) => {
+                switch (type) {
+                    case "mc": return 1;
+                    case "complex_mc": return 2;
+                    case "matching": return 3;
+                    case "short": return 2;
+                    case "essay": return 0;
+                    case "true_false": return 1;
+                    default: return 1;
+                }
+            };
+
             const processed = questions.map((q, idx) => ({
                 ...q,
                 metadata: { imported: true, originalNo: idx + 1 },
                 tags: [],
-                defaultPoints: 1
+                defaultPoints: getDefaultPoints(q.type)
             }));
 
             setGeneratedQuestions(processed);

@@ -47,7 +47,7 @@ export function MatchingEditor({
         rightItems: ["", ""], // Minimum 2 items
         pairs: {} as { [key: number]: number[] }, // leftIndex -> rightIndex[]
         difficulty: "medium",
-        defaultPoints: 1,
+        defaultPoints: 3,
         tags: [] as string[],
     });
     const [newTag, setNewTag] = useState("");
@@ -142,7 +142,7 @@ export function MatchingEditor({
             rightItems: ["", ""],
             pairs: {},
             difficulty: "medium",
-            defaultPoints: 1,
+            defaultPoints: 3,
             tags: [],
         });
         setNewTag("");

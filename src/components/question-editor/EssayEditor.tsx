@@ -59,7 +59,7 @@ export function EssayEditor({
         rubric: [{ criteria: "", maxPoints: 1 }], // At least one criterion
         keywords: [] as string[],
         difficulty: "medium",
-        defaultPoints: 1,
+        defaultPoints: 0,
         tags: [] as string[],
     });
     const [newTag, setNewTag] = useState("");
@@ -167,7 +167,7 @@ export function EssayEditor({
             rubric: [{ criteria: "", maxPoints: 1 }],
             keywords: [],
             difficulty: "medium",
-            defaultPoints: 1,
+            defaultPoints: 0,
             tags: [],
         });
         setNewTag("");

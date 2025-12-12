@@ -110,6 +110,12 @@ export async function GET(
                 }
             });
 
+            // Calculate Non-Essay and Essay totals separately
+            const nonEssayScore = scores.mc.score + scores.complex_mc.score + scores.matching.score + scores.short.score + scores.true_false.score;
+            const nonEssayMax = scores.mc.maxScore + scores.complex_mc.maxScore + scores.matching.maxScore + scores.short.maxScore + scores.true_false.maxScore;
+            const essayScore = scores.essay.score;
+            const essayMax = scores.essay.maxScore;
+
             return {
                 'No': idx + 1,
                 'Nama Siswa': sub.studentName,
@@ -123,19 +129,37 @@ export async function GET(
                 'Isian Skor': scores.short.score,
                 'B/S Benar': scores.true_false.correct,
                 'B/S Skor': scores.true_false.score,
-                'Essay Skor': scores.essay.score,
+                'Non-Essay Skor': nonEssayScore,
+                'Non-Essay Max': nonEssayMax,
+                'Essay Skor': essayScore,
+                'Essay Max': essayMax,
                 'Total Skor': sub.earnedPoints || sub.score || 0,
                 'Skor Maksimal': sub.totalPoints || session.totalScore || 100,
-                'Nilai (%)': sub.totalPoints ? Math.round(((sub.earnedPoints || 0) / sub.totalPoints) * 100) : '-',
+                'Nilai Non-Essay (%)': nonEssayMax > 0 ? Math.round((nonEssayScore / nonEssayMax) * 100) : '-',
             };
         });
 
         const ws1 = XLSX.utils.json_to_sheet(rekapData);
         ws1['!cols'] = [
-            { wch: 5 }, { wch: 25 }, { wch: 15 }, { wch: 12 },
-            { wch: 10 }, { wch: 10 }, { wch: 12 }, { wch: 12 },
-            { wch: 15 }, { wch: 10 }, { wch: 10 }, { wch: 10 },
-            { wch: 10 }, { wch: 12 }, { wch: 12 }, { wch: 10 },
+            { wch: 5 },  // No
+            { wch: 25 }, // Nama Siswa
+            { wch: 15 }, // Kelas
+            { wch: 12 }, // Status
+            { wch: 10 }, // PG Benar
+            { wch: 10 }, // PG Skor
+            { wch: 14 }, // Kompleks Benar
+            { wch: 14 }, // Kompleks Skor
+            { wch: 15 }, // Menjodohkan Skor
+            { wch: 10 }, // Isian Skor
+            { wch: 10 }, // B/S Benar
+            { wch: 10 }, // B/S Skor
+            { wch: 14 }, // Non-Essay Skor
+            { wch: 14 }, // Non-Essay Max
+            { wch: 12 }, // Essay Skor
+            { wch: 12 }, // Essay Max
+            { wch: 12 }, // Total Skor
+            { wch: 14 }, // Skor Maksimal
+            { wch: 18 }, // Nilai Non-Essay (%)
         ];
         XLSX.utils.book_append_sheet(workbook, ws1, 'Rekap Nilai');
 
