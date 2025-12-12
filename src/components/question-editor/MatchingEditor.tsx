@@ -29,6 +29,7 @@ interface QuestionEditorProps {
     bankId: string;
     onSuccess: () => void;
     availableTags: string[];
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     questionToEdit?: any;
 }
 
@@ -56,7 +57,9 @@ export function MatchingEditor({
             if (questionToEdit) {
                 setFormData({
                     question: questionToEdit.content.question,
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
                     leftItems: (questionToEdit.content.leftItems || []).map((item: any) => typeof item === 'object' && item !== null ? item.text : item),
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
                     rightItems: (questionToEdit.content.rightItems || []).map((item: any) => typeof item === 'object' && item !== null ? item.text : item),
                     pairs: normalizePairs(questionToEdit.answerKey, questionToEdit.content.leftItems, questionToEdit.content.rightItems),
                     difficulty: questionToEdit.difficulty,
@@ -246,6 +249,7 @@ export function MatchingEditor({
     // Helper to normalize pairs from DB (which might be 1-to-1 or 1-to-many)
 
     // Helper to normalize pairs from DB (which can be stored in different formats)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const normalizePairs = (answerKey: any, rawLeftItems: any[] = [], rawRightItems: any[] = []): { [key: number]: number[] } => {
         if (!answerKey) return {};
         const normalized: { [key: number]: number[] } = {};
@@ -259,12 +263,14 @@ export function MatchingEditor({
         if (answerKey.matches && Array.isArray(answerKey.matches)) {
             answerKey.matches.forEach((match: { leftId: string; rightId: string }) => {
                 // Find left index by matching ID
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 const leftIndex = rawLeftItems.findIndex((item: any) =>
-                    typeof item === 'object' && item !== null && String(item.id) === String(match.leftId)
+                    typeof item === 'object' && item !== null && 'id' in item && String((item as { id: unknown }).id) === String(match.leftId)
                 );
                 // Find right index by matching ID
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 const rightIndex = rawRightItems.findIndex((item: any) =>
-                    typeof item === 'object' && item !== null && String(item.id) === String(match.rightId)
+                    typeof item === 'object' && item !== null && 'id' in item && String((item as { id: unknown }).id) === String(match.rightId)
                 );
 
                 if (leftIndex !== -1 && rightIndex !== -1) {

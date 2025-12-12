@@ -3,7 +3,7 @@
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Edit, Calendar, User, FileText } from "lucide-react";
+import { Edit } from "lucide-react";
 import { format } from "date-fns";
 import { id as idLocale } from "date-fns/locale";
 
@@ -54,7 +54,7 @@ export function GradingTableView({
     };
 
     const allSelected = submissions.length > 0 && submissions.every(s => selectedIds.has(s.id));
-    const someSelected = submissions.some(s => selectedIds.has(s.id));
+
 
     return (
         <div className="border rounded-lg overflow-hidden bg-card">

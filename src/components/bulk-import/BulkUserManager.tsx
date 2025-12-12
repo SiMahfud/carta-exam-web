@@ -9,15 +9,8 @@ import {
     DialogHeader,
     DialogTitle,
     DialogTrigger,
-    DialogFooter,
 } from "@/components/ui/dialog";
-import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
-} from "@/components/ui/select";
+// Select components kept for future use
 import {
     Table,
     TableBody,
@@ -118,7 +111,7 @@ export function BulkUserManager({ onSuccess }: BulkUserManagerProps) {
             a.click();
             window.URL.revokeObjectURL(url);
             document.body.removeChild(a);
-        } catch (error) {
+        } catch {
             alert("Gagal mengunduh template");
         } finally {
             setIsLoading(false);
@@ -141,7 +134,7 @@ export function BulkUserManager({ onSuccess }: BulkUserManagerProps) {
             a.click();
             window.URL.revokeObjectURL(url);
             document.body.removeChild(a);
-        } catch (error) {
+        } catch {
             alert("Gagal mengekspor data");
         } finally {
             setIsLoading(false);
@@ -174,8 +167,9 @@ export function BulkUserManager({ onSuccess }: BulkUserManagerProps) {
                 throw new Error(result.error);
             }
             setPreviewData(result.data);
-        } catch (error: any) {
-            alert(error.message || "Gagal membaca file");
+        } catch (error) {
+            const errorMessage = error instanceof Error ? error.message : "Gagal membaca file";
+            alert(errorMessage);
             resetState();
         } finally {
             setIsLoading(false);
@@ -203,8 +197,9 @@ export function BulkUserManager({ onSuccess }: BulkUserManagerProps) {
             }
             setProcessResult(result.data);
             onSuccess?.();
-        } catch (error: any) {
-            alert(error.message || "Gagal memproses import");
+        } catch (error) {
+            const errorMessage = error instanceof Error ? error.message : "Gagal memproses import";
+            alert(errorMessage);
         } finally {
             setIsLoading(false);
         }

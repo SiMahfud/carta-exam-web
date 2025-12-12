@@ -40,6 +40,7 @@ interface QuestionEditorProps {
     bankId: string;
     onSuccess: () => void;
     availableTags: string[];
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     questionToEdit?: any;
 }
 
@@ -64,7 +65,7 @@ export function EssayEditor({
     const [newTag, setNewTag] = useState("");
     const [newKeyword, setNewKeyword] = useState("");
     const [warningDialogOpen, setWarningDialogOpen] = useState(false);
-    const [pendingSubmit, setPendingSubmit] = useState(false);
+
 
     useEffect(() => {
         if (open) {

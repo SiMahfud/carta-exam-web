@@ -1,5 +1,4 @@
 import { useState, useRef, useEffect } from "react";
-// @ts-ignore
 import mammoth from "mammoth";
 import { saveAs } from "file-saver";
 import { DocxGenerator } from "@/lib/docx-generator";
@@ -18,8 +17,6 @@ import {
 } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { Upload, FileText, Check, AlertCircle, Loader2, Download } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
-import { MatchingQuestionRenderer } from "@/components/exam/MatchingQuestionRenderer";
 import { QuestionPreviewCard } from "./QuestionPreviewCard";
 
 interface ImportQuestionsDialogProps {
@@ -30,6 +27,7 @@ interface ImportQuestionsDialogProps {
 export function ImportQuestionsDialog({ bankId, onSuccess }: ImportQuestionsDialogProps) {
     const [open, setOpen] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const [parsedQuestions, setParsedQuestions] = useState<any[]>([]);
     const [replaceMode, setReplaceMode] = useState(false);
     const [error, setError] = useState<string | null>(null);
@@ -85,7 +83,7 @@ export function ImportQuestionsDialog({ bankId, onSuccess }: ImportQuestionsDial
                             throwOnError: false,
                             displayMode: isDisplay
                         });
-                    } catch (e) {
+                    } catch {
                         katexSpan.textContent = match[0];
                     }
                     fragment.appendChild(katexSpan);

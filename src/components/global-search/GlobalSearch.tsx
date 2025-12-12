@@ -148,7 +148,7 @@ export function GlobalSearch({ open, onOpenChange }: GlobalSearchProps) {
         }
     }, [getAllItems, selectedIndex, navigateTo, onOpenChange]);
 
-    const items = getAllItems();
+
     const hasResults = results && (
         results.subjects.length > 0 ||
         results.questions.length > 0 ||
@@ -203,7 +203,7 @@ export function GlobalSearch({ open, onOpenChange }: GlobalSearchProps) {
                     {query.length >= 2 && !isLoading && !hasResults && (
                         <div className="p-8 text-center text-muted-foreground">
                             <Search className="h-10 w-10 mx-auto mb-2 opacity-50" />
-                            <p>Tidak ada hasil untuk "{query}"</p>
+                            <p>Tidak ada hasil untuk &quot;{query}&quot;</p>
                         </div>
                     )}
 
@@ -358,8 +358,8 @@ function ResultSection<T extends { id: string }>({
                     key={item.id}
                     onClick={() => onSelect(item)}
                     className={`w-full text-left px-3 py-2 rounded-md flex items-center justify-between gap-2 text-sm transition-colors ${selectedIndex === startIndex + i
-                            ? "bg-primary text-primary-foreground"
-                            : "hover:bg-muted"
+                        ? "bg-primary text-primary-foreground"
+                        : "hover:bg-muted"
                         }`}
                 >
                     <span className="truncate flex-1">{renderItem(item)}</span>

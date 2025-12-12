@@ -27,6 +27,7 @@ export function StepRandomization({ formData, setFormData }: StepRandomizationPr
                 <Label>Mode Pengacakan Soal</Label>
                 <Select
                     value={formData.randomizationRules.mode}
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
                     onValueChange={(value: any) => setFormData({
                         ...formData,
                         randomizationRules: { ...formData.randomizationRules, mode: value }
@@ -59,10 +60,12 @@ export function StepRandomization({ formData, setFormData }: StepRandomizationPr
                             <div key={type.value} className="flex items-center space-x-2">
                                 <Checkbox
                                     id={`random-${type.value}`}
+                                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
                                     checked={formData.randomizationRules.types?.includes(type.value as any) || false}
                                     onCheckedChange={(checked) => {
                                         const current = formData.randomizationRules.types || [];
                                         const updated = checked
+                                            // eslint-disable-next-line @typescript-eslint/no-explicit-any
                                             ? [...current, type.value as any]
                                             : current.filter(t => t !== type.value);
                                         setFormData({
@@ -98,10 +101,12 @@ export function StepRandomization({ formData, setFormData }: StepRandomizationPr
                             <div key={type.value} className="flex items-center space-x-2">
                                 <Checkbox
                                     id={`exclude-${type.value}`}
+                                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
                                     checked={formData.randomizationRules.excludeTypes?.includes(type.value as any) || false}
                                     onCheckedChange={(checked) => {
                                         const current = formData.randomizationRules.excludeTypes || [];
                                         const updated = checked
+                                            // eslint-disable-next-line @typescript-eslint/no-explicit-any
                                             ? [...current, type.value as any]
                                             : current.filter(t => t !== type.value);
                                         setFormData({

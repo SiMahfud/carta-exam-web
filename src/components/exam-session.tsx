@@ -14,8 +14,10 @@ import { useLockdownMode, type ViolationEvent } from "@/lib/lockdown"
 import { ViolationWarning } from "@/components/violation-warning"
 import { Flag, AlertCircle } from "lucide-react"
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export default function ExamSession({ exam, questions, submission, user }: { exam: any, questions: any[], submission: any, user: any }) {
     const [currentIndex, setCurrentIndex] = useState(0)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const [answers, setAnswers] = useState<Record<string, any>>({})
     const [flaggedQuestions, setFlaggedQuestions] = useState<Set<string>>(new Set())
     const totalDurationMinutes = exam.durationMinutes + (submission.bonusTimeMinutes || 0)
@@ -45,6 +47,7 @@ export default function ExamSession({ exam, questions, submission, user }: { exa
             setTimeLeft(prev => prev - 1)
         }, 1000)
         return () => clearInterval(timer)
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [timeLeft])
 
     const currentQuestion = questions[currentIndex]
@@ -63,6 +66,7 @@ export default function ExamSession({ exam, questions, submission, user }: { exa
                 setTimeout(() => handleFinish(), 2000)
             }
         }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [submission.id, exam.maxViolations])
 
     // Enable lockdown if exam requires it
@@ -73,6 +77,7 @@ export default function ExamSession({ exam, questions, submission, user }: { exa
     )
 
     // Handle answer change
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const handleAnswer = async (value: any) => {
         const newAnswers = { ...answers, [currentQuestion.id]: value }
         setAnswers(newAnswers)
@@ -191,7 +196,6 @@ export default function ExamSession({ exam, questions, submission, user }: { exa
                     </CardHeader>
                     <CardContent className="space-y-6">
                         <div className="prose max-w-none text-lg">
-                            {/* @ts-ignore */}
                             {currentQuestion.content.question}
                         </div>
 
@@ -201,7 +205,6 @@ export default function ExamSession({ exam, questions, submission, user }: { exa
                                 value={answers[currentQuestion.id] || ""}
                                 onValueChange={handleAnswer}
                             >
-                                {/* @ts-ignore */}
                                 {currentQuestion.content.options.map((opt: string, i: number) => (
                                     <div key={i} className="flex items-center space-x-2 p-2 border rounded hover:bg-gray-50">
                                         <RadioGroupItem value={i.toString()} id={`opt-${i}`} />
@@ -213,7 +216,6 @@ export default function ExamSession({ exam, questions, submission, user }: { exa
 
                         {currentQuestion.type === "complex_mc" && (
                             <div className="space-y-2">
-                                {/* @ts-ignore */}
                                 {currentQuestion.content.options.map((opt: string, i: number) => {
                                     const currentAns = answers[currentQuestion.id] || []
                                     return (

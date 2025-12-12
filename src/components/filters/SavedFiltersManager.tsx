@@ -20,14 +20,16 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Bookmark, Star, Trash2, Check, Plus } from "lucide-react";
-import { useSavedFilters, SavedFilter } from "@/hooks/use-saved-filters";
+import { Bookmark, Star, Trash2, Plus } from "lucide-react";
+import { useSavedFilters } from "@/hooks/use-saved-filters";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 
 interface SavedFiltersManagerProps {
     page: string;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     currentFilters: Record<string, any>;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     onApply: (filters: Record<string, any>) => void;
 }
 

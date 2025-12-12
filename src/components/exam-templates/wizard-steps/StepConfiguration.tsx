@@ -11,6 +11,7 @@ interface StepConfigurationProps {
 }
 
 export function StepConfiguration({ formData, setFormData }: StepConfigurationProps) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const updateViolationSetting = (key: string, value: any) => {
         setFormData({
             ...formData,

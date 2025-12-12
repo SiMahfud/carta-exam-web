@@ -8,7 +8,7 @@ import {
     DialogTitle,
 } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
-import { Eye, RefreshCw, Loader2, Clock, ArrowRight } from "lucide-react";
+import { Eye, RefreshCw, Loader2, Clock } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { MathHtmlRenderer } from "@/components/ui/math-html-renderer";
 import { MatchingQuestionRenderer } from "@/components/exam/MatchingQuestionRenderer";
@@ -18,12 +18,14 @@ interface PreviewQuestion {
     type: string;
     questionText: string;
     options?: { label: string; text: string }[];
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     correctAnswer?: any;
     points?: number;
     difficulty?: string;
     pairs?: { left: string; right: string }[];
     leftItems?: (string | { id: string; text: string })[];
     rightItems?: (string | { id: string; text: string })[];
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     rawAnswerKey?: any;
     acceptableAnswers?: string[];
     rubric?: { criterion: string; points: number }[];
@@ -176,7 +178,7 @@ export default function ExamPreviewDialog({ templateId, open, onOpenChange }: Ex
                                                 <div className="space-y-3">
                                                     <p className="text-xs text-blue-600 italic">💡 Cara menjawab: Klik salah satu pilihan jawaban</p>
                                                     <div className="space-y-2 pl-4">
-                                                        {question.options.map((option: any, idx: number) => {
+                                                        {question.options.map((option, _idx) => {
                                                             let correctLabel = question.correctAnswer;
                                                             // Handle numeric index (0, 1, 2...) or string index ("0", "1"...)
                                                             if (typeof correctLabel === 'number' || !isNaN(Number(correctLabel))) {
@@ -206,9 +208,10 @@ export default function ExamPreviewDialog({ templateId, open, onOpenChange }: Ex
                                                 <div className="space-y-3">
                                                     <p className="text-xs text-blue-600 italic">💡 Cara menjawab: Centang satu atau lebih pilihan jawaban yang benar</p>
                                                     <div className="space-y-2 pl-4">
-                                                        {question.options.map((option: any, idx: number) => {
+                                                        {question.options.map((option, _idx) => {
                                                             let correctLabels: string[] = [];
                                                             if (Array.isArray(question.correctAnswer)) {
+                                                                // eslint-disable-next-line @typescript-eslint/no-explicit-any
                                                                 correctLabels = question.correctAnswer.map((ans: any) => {
                                                                     if (typeof ans === 'number' || !isNaN(Number(ans))) {
                                                                         return String.fromCharCode(65 + Number(ans));
@@ -256,6 +259,7 @@ export default function ExamPreviewDialog({ templateId, open, onOpenChange }: Ex
                                                         {question.rubric && question.rubric.length > 0 && (
                                                             <div className="mt-2">
                                                                 <p className="text-xs font-semibold text-blue-800 mb-1">Rubrik:</p>
+                                                                // eslint-disable-next-line @typescript-eslint/no-explicit-any
                                                                 {question.rubric.map((r: any, idx: number) => (
                                                                     <div key={idx} className="text-xs text-blue-700">• {r.criterion} ({r.points} poin)</div>
                                                                 ))}
@@ -313,6 +317,7 @@ export default function ExamPreviewDialog({ templateId, open, onOpenChange }: Ex
                                                                 const { leftItems, rightItems, rawAnswerKey } = question;
                                                                 if (!leftItems || !rightItems || !rawAnswerKey) return [];
 
+                                                                // eslint-disable-next-line @typescript-eslint/no-explicit-any
                                                                 const getItemId = (item: any) => typeof item === 'object' ? (item.id || item.text) : item;
 
                                                                 if (rawAnswerKey.matches) {

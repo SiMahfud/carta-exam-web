@@ -24,6 +24,7 @@ export function StepTarget({ formData, setFormData }: StepTargetProps) {
                 <Label>Tipe Target</Label>
                 <Select
                     value={formData.targetType}
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
                     onValueChange={(value: any) => setFormData({ ...formData, targetType: value, targetIds: [] })}
                 >
                     <SelectTrigger>

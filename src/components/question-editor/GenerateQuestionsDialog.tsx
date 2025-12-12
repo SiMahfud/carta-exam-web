@@ -15,7 +15,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { generateQuestions } from "@/actions/ai";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Sparkles, AlertCircle, Save, Check } from "lucide-react";
+import { Loader2, Sparkles, AlertCircle, Save } from "lucide-react";
 import { QuestionPreviewCard } from "./QuestionPreviewCard";
 
 interface GenerateQuestionsDialogProps {
@@ -27,16 +27,18 @@ export function GenerateQuestionsDialog({ bankId, onSuccess }: GenerateQuestions
     const [open, setOpen] = useState(false);
     const [isGenerating, setIsGenerating] = useState(false);
     const [isSaving, setIsSaving] = useState(false);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const [generatedQuestions, setGeneratedQuestions] = useState<any[]>([]);
     const [prompt, setPrompt] = useState("");
     const [file, setFile] = useState<File | null>(null);
     const [error, setError] = useState<string | null>(null);
 
     // Options
-    const [qType, setQType] = useState<any>("mc");
+    const [qType, setQType] = useState<string>("mc");
     const [qCount, setQCount] = useState(5);
-    const [qDifficulty, setQDifficulty] = useState<any>("medium");
-    const [qTopic, setQTopic] = useState("");
+    const [qDifficulty, setQDifficulty] = useState<string>("medium");
+    const qTopic = ""; // topic is passed as options.topic below
+
 
     const [customDistribution, setCustomDistribution] = useState<{ [key: string]: number }>({
         mc: 0,
@@ -87,7 +89,8 @@ export function GenerateQuestionsDialog({ bankId, onSuccess }: GenerateQuestions
                 contextFile = await convertFileToBase64(file);
             }
 
-            let options: any = {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const options: any = {
                 type: qType,
                 count: qCount,
                 difficulty: qDifficulty,
@@ -97,6 +100,7 @@ export function GenerateQuestionsDialog({ bankId, onSuccess }: GenerateQuestions
             if (qType === 'mixed_custom') {
                 options.type = 'all';
                 // Filter out 0 counts
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 const dist: any = {};
                 Object.entries(customDistribution).forEach(([k, v]) => {
                     if (v > 0) dist[k] = v;
@@ -125,12 +129,13 @@ export function GenerateQuestionsDialog({ bankId, onSuccess }: GenerateQuestions
                 setError("AI generation produced no valid questions. Try adjusting your prompt.");
             }
 
-        } catch (err: any) {
+        } catch (err) {
             console.error("Generation failed:", err);
-            setError(err.message || "Failed to generate questions. Please try again.");
+            const errorMessage = err instanceof Error ? err.message : "Failed to generate questions. Please try again.";
+            setError(errorMessage);
             toast({
                 title: "Generation Failed",
-                description: err.message,
+                description: errorMessage,
                 variant: "destructive"
             });
         } finally {
