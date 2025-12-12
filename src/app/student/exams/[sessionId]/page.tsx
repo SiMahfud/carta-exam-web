@@ -260,6 +260,41 @@ export default function TakeExamPage() {
         setExamStarted(true);
     };
 
+    // Helper function to ensure fullscreen is active
+    const ensureFullscreen = useCallback(() => {
+        if (!examStarted || submitting || !fullscreenSupported) return;
+
+        const isCurrentlyFullscreen = !!(
+            document.fullscreenElement ||
+            (document as unknown as { webkitFullscreenElement?: Element }).webkitFullscreenElement ||
+            (document as unknown as { mozFullScreenElement?: Element }).mozFullScreenElement
+        );
+
+        if (!isCurrentlyFullscreen) {
+            enterFullscreen();
+        }
+    }, [examStarted, submitting, fullscreenSupported, enterFullscreen]);
+
+    // Periodic fullscreen check - every 3 seconds during exam
+    useEffect(() => {
+        if (!examStarted || submitting) return;
+
+        const interval = setInterval(() => {
+            ensureFullscreen();
+        }, 3000); // Check every 3 seconds
+
+        return () => clearInterval(interval);
+    }, [examStarted, submitting, ensureFullscreen]);
+
+    // Navigation handler that also ensures fullscreen
+    const navigateToQuestion = useCallback((index: number) => {
+        setCurrentQuestionIndex(index);
+        // Re-enter fullscreen on navigation
+        setTimeout(() => {
+            ensureFullscreen();
+        }, 100);
+    }, [ensureFullscreen]);
+
     useEffect(() => {
         fetchStudentId();
     }, []);
@@ -314,6 +349,11 @@ export default function TakeExamPage() {
                 setMinSubmitMinutes(data.minDurationMinutes || 0);
                 if (data.startTime) {
                     setStartTime(new Date(data.startTime));
+                }
+
+                // Restore violation count from server
+                if (data.violationCount !== undefined) {
+                    setViolationCount(data.violationCount);
                 }
 
                 // Restore answers if available
@@ -491,7 +531,7 @@ export default function TakeExamPage() {
                         questions={questions}
                         answers={answers}
                         currentQuestionIndex={currentQuestionIndex}
-                        setCurrentQuestionIndex={setCurrentQuestionIndex}
+                        setCurrentQuestionIndex={navigateToQuestion}
                         isSidebarOpen={isSidebarOpen}
                         setIsSidebarOpen={setIsSidebarOpen}
                     />
@@ -559,7 +599,7 @@ export default function TakeExamPage() {
                             <div className="p-4 border-t bg-muted/10 flex justify-between items-center gap-4">
                                 <Button
                                     variant="outline"
-                                    onClick={() => setCurrentQuestionIndex(Math.max(0, currentQuestionIndex - 1))}
+                                    onClick={() => navigateToQuestion(Math.max(0, currentQuestionIndex - 1))}
                                     disabled={currentQuestionIndex === 0}
                                     className="w-32"
                                 >
@@ -578,7 +618,7 @@ export default function TakeExamPage() {
                                 </div>
 
                                 <Button
-                                    onClick={() => setCurrentQuestionIndex(Math.min(questions.length - 1, currentQuestionIndex + 1))}
+                                    onClick={() => navigateToQuestion(Math.min(questions.length - 1, currentQuestionIndex + 1))}
                                     disabled={currentQuestionIndex === questions.length - 1}
                                     className="w-32 shadow-lg shadow-primary/10"
                                 >

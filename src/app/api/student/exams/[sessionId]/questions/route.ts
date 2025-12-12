@@ -159,7 +159,8 @@ export async function GET(
             startTime: submission.startTime,
             minDurationMinutes: template.minDurationMinutes || 0,
             submissionId: submission.id,
-            answers: answersMap
+            answers: answersMap,
+            violationCount: submission.violationCount || 0
         });
     } catch (error) {
         console.error("Error fetching questions:", error);
