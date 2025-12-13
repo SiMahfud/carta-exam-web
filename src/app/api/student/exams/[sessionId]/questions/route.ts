@@ -81,6 +81,9 @@ export async function GET(
             randomizationRules: examTemplates.randomizationRules,
             durationMinutes: examTemplates.durationMinutes,
             minDurationMinutes: examTemplates.minDurationMinutes,
+            maxViolations: examTemplates.maxViolations,
+            violationSettings: examTemplates.violationSettings,
+            enableLockdown: examTemplates.enableLockdown,
         })
             .from(examTemplates)
             .where(eq(examTemplates.id, session.templateId))
@@ -174,7 +177,11 @@ export async function GET(
             minDurationMinutes: template.minDurationMinutes || 0,
             submissionId: submission.id,
             answers: answersMap,
-            violationCount: submission.violationCount || 0
+            violationCount: submission.violationCount || 0,
+            // Security settings
+            maxViolations: template.maxViolations || 3,
+            violationSettings: template.violationSettings,
+            enableLockdown: template.enableLockdown,
         });
     } catch (error) {
         console.error("Error fetching questions:", error);

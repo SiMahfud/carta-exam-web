@@ -49,6 +49,7 @@ export default function TakeExamPage() {
     const [examName, setExamName] = useState<string>("");
     const [minSubmitMinutes, setMinSubmitMinutes] = useState(0);
     const [startTime, setStartTime] = useState<Date | null>(null);
+    const [violationSettings, setViolationSettings] = useState<any>(null); // To store config
 
     // Token states
     const [showTokenDialog, setShowTokenDialog] = useState(false);
@@ -62,6 +63,12 @@ export default function TakeExamPage() {
     // Security hook - only enabled after exam starts
     useExamSecurity({
         enabled: examStarted,
+        cooldownMs: (violationSettings?.cooldownSeconds || 5) * 1000,
+        disableCopyPaste: violationSettings?.detectCopyPaste ?? true,
+        disableRightClick: violationSettings?.detectRightClick ?? true,
+        detectTabSwitch: violationSettings?.detectTabSwitch ?? true,
+        detectScreenshot: violationSettings?.detectScreenshot ?? true,
+        detectWindowBlur: false, // Maintain default
         onViolation: (violation) => {
             setViolationCount(prev => prev + 1);
             setLastViolationType(violation.type);
@@ -378,6 +385,10 @@ export default function TakeExamPage() {
                 // Restore violation count from server
                 if (data.violationCount !== undefined) {
                     setViolationCount(data.violationCount);
+                }
+
+                if (data.violationSettings) {
+                    setViolationSettings(data.violationSettings);
                 }
 
                 // Restore answers if available
