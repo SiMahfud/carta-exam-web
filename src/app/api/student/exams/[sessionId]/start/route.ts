@@ -112,16 +112,33 @@ export async function POST(
         for (const type of questionTypes) {
             const count = composition[type] || 0;
             if (count > 0) {
-                const typeQuestions = allQuestions.filter((q: typeof allQuestions[0]) => q.type === type);
-                // Shuffle and take required count
-                const shuffled = typeQuestions.sort(() => Math.random() - 0.5);
-                selectedQuestions.push(...shuffled.slice(0, count));
+                let typeQuestions = allQuestions.filter((q: typeof allQuestions[0]) => q.type === type);
+
+                // Sort by questionNumber to ensure deterministic starting point
+                typeQuestions.sort((a: any, b: any) => ((a.questionNumber || 0) - (b.questionNumber || 0)));
+
+                if (template.randomizeQuestions) {
+                    // If random enabled, shuffle the pool before slicing
+                    typeQuestions = typeQuestions.sort(() => Math.random() - 0.5);
+                }
+
+                selectedQuestions.push(...typeQuestions.slice(0, count));
             }
         }
 
         // Apply randomization based on template rules
-        const randomizationRules = (template.randomizationRules as RandomizationRules) || { mode: 'all' };
-        const questionOrder = applyQuestionRandomization(selectedQuestions, randomizationRules);
+        let questionOrder: string[];
+
+        if (template.randomizeQuestions) {
+            const randomizationRules = (template.randomizationRules as RandomizationRules) || { mode: 'all' };
+            questionOrder = applyQuestionRandomization(selectedQuestions, randomizationRules);
+        } else {
+            // Strict sorting by questionNumber if randomization is disabled
+            // This ensures mixed types appear in the correct Question Number order (e.g. 1, 2, 3...)
+            questionOrder = selectedQuestions
+                .sort((a, b) => ((a.questionNumber || 0) - (b.questionNumber || 0)))
+                .map(q => q.id);
+        }
 
         // Create submission
         // Create submission

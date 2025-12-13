@@ -16,6 +16,7 @@ export default function CreateExamTemplatePage() {
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
                     ...formData,
+                    minDurationMinutes: formData.minSubmitMinutes,
                     createdBy: "412d0456-4fcd-473b-a3b5-e16b9a116976", // TODO: Replace with actual user ID from session
                 }),
             });

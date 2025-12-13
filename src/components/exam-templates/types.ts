@@ -46,6 +46,8 @@ export interface ExamTemplateFormData {
     requireToken: boolean;
     maxViolations: number;
     violationSettings: ViolationSettings;
+    randomizeQuestions?: boolean;
+    randomizeAnswers?: boolean;
     // New fields
     targetType: 'all' | 'classes' | 'grades' | 'students';
     targetIds: string[];

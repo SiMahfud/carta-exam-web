@@ -76,6 +76,7 @@ export const bankQuestions = sqliteTable("bank_questions", {
     tags: text("tags", { mode: "json" }).$type<string[]>().$defaultFn(() => []), // ["Bab 1", "Trigonometri", "Sulit"]
     difficulty: text("difficulty", { enum: ["easy", "medium", "hard"] }).default("medium"),
     defaultPoints: integer("default_points").notNull().default(1),
+    questionNumber: integer("question_number").default(0),
     metadata: text("metadata", { mode: "json" }).$type<Record<string, unknown>>(), // Additional metadata
     createdBy: text("created_by").references(() => users.id, { onDelete: "set null" }), // Nullable until auth is fully implemented
     createdAt: integer("created_at", { mode: "timestamp" }).default(sql`(unixepoch())`),

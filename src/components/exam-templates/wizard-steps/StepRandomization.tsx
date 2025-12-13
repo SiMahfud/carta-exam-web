@@ -30,6 +30,7 @@ export function StepRandomization({ formData, setFormData }: StepRandomizationPr
                     // eslint-disable-next-line @typescript-eslint/no-explicit-any
                     onValueChange={(value: any) => setFormData({
                         ...formData,
+                        randomizeQuestions: true,
                         randomizationRules: { ...formData.randomizationRules, mode: value }
                     })}
                 >
@@ -166,6 +167,7 @@ export function StepRandomization({ formData, setFormData }: StepRandomizationPr
                         checked={formData.randomizationRules.shuffleAnswers || false}
                         onCheckedChange={(checked) => setFormData({
                             ...formData,
+                            randomizeAnswers: checked,
                             randomizationRules: {
                                 ...formData.randomizationRules,
                                 shuffleAnswers: checked

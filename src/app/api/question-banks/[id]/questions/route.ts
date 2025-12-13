@@ -72,7 +72,7 @@ export async function GET(
             .where(and(...conditions))
             .limit(limit)
             .offset(offset)
-            .orderBy(bankQuestions.createdAt);
+            .orderBy(bankQuestions.questionNumber);
 
         const questions = await query;
 
@@ -145,6 +145,20 @@ export async function POST(
                 errors: [] as any[]
             };
 
+            // Initialize monotonic clock to ensure correct ordering (backup for questionNumber)
+            let lastCreatedAt = Date.now();
+
+            // Calculate starting question number
+            let currentQuestionNumber = 0;
+            if (mode !== 'replace') {
+                const maxResult = await db.select({ max: sql<number>`MAX(${bankQuestions.questionNumber})` })
+                    .from(bankQuestions)
+                    .where(eq(bankQuestions.bankId, params.id));
+                if (maxResult[0].max) {
+                    currentQuestionNumber = Number(maxResult[0].max);
+                }
+            }
+
             for (let i = 0; i < body.length; i++) {
                 const item = body[i];
                 try {
@@ -168,6 +182,12 @@ export async function POST(
                     }
 
                     // 3. Create Question
+                    // Ensure strictly increasing timestamp for valid sorting
+                    const now = Date.now();
+                    // If the loop runs too fast, force at least 10ms increment
+                    const createdAtTime = now <= lastCreatedAt ? lastCreatedAt + 10 : now;
+                    lastCreatedAt = createdAtTime;
+
                     await db.insert(bankQuestions).values({
                         id: crypto.randomUUID(),
                         bankId: params.id,
@@ -177,8 +197,9 @@ export async function POST(
                         tags: validatedData.tags || [],
                         difficulty: validatedData.difficulty,
                         defaultPoints: validatedData.defaultPoints,
-                        createdAt: new Date(),
-                        updatedAt: new Date(),
+                        questionNumber: ++currentQuestionNumber,
+                        createdAt: new Date(createdAtTime),
+                        updatedAt: new Date(createdAtTime),
                     });
 
                     results.created++;
@@ -203,6 +224,15 @@ export async function POST(
                 validatedData.content.question = await processContentImages(validatedData.content.question);
             }
 
+            // Calculate next question number
+            let currentQuestionNumber = 0;
+            const maxResult = await db.select({ max: sql<number>`MAX(${bankQuestions.questionNumber})` })
+                .from(bankQuestions)
+                .where(eq(bankQuestions.bankId, params.id));
+            if (maxResult[0].max) {
+                currentQuestionNumber = Number(maxResult[0].max);
+            }
+
             const newId = crypto.randomUUID();
             await db.insert(bankQuestions).values({
                 id: newId,
@@ -213,6 +243,7 @@ export async function POST(
                 tags: validatedData.tags || [],
                 difficulty: validatedData.difficulty,
                 defaultPoints: validatedData.defaultPoints,
+                questionNumber: ++currentQuestionNumber,
                 createdAt: new Date(),
                 updatedAt: new Date(),
             });

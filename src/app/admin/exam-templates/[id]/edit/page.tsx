@@ -87,7 +87,10 @@ export default function EditExamTemplatePage({ params }: { params: { id: string 
             const response = await fetch(`/api/exam-templates/${params.id}`, {
                 method: "PUT",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(formData),
+                body: JSON.stringify({
+                    ...formData,
+                    minDurationMinutes: formData.minSubmitMinutes,
+                }),
             });
 
             if (response.ok) {

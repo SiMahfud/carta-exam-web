@@ -107,7 +107,7 @@ export default function ExamTemplatesPage() {
                 order: order
             });
 
-            const response = await fetch(`/api/exam-templates?${params.toString()}`);
+            const response = await fetch(`/api/exam-templates?${params.toString()}`, { cache: "no-store" });
             if (response.ok) {
                 const data = await response.json();
                 setTemplates(data.data);

@@ -42,6 +42,7 @@ export async function GET(
             randomizationRules: examTemplates.randomizationRules,
             targetType: examTemplates.targetType,
             targetIds: examTemplates.targetIds,
+            violationSettings: examTemplates.violationSettings,
             subjectName: subjects.name,
         })
             .from(examTemplates)
@@ -102,6 +103,7 @@ export async function PUT(
             allowRetake,
             maxTabSwitches,
             displaySettings,
+            violationSettings,
         } = body;
 
         await db.update(examTemplates)
@@ -133,6 +135,7 @@ export async function PUT(
                 allowRetake,
                 maxTabSwitches,
                 displaySettings,
+                violationSettings,
                 updatedAt: new Date(),
             })
             .where(eq(examTemplates.id, params.id));
