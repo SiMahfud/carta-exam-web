@@ -63,11 +63,37 @@ export async function GET(
 
         // Format answers for frontend with proper answer key conversion
         const formattedAnswers = answersData.map((a: typeof answersData[0]) => {
-            let correctAnswer = a.questionAnswerKey;
+            // Parse questionAnswerKey if it's a JSON string
+            let parsedAnswerKey: any;
+            try {
+                parsedAnswerKey = a.questionAnswerKey;
+                if (typeof parsedAnswerKey === 'string') { try { parsedAnswerKey = JSON.parse(parsedAnswerKey); } catch { } }
+                if (typeof parsedAnswerKey === 'string') { try { parsedAnswerKey = JSON.parse(parsedAnswerKey); } catch { } }
+                if (!parsedAnswerKey || typeof parsedAnswerKey !== 'object') parsedAnswerKey = {};
+            } catch { parsedAnswerKey = {}; }
+
+            // Parse questionContent if it's a JSON string
+            let parsedContent: any;
+            try {
+                parsedContent = a.questionContent;
+                if (typeof parsedContent === 'string') { try { parsedContent = JSON.parse(parsedContent); } catch { } }
+                if (typeof parsedContent === 'string') { try { parsedContent = JSON.parse(parsedContent); } catch { } }
+                if (!parsedContent || typeof parsedContent !== 'object') parsedContent = {};
+            } catch { parsedContent = {}; }
+
+            // Parse studentAnswer if it's a JSON string
+            let parsedStudentAnswer: any;
+            try {
+                parsedStudentAnswer = a.studentAnswer;
+                if (typeof parsedStudentAnswer === 'string') { try { parsedStudentAnswer = JSON.parse(parsedStudentAnswer); } catch { } }
+                if (typeof parsedStudentAnswer === 'string') { try { parsedStudentAnswer = JSON.parse(parsedStudentAnswer); } catch { } }
+            } catch { }
+
+            let correctAnswer = parsedAnswerKey;
 
             // Extract value if stored as object {correct: value}
             if (correctAnswer && typeof correctAnswer === 'object' && 'correct' in correctAnswer) {
-                correctAnswer = (correctAnswer as any).correct;
+                correctAnswer = correctAnswer.correct;
             }
 
             // For MC: convert index to letter (0->A, 1->B, 2->C, etc.)
@@ -94,9 +120,9 @@ export async function GET(
                 answerId: a.answerId,
                 questionId: a.questionId,
                 type: a.questionType,
-                questionText: (a.questionContent as any).question || (a.questionContent as any).questionText,
-                questionContent: a.questionContent,
-                studentAnswer: a.studentAnswer,
+                questionText: parsedContent.question || parsedContent.questionText,
+                questionContent: parsedContent,
+                studentAnswer: parsedStudentAnswer,
                 correctAnswer: correctAnswer,
                 isFlagged: a.isFlagged,
                 isCorrect: a.isCorrect,

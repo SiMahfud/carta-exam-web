@@ -50,7 +50,23 @@ export async function GET(
             );
         }
 
-        const questionOrder = submission.questionOrder as string[];
+        // Parse questionOrder if it's a JSON string
+        // Handle potential double-escaped strings
+        let questionOrder: string[] = [];
+        try {
+            let parsed = submission.questionOrder;
+            if (typeof parsed === 'string') {
+                try { parsed = JSON.parse(parsed); } catch { }
+            }
+            if (typeof parsed === 'string') {
+                try { parsed = JSON.parse(parsed); } catch { }
+            }
+            if (Array.isArray(parsed)) questionOrder = parsed;
+        } catch { questionOrder = []; }
+
+        if (questionOrder.length === 0) {
+            console.error("No questions found in questionOrder", submission.questionOrder);
+        }
 
         // If startTime is null (after reset), set it to current time
         if (!submission.startTime) {
@@ -103,7 +119,17 @@ export async function GET(
             const question = questions.find((q: typeof questions[0]) => q.id === id);
             if (!question) return null;
 
-            const content = question.content as any;
+            // Parse content if it's a JSON string
+            let content: any;
+            if (typeof question.content === 'string') {
+                try {
+                    content = JSON.parse(question.content);
+                } catch {
+                    content = {};
+                }
+            } else {
+                content = question.content || {};
+            }
 
             // Randomize options if enabled (for MC and Complex MC)
             let options = content.options || [];

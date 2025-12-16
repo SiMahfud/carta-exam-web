@@ -50,7 +50,25 @@ export async function GET(request: Request) {
 
         // Filter sessions where student's class is in targetIds
         const assignedSessions = allSessions.filter((session: typeof allSessions[0]) => {
-            const targetIds = session.targetIds as any as string[];
+            let targetIds: string[] = [];
+            try {
+                let parsed = session.targetIds;
+
+                // Handle recursive JSON parsing for double-escaped strings
+                if (typeof parsed === 'string') {
+                    try { parsed = JSON.parse(parsed); } catch { }
+                }
+                if (typeof parsed === 'string') {
+                    try { parsed = JSON.parse(parsed); } catch { }
+                }
+
+                if (Array.isArray(parsed)) {
+                    targetIds = parsed;
+                }
+            } catch {
+                targetIds = [];
+            }
+
             return targetIds && targetIds.some((id: string) => classIds.includes(id));
         });
 

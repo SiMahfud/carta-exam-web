@@ -45,7 +45,12 @@ export async function GET(request: NextRequest) {
         // Filter questions by content match
         const filteredQuestions = questionResults.filter((q: typeof questionResults[0]) => {
             try {
-                const content = typeof q.content === 'string' ? JSON.parse(q.content) : q.content;
+                let content: any = q.content;
+                try {
+                    if (typeof content === 'string') { try { content = JSON.parse(content); } catch { } }
+                    if (typeof content === 'string') { try { content = JSON.parse(content); } catch { } }
+                    if (!content || typeof content !== 'object') content = {};
+                } catch { content = {}; }
                 const questionText = content?.question || content?.text || '';
                 return questionText.toLowerCase().includes(query.toLowerCase());
             } catch {
@@ -130,7 +135,12 @@ export async function GET(request: NextRequest) {
 
         const result: SearchResult = {
             questions: filteredQuestions.map((q: typeof filteredQuestions[0]) => {
-                const content = typeof q.content === 'string' ? JSON.parse(q.content) : q.content;
+                let content: any = q.content;
+                try {
+                    if (typeof content === 'string') { try { content = JSON.parse(content); } catch { } }
+                    if (typeof content === 'string') { try { content = JSON.parse(content); } catch { } }
+                    if (!content || typeof content !== 'object') content = {};
+                } catch { content = {}; }
                 const questionText = content?.question || content?.text || '';
                 return {
                     id: q.id,

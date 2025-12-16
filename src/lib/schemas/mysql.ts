@@ -1,4 +1,4 @@
-import { mysqlTable, varchar, text, int, timestamp, json, boolean, index } from "drizzle-orm/mysql-core";
+import { mysqlTable, varchar, text, int, timestamp, datetime, json, boolean, index } from "drizzle-orm/mysql-core";
 import { sql } from "drizzle-orm";
 
 // ============================================================================
@@ -11,7 +11,7 @@ export const users = mysqlTable("users", {
     username: varchar("username", { length: 255 }).notNull().unique(),
     password: varchar("password", { length: 255 }).notNull(),
     role: varchar("role", { length: 20, enum: ["admin", "teacher", "student"] }).notNull().default("student"),
-    createdAt: timestamp("created_at").default(sql`CURRENT_TIMESTAMP`),
+    createdAt: datetime("created_at").default(sql`CURRENT_TIMESTAMP`),
 }, (table) => ({
     roleIdx: index("users_role_idx").on(table.role),
 }));
@@ -25,7 +25,7 @@ export const subjects = mysqlTable("subjects", {
     name: varchar("name", { length: 255 }).notNull(),
     code: varchar("code", { length: 50 }).notNull().unique(), // e.g., "MAT", "BIN"
     description: text("description"),
-    createdAt: timestamp("created_at").default(sql`CURRENT_TIMESTAMP`),
+    createdAt: datetime("created_at").default(sql`CURRENT_TIMESTAMP`),
 });
 
 export const classes = mysqlTable("classes", {
@@ -34,7 +34,7 @@ export const classes = mysqlTable("classes", {
     grade: int("grade").notNull(), // 10, 11, 12
     academicYear: varchar("academic_year", { length: 20 }).notNull(), // e.g., "2025/2026"
     teacherId: varchar("teacher_id", { length: 36 }).references(() => users.id, { onDelete: "set null" }), // Wali kelas
-    createdAt: timestamp("created_at").default(sql`CURRENT_TIMESTAMP`),
+    createdAt: datetime("created_at").default(sql`CURRENT_TIMESTAMP`),
 }, (table) => ({
     teacherIdx: index("classes_teacher_idx").on(table.teacherId),
     gradeIdx: index("classes_grade_idx").on(table.grade),
@@ -44,7 +44,7 @@ export const classStudents = mysqlTable("class_students", {
     id: varchar("id", { length: 36 }).primaryKey().$defaultFn(() => crypto.randomUUID()),
     classId: varchar("class_id", { length: 36 }).notNull().references(() => classes.id, { onDelete: "cascade" }),
     studentId: varchar("student_id", { length: 36 }).notNull().references(() => users.id, { onDelete: "cascade" }),
-    enrolledAt: timestamp("enrolled_at").default(sql`CURRENT_TIMESTAMP`),
+    enrolledAt: datetime("enrolled_at").default(sql`CURRENT_TIMESTAMP`),
 }, (table) => ({
     classIdx: index("class_students_class_idx").on(table.classId),
     studentIdx: index("class_students_student_idx").on(table.studentId),
@@ -60,8 +60,8 @@ export const questionBanks = mysqlTable("question_banks", {
     name: varchar("name", { length: 255 }).notNull(), // e.g., "Bank Soal UTS Semester 1"
     description: text("description"),
     createdBy: varchar("created_by", { length: 36 }).references(() => users.id, { onDelete: "set null" }), // Nullable until auth is fully implemented
-    createdAt: timestamp("created_at").default(sql`CURRENT_TIMESTAMP`),
-    updatedAt: timestamp("updated_at").default(sql`CURRENT_TIMESTAMP`),
+    createdAt: datetime("created_at").default(sql`CURRENT_TIMESTAMP`),
+    updatedAt: datetime("updated_at").default(sql`CURRENT_TIMESTAMP`),
 }, (table) => ({
     subjectIdx: index("question_banks_subject_idx").on(table.subjectId),
     createdByIdx: index("question_banks_created_by_idx").on(table.createdBy),
@@ -79,9 +79,9 @@ export const bankQuestions = mysqlTable("bank_questions", {
     questionNumber: int("question_number").default(0),
     metadata: json("metadata").$type<Record<string, unknown>>(), // Additional metadata
     createdBy: varchar("created_by", { length: 36 }).references(() => users.id, { onDelete: "set null" }), // Nullable until auth is fully implemented
-    createdAt: timestamp("created_at").default(sql`CURRENT_TIMESTAMP`),
-    updatedAt: timestamp("updated_at").default(sql`CURRENT_TIMESTAMP`),
-    lastUsed: timestamp("last_used"), // Track usage
+    createdAt: datetime("created_at").default(sql`CURRENT_TIMESTAMP`),
+    updatedAt: datetime("updated_at").default(sql`CURRENT_TIMESTAMP`),
+    lastUsed: datetime("last_used"), // Track usage
 }, (table) => ({
     bankIdx: index("bank_questions_bank_idx").on(table.bankId),
     typeIdx: index("bank_questions_type_idx").on(table.type),
@@ -101,7 +101,7 @@ export const scoringTemplates = mysqlTable("scoring_templates", {
     allowPartialCredit: boolean("allow_partial_credit").default(true),
     partialCreditRules: json("partial_credit_rules")
         .$type<{ complex_mc?: number; matching?: number }>(), // Percentage for partial credit
-    createdAt: timestamp("created_at").default(sql`CURRENT_TIMESTAMP`),
+    createdAt: datetime("created_at").default(sql`CURRENT_TIMESTAMP`),
 });
 
 // ============================================================================
@@ -187,8 +187,12 @@ export const examTemplates = mysqlTable("exam_templates", {
         .$defaultFn(() => ({ showQuestionNumber: true, showRemainingTime: true, showNavigation: true })),
 
     createdBy: varchar("created_by", { length: 36 }).notNull().references(() => users.id, { onDelete: "cascade" }),
-    createdAt: timestamp("created_at").default(sql`CURRENT_TIMESTAMP`),
-    updatedAt: timestamp("updated_at").default(sql`CURRENT_TIMESTAMP`),
+    createdAt: datetime("created_at").default(sql`CURRENT_TIMESTAMP`),
+    updatedAt: datetime("updated_at", { mode: 'date' }).$defaultFn(() => {
+        const d = new Date(); d.setMilliseconds(0); return d;
+    }).$onUpdate(() => {
+        const d = new Date(); d.setMilliseconds(0); return d;
+    }),
 }, (table) => ({
     subjectIdx: index("exam_templates_subject_idx").on(table.subjectId),
     createdByIdx: index("exam_templates_created_by_idx").on(table.createdBy),
@@ -200,8 +204,8 @@ export const examSessions = mysqlTable("exam_sessions", {
     sessionName: varchar("session_name", { length: 255 }).notNull(),
 
     // Timing
-    startTime: timestamp("start_time").notNull(),
-    endTime: timestamp("end_time").notNull(),
+    startTime: datetime("start_time", { mode: 'date' }).notNull(),
+    endTime: datetime("end_time", { mode: 'date' }).notNull(),
 
     // Status
     status: varchar("status", { length: 20, enum: ["scheduled", "active", "completed", "cancelled"] }).default("scheduled"),
@@ -218,7 +222,7 @@ export const examSessions = mysqlTable("exam_sessions", {
         .$type<Record<string, string[]>>(), // { studentId: [questionIds] }
 
     createdBy: varchar("created_by", { length: 36 }).notNull().references(() => users.id, { onDelete: "cascade" }),
-    createdAt: timestamp("created_at").default(sql`CURRENT_TIMESTAMP`),
+    createdAt: datetime("created_at").default(sql`CURRENT_TIMESTAMP`),
 }, (table) => ({
     templateIdx: index("exam_sessions_template_idx").on(table.templateId),
     statusIdx: index("exam_sessions_status_idx").on(table.status),
@@ -231,7 +235,7 @@ export const questionPools = mysqlTable("question_pools", {
     studentId: varchar("student_id", { length: 36 }).notNull().references(() => users.id, { onDelete: "cascade" }),
     selectedQuestions: json("selected_questions").$type<string[]>().notNull(), // Array of bankQuestion IDs
     questionOrder: json("question_order").$type<string[]>().notNull(), // Ordered array
-    generatedAt: timestamp("generated_at").default(sql`CURRENT_TIMESTAMP`),
+    generatedAt: datetime("generated_at").default(sql`CURRENT_TIMESTAMP`),
 }, (table) => ({
     sessionIdx: index("question_pools_session_idx").on(table.sessionId),
     studentIdx: index("question_pools_student_idx").on(table.studentId),
@@ -258,7 +262,7 @@ export const exams = mysqlTable("exams", {
     enableLockdown: boolean("enable_lockdown").default(true),
     requireToken: boolean("require_token").default(false),
     maxViolations: int("max_violations").default(3),
-    createdAt: timestamp("created_at").default(sql`CURRENT_TIMESTAMP`),
+    createdAt: datetime("created_at").default(sql`CURRENT_TIMESTAMP`),
 });
 
 export const questions = mysqlTable("questions", {
@@ -292,8 +296,8 @@ export const submissions = mysqlTable("submissions", {
     totalPoints: int("total_points"), // Maximum possible points
     earnedPoints: int("earned_points"), // Points earned
 
-    startTime: timestamp("start_time").default(sql`CURRENT_TIMESTAMP`),
-    endTime: timestamp("end_time"),
+    startTime: datetime("start_time", { mode: 'date' }).$defaultFn(() => new Date()),
+    endTime: datetime("end_time", { mode: 'date' }),
     questionOrder: json("question_order"), // Array of question IDs
     flaggedQuestions: json("flagged_questions"), // Array of question IDs marked as "ragu-ragu"
     violationCount: int("violation_count").default(0),
@@ -303,7 +307,7 @@ export const submissions = mysqlTable("submissions", {
 
     // Grading status
     gradingStatus: varchar("grading_status", { length: 20, enum: ["auto", "pending_manual", "manual", "completed", "published"] }).default("auto"),
-    createdAt: timestamp("created_at").$defaultFn(() => new Date()),
+    createdAt: datetime("created_at", { mode: 'date' }).$defaultFn(() => new Date()),
 }, (table) => ({
     examIdx: index("submissions_exam_idx").on(table.examId),
     userIdx: index("submissions_user_idx").on(table.userId),
@@ -328,7 +332,7 @@ export const answers = mysqlTable("answers", {
     // Manual grading support
     gradingStatus: varchar("grading_status", { length: 20, enum: ["auto", "pending_manual", "manual", "completed"] }).default("auto"),
     gradedBy: varchar("graded_by", { length: 36 }).references(() => users.id, { onDelete: "set null" }), // Teacher who graded
-    gradedAt: timestamp("graded_at"),
+    gradedAt: datetime("graded_at"),
     gradingNotes: text("grading_notes"), // Teacher's notes/feedback
 }, (table) => ({
     submissionIdx: index("answers_submission_idx").on(table.submissionId),
@@ -342,7 +346,7 @@ export const activityLogs = mysqlTable("activity_logs", {
     entityType: varchar("entity_type", { length: 50 }).notNull(), // e.g., "exam_session", "question_bank", "subject", "class", "user"
     entityId: varchar("entity_id", { length: 36 }), // ID of the entity affected
     details: json("details").$type<Record<string, unknown>>(), // Additional context
-    createdAt: timestamp("created_at").default(sql`CURRENT_TIMESTAMP`),
+    createdAt: datetime("created_at").default(sql`CURRENT_TIMESTAMP`),
 }, (table) => ({
     userIdx: index("activity_logs_user_idx").on(table.userId),
     entityTypeIdx: index("activity_logs_entity_type_idx").on(table.entityType),
@@ -353,10 +357,10 @@ export const examTokens = mysqlTable("exam_tokens", {
     id: varchar("id", { length: 36 }).primaryKey().$defaultFn(() => crypto.randomUUID()),
     examId: varchar("exam_id", { length: 36 }).notNull().references(() => exams.id, { onDelete: "cascade" }),
     token: varchar("token", { length: 50 }).notNull(),
-    validFrom: timestamp("valid_from").notNull(),
-    validUntil: timestamp("valid_until").notNull(),
+    validFrom: datetime("valid_from").notNull(),
+    validUntil: datetime("valid_until").notNull(),
     isActive: boolean("is_active").default(true),
-    createdAt: timestamp("created_at").default(sql`CURRENT_TIMESTAMP`),
+    createdAt: datetime("created_at").default(sql`CURRENT_TIMESTAMP`),
 }, (table) => ({
     examIdx: index("exam_tokens_exam_idx").on(table.examId),
     tokenIdx: index("exam_tokens_token_idx").on(table.token),
@@ -391,7 +395,7 @@ export const schoolSettings = mysqlTable("school_settings", {
     address: text("address"),
 
     updatedBy: varchar("updated_by", { length: 36 }).references(() => users.id, { onDelete: "set null" }),
-    updatedAt: timestamp("updated_at").default(sql`CURRENT_TIMESTAMP`),
+    updatedAt: datetime("updated_at").default(sql`CURRENT_TIMESTAMP`),
 });
 
 // ============================================================================
@@ -405,7 +409,7 @@ export const savedFilters = mysqlTable("saved_filters", {
     page: varchar("page", { length: 255 }).notNull(), // e.g., "grading", "exam-sessions", "question-banks"
     filters: json("filters").notNull().$type<Record<string, string | string[] | boolean | null>>(),
     isDefault: boolean("is_default").default(false),
-    createdAt: timestamp("created_at").default(sql`CURRENT_TIMESTAMP`),
+    createdAt: datetime("created_at").default(sql`CURRENT_TIMESTAMP`),
 }, (table) => ({
     userIdx: index("saved_filters_user_idx").on(table.userId),
     pageIdx: index("saved_filters_page_idx").on(table.page),

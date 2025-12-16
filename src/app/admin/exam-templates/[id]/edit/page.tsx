@@ -22,33 +22,44 @@ export default function EditExamTemplatePage({ params }: { params: { id: string 
             const response = await fetch(`/api/exam-templates/${params.id}`);
             if (response.ok) {
                 const data = await response.json();
+                const safeParse = (data: any, fallback: any) => {
+                    if (typeof data === 'string') {
+                        try {
+                            return JSON.parse(data);
+                        } catch (e) {
+                            return fallback;
+                        }
+                    }
+                    return data || fallback;
+                };
+
                 // Ensure data matches ExamTemplateFormData structure
                 // Some fields might need default values if they are null in DB
                 setInitialData({
                     name: data.name,
                     description: data.description || "",
                     subjectId: data.subjectId,
-                    bankIds: data.bankIds || [],
-                    questionComposition: data.questionComposition || {
+                    bankIds: safeParse(data.bankIds, []),
+                    questionComposition: safeParse(data.questionComposition, {
                         mc: 0,
                         complex_mc: 0,
                         matching: 0,
                         short: 0,
                         essay: 0,
                         true_false: 0,
-                    },
+                    }),
                     durationMinutes: data.durationMinutes,
                     minSubmitMinutes: data.minDurationMinutes || 0,
                     totalScore: data.totalScore || 100,
-                    displaySettings: data.displaySettings || {
+                    displaySettings: safeParse(data.displaySettings, {
                         showQuestionNumber: true,
                         showRemainingTime: true,
                         showNavigation: true,
-                    },
+                    }),
                     enableLockdown: data.enableLockdown ?? true,
                     requireToken: data.requireToken ?? false,
                     maxViolations: data.maxViolations ?? 3,
-                    violationSettings: data.violationSettings || {
+                    violationSettings: safeParse(data.violationSettings, {
                         detectTabSwitch: true,
                         detectCopyPaste: true,
                         detectRightClick: true,
@@ -56,11 +67,11 @@ export default function EditExamTemplatePage({ params }: { params: { id: string 
                         detectDevTools: true,
                         cooldownSeconds: 5,
                         mode: 'strict' as const,
-                    },
+                    }),
                     // New fields
                     targetType: data.targetType || 'all',
-                    targetIds: data.targetIds || [],
-                    randomizationRules: data.randomizationRules || { mode: 'all' },
+                    targetIds: safeParse(data.targetIds, []),
+                    randomizationRules: safeParse(data.randomizationRules, { mode: 'all' }),
                 });
             } else {
                 toast({

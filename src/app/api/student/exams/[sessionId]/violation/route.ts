@@ -65,7 +65,21 @@ export async function POST(
         const maxViolations = templateData[0]?.maxViolations || 3;
 
         // Update violation log
-        const currentLog = (submission.violationLog as any) || [];
+        let currentLog: any[] = [];
+        try {
+            let parsed = submission.violationLog;
+            if (typeof parsed === 'string') {
+                try { parsed = JSON.parse(parsed); } catch { }
+            }
+            if (typeof parsed === 'string') {
+                try { parsed = JSON.parse(parsed); } catch { }
+            }
+            if (Array.isArray(parsed)) {
+                currentLog = parsed;
+            }
+        } catch {
+            currentLog = [];
+        }
         const newLog = [
             ...currentLog,
             {

@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { examTemplates, subjects } from "@/lib/schema";
+import { examTemplates, subjects } from "../../../../lib/schema";
 import { eq } from "drizzle-orm";
 import { ActivityLogger } from "@/lib/activity-logger";
 
@@ -136,7 +136,6 @@ export async function PUT(
                 maxTabSwitches,
                 displaySettings,
                 violationSettings,
-                updatedAt: new Date(),
             })
             .where(eq(examTemplates.id, params.id));
 

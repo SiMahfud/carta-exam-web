@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { bankQuestions } from "@/lib/schema";
+import { bankQuestions } from "../../../../../lib/schema";
 import { eq, and, sql } from "drizzle-orm";
 import { processContentImages } from "@/lib/image-processor";
 import { BankQuestionSchema } from "@/lib/validations/questions";
@@ -76,12 +76,37 @@ export async function GET(
 
         const questions = await query;
 
-        // Filter by tags if provided (client-side for simplicity with JSON field)
-        let filteredQuestions = questions;
+        // Parse JSON fields if they are returned as strings (handling potential DB driver inconsistencies)
+        const parsedQuestions = questions.map((q: { tags: any; content: any; answerKey: any;[key: string]: any }) => {
+            let tags = q.tags;
+            try {
+                if (typeof tags === 'string') { try { tags = JSON.parse(tags); } catch { } }
+                if (typeof tags === 'string') { try { tags = JSON.parse(tags); } catch { } }
+                if (!Array.isArray(tags)) tags = [];
+            } catch { tags = []; }
+
+            let content = q.content;
+            try {
+                if (typeof content === 'string') { try { content = JSON.parse(content); } catch { } }
+                if (typeof content === 'string') { try { content = JSON.parse(content); } catch { } }
+                if (!content || typeof content !== 'object') content = {};
+            } catch { content = {}; }
+
+            let answerKey = q.answerKey;
+            try {
+                if (typeof answerKey === 'string') { try { answerKey = JSON.parse(answerKey); } catch { } }
+                if (typeof answerKey === 'string') { try { answerKey = JSON.parse(answerKey); } catch { } }
+                if (!answerKey || typeof answerKey !== 'object') answerKey = {};
+            } catch { answerKey = {}; }
+
+            return { ...q, tags, content, answerKey };
+        });
+
+        // Filter by tags if provided
+        let filteredQuestions = parsedQuestions;
         if (tags && tags.length > 0) {
-            filteredQuestions = questions.filter((q: any) => {
-                const questionTags = (q.tags as string[]) || [];
-                return tags.some(tag => questionTags.includes(tag));
+            filteredQuestions = parsedQuestions.filter((q: any) => {
+                return tags.some(tag => q.tags.includes(tag));
             });
         }
 

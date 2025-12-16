@@ -168,7 +168,13 @@ export async function GET(
         submissionsData.forEach((sub: typeof submissionsData[0]) => {
             const studentAnswers = answersData.filter((a: typeof answersData[0]) => a.submissionId === sub.submissionId && a.questionType === 'essay');
             studentAnswers.forEach((ans: typeof answersData[0], idx: number) => {
-                const content = typeof ans.questionContent === 'string' ? JSON.parse(ans.questionContent) : ans.questionContent;
+                let content: any;
+                try {
+                    content = ans.questionContent;
+                    if (typeof content === 'string') { try { content = JSON.parse(content); } catch { } }
+                    if (typeof content === 'string') { try { content = JSON.parse(content); } catch { } }
+                    if (!content || typeof content !== 'object') content = {};
+                } catch { content = {}; }
                 const questionText = content?.question || content?.questionText || '';
                 const studentAns = typeof ans.studentAnswer === 'string' ? ans.studentAnswer : (ans.studentAnswer?.text || JSON.stringify(ans.studentAnswer));
 

@@ -10,8 +10,16 @@ const JAKARTA_OFFSET = 7 * 60; // UTC+7 in minutes
  * @param date - Date object from database or any Date
  * @returns String in format "YYYY-MM-DDTHH:mm" in UTC+7 timezone
  */
-export function toDateTimeLocalString(date: Date | string): string {
+export function toDateTimeLocalString(date: Date | string | null | undefined): string {
+    if (!date) {
+        return '';
+    }
     const d = typeof date === 'string' ? new Date(date) : date;
+
+    // Check for invalid date
+    if (isNaN(d.getTime())) {
+        return '';
+    }
 
     // Get UTC time in milliseconds
     const utcTime = d.getTime();

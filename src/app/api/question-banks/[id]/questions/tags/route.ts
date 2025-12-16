@@ -16,9 +16,22 @@ export async function GET(
 
         // Extract unique tags
         const uniqueTags = new Set<string>();
-        questions.forEach((q: typeof questions[0]) => {
-            const tags = (q.tags as string[]) || [];
-            tags.forEach((tag: string) => uniqueTags.add(tag));
+        questions.forEach((q) => {
+            let tags = q.tags;
+
+            // Handle potential string format (if DB returns string instead of parsed JSON)
+            if (typeof tags === 'string') {
+                try {
+                    tags = JSON.parse(tags);
+                } catch (e) {
+                    console.warn("Failed to parse tags JSON:", tags, e);
+                    tags = [];
+                }
+            }
+
+            if (Array.isArray(tags)) {
+                tags.forEach((tag: string) => uniqueTags.add(tag));
+            }
         });
 
         return NextResponse.json({

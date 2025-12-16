@@ -27,43 +27,85 @@ export async function POST(
 
         const t = template[0];
 
-        // Get all questions from selected banks
-        const bankIds = t.bankIds as string[];
+        // Parse bankIds with recursive strategy
+        let bankIds: string[] = [];
+        try {
+            let parsed = t.bankIds;
+            if (typeof parsed === 'string') { try { parsed = JSON.parse(parsed); } catch { } }
+            if (typeof parsed === 'string') { try { parsed = JSON.parse(parsed); } catch { } }
+            if (Array.isArray(parsed)) bankIds = parsed;
+        } catch { bankIds = []; }
+
+        if (bankIds.length === 0) {
+            return NextResponse.json({ questions: [], totalQuestions: 0 });
+        }
+
+        // Get questions from banks
         const allQuestions = await db.select()
             .from(bankQuestions)
             .where(inArray(bankQuestions.bankId, bankIds));
 
-        // Group by type
-        const questionsByType: Record<string, any[]> = {
-            mc: [],
-            complex_mc: [],
-            matching: [],
-            short: [],
-            essay: [],
-        };
+        // Parse question composition with recursive strategy
+        let composition: Record<string, number> = {};
+        try {
+            let parsed = t.questionComposition;
+            if (typeof parsed === 'string') { try { parsed = JSON.parse(parsed); } catch { } }
+            if (typeof parsed === 'string') { try { parsed = JSON.parse(parsed); } catch { } }
+            if (parsed && typeof parsed === 'object') composition = parsed as Record<string, number>;
+        } catch { composition = {}; }
 
-        allQuestions.forEach((q: any) => {
-            if (questionsByType[q.type]) {
+        // Filter and select questions based on composition
+        let selectedQuestions: typeof allQuestions = [];
+
+        // If no composition set, return all questions (limited to 50 for preview)
+        if (Object.keys(composition).length === 0) {
+            selectedQuestions = allQuestions.slice(0, 50);
+        } else {
+            // Select random questions based on composition
+            const questionsByType: Record<string, typeof allQuestions> = {};
+            allQuestions.forEach(q => {
+                if (!questionsByType[q.type]) questionsByType[q.type] = [];
                 questionsByType[q.type].push(q);
-            }
+            });
+
+            Object.entries(composition).forEach(([type, count]) => {
+                const typeQuestions = questionsByType[type] || [];
+                // Simple random selection for preview
+                const shuffled = [...typeQuestions].sort(() => Math.random() - 0.5);
+                selectedQuestions.push(...shuffled.slice(0, count));
+            });
+        }
+
+        // Format for preview
+        const formattedQuestions = selectedQuestions.map(q => {
+            // Recursively parse content
+            let content: any = {};
+            try {
+                let parsed = q.content;
+                if (typeof parsed === 'string') { try { parsed = JSON.parse(parsed); } catch { } }
+                if (typeof parsed === 'string') { try { parsed = JSON.parse(parsed); } catch { } }
+                if (parsed && typeof parsed === 'object') content = parsed;
+            } catch { }
+
+            // Recursively parse answerKey
+            let answerKey: any = {};
+            try {
+                let parsed = q.answerKey;
+                if (typeof parsed === 'string') { try { parsed = JSON.parse(parsed); } catch { } }
+                if (typeof parsed === 'string') { try { parsed = JSON.parse(parsed); } catch { } }
+                if (parsed && typeof parsed === 'object') answerKey = parsed;
+            } catch { }
+
+            return {
+                id: q.id,
+                type: q.type,
+                content,
+                answerKey,
+                difficulty: q.difficulty,
+                tags: q.tags,
+            };
         });
 
-        // Select questions according to composition
-        const composition = t.questionComposition as any;
-        let selectedQuestions: any[] = [];
-
-        for (const [type, count] of Object.entries(composition)) {
-            const numCount = Number(count);
-            if (numCount && numCount > 0) {
-                const available = questionsByType[type as keyof typeof questionsByType] || [];
-                const selected = available.slice(0, numCount);
-                selectedQuestions.push(...selected.map((q, idx) => ({
-                    ...q,
-                    number: selectedQuestions.length + idx + 1,
-                    type,
-                })));
-            }
-        }
 
         // DISABLE RANDOMIZATION FOR PREVIEW - Keep original order for easier checking
         selectedQuestions = selectedQuestions.map((q, idx) => ({
@@ -78,8 +120,29 @@ export async function POST(
                 totalScore: t.totalScore || 100,
             },
             questions: selectedQuestions.map((q) => {
-                const content = (q.content as any) || {};
-                const answerKey = (q.answerKey as any) || {};
+                // Parse content if it's a JSON string
+                let content: any;
+                if (typeof q.content === 'string') {
+                    try {
+                        content = JSON.parse(q.content);
+                    } catch {
+                        content = {};
+                    }
+                } else {
+                    content = q.content || {};
+                }
+
+                // Parse answerKey if it's a JSON string
+                let answerKey: any;
+                if (typeof q.answerKey === 'string') {
+                    try {
+                        answerKey = JSON.parse(q.answerKey);
+                    } catch {
+                        answerKey = {};
+                    }
+                } else {
+                    answerKey = q.answerKey || {};
+                }
 
                 // Transform options array to {label, text} format for MC questions
                 let transformedOptions = null;

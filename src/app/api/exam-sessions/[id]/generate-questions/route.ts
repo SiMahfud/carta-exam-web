@@ -48,27 +48,69 @@ export async function POST(
         // Get list of students
         let studentIds: string[] = [];
 
+        // Parse targetIds if it's a JSON string
+        // Handle potential double-escaped strings
+        let targetIds: string[] = [];
+        try {
+            let parsed = s.targetIds;
+            if (typeof parsed === 'string') {
+                try { parsed = JSON.parse(parsed); } catch { }
+            }
+            if (typeof parsed === 'string') {
+                try { parsed = JSON.parse(parsed); } catch { }
+            }
+            if (Array.isArray(parsed)) targetIds = parsed;
+        } catch { targetIds = []; }
+
         if (s.targetType === "class") {
             // Get students from classes
-            const classIds = s.targetIds as string[];
-            const students = await db.select({ studentId: classStudents.studentId })
-                .from(classStudents)
-                .where(inArray(classStudents.classId, classIds));
+            if (targetIds.length > 0) {
+                const students = await db.select({ studentId: classStudents.studentId })
+                    .from(classStudents)
+                    .where(inArray(classStudents.classId, targetIds));
 
-            studentIds = Array.from(new Set(students.map((s: typeof students[0]) => s.studentId))); // Remove duplicates
+                studentIds = Array.from(new Set(students.map((s: typeof students[0]) => s.studentId))); // Remove duplicates
+            }
         } else {
             // Individual students
-            studentIds = s.targetIds as string[];
+            studentIds = targetIds;
         }
 
-        // Get all questions from banks
-        const bankIds = t.bankIds as string[];
+        // Parse bankIds if it's a JSON string
+        let bankIds: string[] = [];
+        try {
+            let parsed = t.bankIds;
+            if (typeof parsed === 'string') {
+                try { parsed = JSON.parse(parsed); } catch { }
+            }
+            if (typeof parsed === 'string') {
+                try { parsed = JSON.parse(parsed); } catch { }
+            }
+            if (Array.isArray(parsed)) bankIds = parsed;
+        } catch { bankIds = []; }
+
+        if (bankIds.length === 0) {
+            return NextResponse.json({ error: "No question banks configured" }, { status: 400 });
+        }
+
         let allQuestions = await db.select()
             .from(bankQuestions)
             .where(inArray(bankQuestions.bankId, bankIds));
 
+        // Parse filterTags if it's a JSON string
+        let filterTags: string[] = [];
+        try {
+            let parsed = t.filterTags;
+            if (typeof parsed === 'string') {
+                try { parsed = JSON.parse(parsed); } catch { }
+            }
+            if (typeof parsed === 'string') {
+                try { parsed = JSON.parse(parsed); } catch { }
+            }
+            if (Array.isArray(parsed)) filterTags = parsed;
+        } catch { filterTags = []; }
+
         // Apply tag filters
-        const filterTags = t.filterTags as string[] || [];
         if (filterTags.length > 0) {
             allQuestions = allQuestions.filter((q: typeof allQuestions[0]) => {
                 const qTags = (q.tags as string[]) || [];
@@ -83,6 +125,7 @@ export async function POST(
             matching: [],
             short: [],
             essay: [],
+            true_false: [],
         };
 
         allQuestions.forEach((q: typeof allQuestions[0]) => {
@@ -91,7 +134,18 @@ export async function POST(
             }
         });
 
-        const composition = t.questionComposition as any;
+        // Parse composition if it's a JSON string
+        let composition: Record<string, number> = {};
+        try {
+            let parsed = t.questionComposition;
+            if (typeof parsed === 'string') {
+                try { parsed = JSON.parse(parsed); } catch { }
+            }
+            if (typeof parsed === 'string') {
+                try { parsed = JSON.parse(parsed); } catch { }
+            }
+            if (parsed && typeof parsed === 'object') composition = parsed as Record<string, number>;
+        } catch { composition = {}; }
         const generatedQuestions: Record<string, string[]> = {};
 
         // Generate questions for each student

@@ -35,8 +35,18 @@ export async function GET(
         }
 
         const submission = submissionData[0];
-        // Cast violationLog to Violation[] or default to empty array if null
-        const violations = (submission.violationLog as unknown as Violation[]) || [];
+
+        // Parse violationLog if it's a JSON string
+        let violations: Violation[];
+        if (typeof submission.violationLog === 'string') {
+            try {
+                violations = JSON.parse(submission.violationLog);
+            } catch {
+                violations = [];
+            }
+        } else {
+            violations = (submission.violationLog as unknown as Violation[]) || [];
+        }
 
         return NextResponse.json({
             violationCount: submission.violationCount || 0,

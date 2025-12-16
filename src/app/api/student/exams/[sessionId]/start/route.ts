@@ -97,8 +97,33 @@ export async function POST(
             }
         }
 
-        const composition = template.questionComposition as any;
-        const bankIds = template.bankIds as string[];
+        // Parse composition if it's a JSON string
+        let composition: Record<string, number>;
+        if (typeof template.questionComposition === 'string') {
+            try {
+                composition = JSON.parse(template.questionComposition);
+            } catch {
+                composition = {};
+            }
+        } else {
+            composition = (template.questionComposition as Record<string, number>) || {};
+        }
+
+        // Parse bankIds if it's a JSON string
+        let bankIds: string[];
+        if (typeof template.bankIds === 'string') {
+            try {
+                bankIds = JSON.parse(template.bankIds);
+            } catch {
+                bankIds = [];
+            }
+        } else {
+            bankIds = (template.bankIds as string[]) || [];
+        }
+
+        if (bankIds.length === 0) {
+            return NextResponse.json({ error: "No question banks configured" }, { status: 400 });
+        }
 
         // Fetch questions from banks based on composition
         const allQuestions = await db.select()

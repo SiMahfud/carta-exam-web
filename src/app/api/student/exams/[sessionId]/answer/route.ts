@@ -48,7 +48,15 @@ export async function POST(
         }
 
         const question = questionData[0];
-        const answerKey = question.answerKey as any;
+
+        // Parse answerKey if it's a JSON string
+        let answerKey: any;
+        try {
+            answerKey = question.answerKey;
+            if (typeof answerKey === 'string') { try { answerKey = JSON.parse(answerKey); } catch { } }
+            if (typeof answerKey === 'string') { try { answerKey = JSON.parse(answerKey); } catch { } }
+            if (!answerKey || typeof answerKey !== 'object') answerKey = {};
+        } catch { answerKey = {}; }
 
         // Auto-grade based on question type
         let isCorrect = false;
@@ -95,7 +103,14 @@ export async function POST(
             isCorrect = acceptedAnswers.some((a: string) => a.toLowerCase() === studentAnswer);
             earnedPoints = isCorrect ? maxPoints : 0;
         } else if (question.type === 'matching') {
-            const content = question.content as any;
+            // Parse content if it's a JSON string
+            let content: any;
+            try {
+                content = question.content;
+                if (typeof content === 'string') { try { content = JSON.parse(content); } catch { } }
+                if (typeof content === 'string') { try { content = JSON.parse(content); } catch { } }
+                if (!content || typeof content !== 'object') content = {};
+            } catch { content = {}; }
             const leftItems = content.leftItems || [];
             const rightItems = content.rightItems || [];
 

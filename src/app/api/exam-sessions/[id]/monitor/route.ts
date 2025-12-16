@@ -22,7 +22,51 @@ export async function GET(
 
         // 2. Get assigned students
         let students: any[] = [];
-        const targetIds = session.targetIds as string[];
+
+        // Parse targetIds if it's a JSON string
+        // Handle potential double-escaped strings like '"[\"class_10a\"]"'
+        let targetIds: string[] = [];
+        try {
+            let parsed = session.targetIds;
+            // Recursively parse if it's a string, up to 2 times to find the array
+            if (typeof parsed === 'string') {
+                try {
+                    parsed = JSON.parse(parsed);
+                } catch {
+                    // if parse fails, keep as is
+                }
+            }
+            if (typeof parsed === 'string') {
+                try {
+                    parsed = JSON.parse(parsed);
+                } catch {
+                    // if parse fails, keep as is
+                }
+            }
+
+            if (Array.isArray(parsed)) {
+                targetIds = parsed;
+            } else {
+                targetIds = [];
+            }
+        } catch {
+            targetIds = [];
+        }
+
+        // Skip if no target IDs
+        if (targetIds.length === 0) {
+            return NextResponse.json({
+                session: {
+                    id: session.id,
+                    name: session.sessionName,
+                    status: session.status,
+                    startTime: session.startTime,
+                    endTime: session.endTime,
+                },
+                stats: { total: 0, notStarted: 0, inProgress: 0, completed: 0, violations: 0 },
+                students: []
+            });
+        }
 
         if (session.targetType === 'class') {
             // Fetch students from classes
