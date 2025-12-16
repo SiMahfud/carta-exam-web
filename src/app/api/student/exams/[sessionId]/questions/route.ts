@@ -100,14 +100,27 @@ export async function GET(
             maxViolations: examTemplates.maxViolations,
             violationSettings: examTemplates.violationSettings,
             enableLockdown: examTemplates.enableLockdown,
+            randomizeAnswers: examTemplates.randomizeAnswers,
         })
             .from(examTemplates)
             .where(eq(examTemplates.id, session.templateId))
             .limit(1);
 
         const template = templateData[0];
-        const randomizationRules = template.randomizationRules as { shuffleAnswers?: boolean } | null;
-        const shuffleAnswers = randomizationRules?.shuffleAnswers || false;
+
+        let randomizationRules: { shuffleAnswers?: boolean } = {};
+        try {
+            let parsed = template.randomizationRules;
+            if (typeof parsed === 'string') {
+                try { parsed = JSON.parse(parsed); } catch { }
+            }
+            if (typeof parsed === 'string') {
+                try { parsed = JSON.parse(parsed); } catch { }
+            }
+            if (parsed && typeof parsed === 'object') randomizationRules = parsed as { shuffleAnswers?: boolean };
+        } catch { randomizationRules = {}; }
+
+        const shuffleAnswers = template.randomizeAnswers || randomizationRules.shuffleAnswers || false;
 
         // Fetch all questions
         const questions = await db.select()

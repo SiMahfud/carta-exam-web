@@ -24,7 +24,17 @@ let db: any;
 let schema: any;
 
 if (provider === 'mysql') {
-    const connection = mysql.createPool(dbUrl);
+    // Ensure dateStrings is true for Drizzle compatibility with datetime columns
+    let connectionUri = dbUrl;
+    try {
+        const url = new URL(dbUrl);
+        url.searchParams.set('dateStrings', 'true');
+        connectionUri = url.toString();
+    } catch {
+        // Fallback for non-standard URIs (though unlikely for valid mysql connection strings)
+        connectionUri = dbUrl.includes('?') ? `${dbUrl}&dateStrings=true` : `${dbUrl}?dateStrings=true`;
+    }
+    const connection = mysql.createPool(connectionUri);
     schema = schemaMysql;
     db = drizzleMysql(connection, { schema, mode: 'default' });
 } else if (provider === 'postgres') {

@@ -484,6 +484,7 @@ export default function TakeExamPage() {
                     description: "Ujian berhasil dikumpulkan",
                 });
                 router.push("/student/exams");
+                // Don't setSubmitting(false) here, keep it true while navigating to prevent violations
             } else {
                 throw new Error("Failed to submit");
             }
@@ -494,7 +495,6 @@ export default function TakeExamPage() {
                 description: "Gagal mengumpulkan ujian",
                 variant: "destructive",
             });
-        } finally {
             setSubmitting(false);
         }
     };

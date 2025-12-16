@@ -9,6 +9,7 @@ import {
     users
 } from "@/lib/schema";
 import { eq, inArray, and } from "drizzle-orm";
+import { applyQuestionRandomization, RandomizationRules } from "@/lib/randomization";
 
 // POST /api/exam-sessions/[id]/generate-questions - Generate questions for students
 export async function POST(
@@ -146,6 +147,19 @@ export async function POST(
             }
             if (parsed && typeof parsed === 'object') composition = parsed as Record<string, number>;
         } catch { composition = {}; }
+        // Parse randomization rules
+        let randomizationRules: RandomizationRules = { mode: 'all' };
+        try {
+            let parsed = t.randomizationRules;
+            if (typeof parsed === 'string') {
+                try { parsed = JSON.parse(parsed); } catch { }
+            }
+            if (typeof parsed === 'string') {
+                try { parsed = JSON.parse(parsed); } catch { }
+            }
+            if (parsed && typeof parsed === 'object') randomizationRules = parsed as RandomizationRules;
+        } catch { randomizationRules = { mode: 'all' }; }
+
         const generatedQuestions: Record<string, string[]> = {};
 
         // Generate questions for each student
@@ -170,28 +184,44 @@ export async function POST(
                 selectedQuestions.push(...selected.map((q: typeof shuffled[0]) => q.id));
             }
 
-            // Randomize order if configured
-            let orderedQuestions = selectedQuestions;
-            if (t.randomizeQuestions) {
-                // If essayAtEnd, separate essays and randomize the rest
-                if (t.essayAtEnd) {
-                    const essays = allQuestions
-                        .filter((q: typeof allQuestions[0]) => selectedQuestions.includes(q.id) && q.type === "essay")
-                        .map((q: typeof allQuestions[0]) => q.id);
-                    const nonEssays = selectedQuestions.filter((id: string) => !essays.includes(id));
+            // Prepare question objects for randomization (need id and type)
+            const selectedQuestionObjects = selectedQuestions.map(id => {
+                const q = allQuestions.find((aq: typeof allQuestions[0]) => aq.id === id);
+                return { id, type: q?.type || 'unknown' };
+            });
 
-                    const shuffledNonEssays = [...nonEssays].sort(() => Math.random() - 0.5);
-                    orderedQuestions = [...shuffledNonEssays, ...essays];
+            // Randomize order based on rules
+            let orderedQuestions: string[] = [];
+
+            // Determine if we should randomize
+            // If randomizeQuestions is true, OR if we have specific advanced rules configured (ignoring the default 'all' which could mean uninitialized)
+            // This handles cases where user set "Exclude Type" but the boolean flag didn't get updated in DB
+            const shouldRandomize = t.randomizeQuestions || (randomizationRules.mode && randomizationRules.mode !== 'all');
+
+            if (shouldRandomize) {
+                if (t.essayAtEnd) {
+                    // Split essays and non-essays
+                    const essays = selectedQuestionObjects.filter(q => q.type === 'essay');
+                    const nonEssays = selectedQuestionObjects.filter(q => q.type !== 'essay');
+
+                    // Apply randomization rules to non-essays only
+                    const randomizedNonEssayIds = applyQuestionRandomization(nonEssays, randomizationRules);
+
+                    // Combine: Randomized non-essays + Original essays (at end)
+                    orderedQuestions = [...randomizedNonEssayIds, ...essays.map(q => q.id)];
                 } else {
-                    orderedQuestions = [...selectedQuestions].sort(() => Math.random() - 0.5);
+                    // Apply randomization to all questions
+                    orderedQuestions = applyQuestionRandomization(selectedQuestionObjects, randomizationRules);
                 }
-            } else if (t.essayAtEnd) {
-                // Just move essays to end without randomizing
-                const essays = allQuestions
-                    .filter((q: typeof allQuestions[0]) => selectedQuestions.includes(q.id) && q.type === "essay")
-                    .map((q: typeof allQuestions[0]) => q.id);
-                const nonEssays = selectedQuestions.filter((id: string) => !essays.includes(id));
-                orderedQuestions = [...nonEssays, ...essays];
+            } else {
+                // No randomization, but check essayAtEnd
+                if (t.essayAtEnd) {
+                    const essays = selectedQuestionObjects.filter(q => q.type === 'essay');
+                    const nonEssays = selectedQuestionObjects.filter(q => q.type !== 'essay');
+                    orderedQuestions = [...nonEssays.map(q => q.id), ...essays.map(q => q.id)];
+                } else {
+                    orderedQuestions = selectedQuestions;
+                }
             }
 
             generatedQuestions[studentId] = selectedQuestions;

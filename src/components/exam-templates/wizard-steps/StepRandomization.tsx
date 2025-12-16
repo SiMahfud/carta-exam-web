@@ -71,6 +71,7 @@ export function StepRandomization({ formData, setFormData }: StepRandomizationPr
                                             : current.filter(t => t !== type.value);
                                         setFormData({
                                             ...formData,
+                                            randomizeQuestions: true,
                                             randomizationRules: {
                                                 ...formData.randomizationRules,
                                                 types: updated
@@ -112,6 +113,7 @@ export function StepRandomization({ formData, setFormData }: StepRandomizationPr
                                             : current.filter(t => t !== type.value);
                                         setFormData({
                                             ...formData,
+                                            randomizeQuestions: true,
                                             randomizationRules: {
                                                 ...formData.randomizationRules,
                                                 excludeTypes: updated
@@ -141,6 +143,7 @@ export function StepRandomization({ formData, setFormData }: StepRandomizationPr
                                 .filter(n => !isNaN(n));
                             setFormData({
                                 ...formData,
+                                randomizeQuestions: true,
                                 randomizationRules: {
                                     ...formData.randomizationRules,
                                     questionNumbers: numbers

@@ -154,15 +154,52 @@ export async function POST(
         // Apply randomization based on template rules
         let questionOrder: string[];
 
-        if (template.randomizeQuestions) {
-            const randomizationRules = (template.randomizationRules as RandomizationRules) || { mode: 'all' };
-            questionOrder = applyQuestionRandomization(selectedQuestions, randomizationRules);
+        // Parse randomization rules
+        let randomizationRules: RandomizationRules = { mode: 'all' };
+        try {
+            let parsed = template.randomizationRules;
+            if (typeof parsed === 'string') {
+                try { parsed = JSON.parse(parsed); } catch { }
+            }
+            if (typeof parsed === 'string') {
+                try { parsed = JSON.parse(parsed); } catch { }
+            }
+            if (parsed && typeof parsed === 'object') randomizationRules = parsed as RandomizationRules;
+        } catch { randomizationRules = { mode: 'all' }; }
+
+        // Determine if we should randomize
+        const shouldRandomize = template.randomizeQuestions || (randomizationRules.mode && randomizationRules.mode !== 'all');
+
+        if (shouldRandomize) {
+            if (template.essayAtEnd) {
+                // Split essays and non-essays
+                const essays = selectedQuestions.filter(q => q.type === 'essay');
+                const nonEssays = selectedQuestions.filter(q => q.type !== 'essay');
+
+                // Apply randomization rules to non-essays only
+                const randomizedNonEssayIds = applyQuestionRandomization(nonEssays, randomizationRules);
+
+                // Combine: Randomized non-essays + Original essays (at end)
+                questionOrder = [...randomizedNonEssayIds, ...essays.map(q => q.id)];
+            } else {
+                questionOrder = applyQuestionRandomization(selectedQuestions, randomizationRules);
+            }
         } else {
             // Strict sorting by questionNumber if randomization is disabled
-            // This ensures mixed types appear in the correct Question Number order (e.g. 1, 2, 3...)
-            questionOrder = selectedQuestions
-                .sort((a, b) => ((a.questionNumber || 0) - (b.questionNumber || 0)))
-                .map(q => q.id);
+            if (template.essayAtEnd) {
+                const essays = selectedQuestions.filter(q => q.type === 'essay');
+                const nonEssays = selectedQuestions.filter(q => q.type !== 'essay');
+
+                // Sort internal arrays
+                essays.sort((a, b) => ((a.questionNumber || 0) - (b.questionNumber || 0)));
+                nonEssays.sort((a, b) => ((a.questionNumber || 0) - (b.questionNumber || 0)));
+
+                questionOrder = [...nonEssays.map(q => q.id), ...essays.map(q => q.id)];
+            } else {
+                questionOrder = selectedQuestions
+                    .sort((a, b) => ((a.questionNumber || 0) - (b.questionNumber || 0)))
+                    .map(q => q.id);
+            }
         }
 
         // Create submission
