@@ -15,15 +15,41 @@ import * as schemaSqlite from './schemas/sqlite';
 import * as schemaMysql from './schemas/mysql';
 import * as schemaPg from './schemas/postgresql';
 
-const provider = process.env.DATABASE_PROVIDER || 'sqlite';
-const dbUrl = process.env.DATABASE_URL || 'file:local.db';
+
+const provider = process.env.DB_TYPE || 'sqlite';
+
+// Construct DB URL from parts if not provided directly
+// This allows for DB_HOST, DB_USER, etc.
+let dbUrl = process.env.DATABASE_URL;
+
+if (!dbUrl && process.env.DB_TYPE && process.env.DB_HOST) {
+    const type = process.env.DB_TYPE;
+    const user = process.env.DB_USER;
+    const pass = process.env.DB_PASS;
+    const host = process.env.DB_HOST;
+    const port = process.env.DB_PORT;
+    const dbName = process.env.DB_NAME;
+
+    if (type === 'mysql') {
+        dbUrl = `mysql://${user}:${pass}@${host}:${port}/${dbName}`;
+    } else if (type === 'postgres') {
+        dbUrl = `postgres://${user}:${pass}@${host}:${port}/${dbName}`;
+    } else if (type === 'sqlite') {
+        dbUrl = `file:${dbName}`;
+    }
+}
+
+// Fallback for local dev if nothing is set
+if (!dbUrl) {
+    dbUrl = 'file:local.db';
+}
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 let db: any;
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 let schema: any;
 
-if (provider === 'mysql') {
+if (provider === 'mysql' || process.env.DB_TYPE === 'mysql') {
     // Ensure dateStrings is true for Drizzle compatibility with datetime columns
     let connectionUri = dbUrl;
     try {
@@ -37,7 +63,7 @@ if (provider === 'mysql') {
     const connection = mysql.createPool(connectionUri);
     schema = schemaMysql;
     db = drizzleMysql(connection, { schema, mode: 'default' });
-} else if (provider === 'postgres') {
+} else if (provider === 'postgres' || process.env.DB_TYPE === 'postgres') {
     const client = postgres(dbUrl);
     schema = schemaPg;
     db = drizzlePg(client, { schema });

@@ -4,7 +4,7 @@
 import * as dotenv from 'dotenv';
 dotenv.config();
 
-const provider = process.env.DATABASE_PROVIDER || 'sqlite';
+const provider = process.env.DB_TYPE || 'sqlite';
 const dbUrl = process.env.DATABASE_URL || 'file:local.db';
 
 interface MigrationColumn {

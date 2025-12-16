@@ -7,7 +7,7 @@ import { sql } from "drizzle-orm";
 import path from "path";
 
 export async function initializeDatabase() {
-    const provider = process.env.DATABASE_PROVIDER || "sqlite";
+    const provider = process.env.DB_TYPE || "sqlite";
     const migrationsFolder = path.join(process.cwd(), "drizzle");
 
     console.log(`[Init] Initializing database for provider: ${provider}...`);

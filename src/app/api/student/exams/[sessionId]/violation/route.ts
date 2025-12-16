@@ -57,12 +57,17 @@ export async function POST(
         // Get template for max violations
         const templateData = await db.select({
             maxViolations: examTemplates.maxViolations,
+            violationSettings: examTemplates.violationSettings,
         })
             .from(examTemplates)
             .where(eq(examTemplates.id, sessionData[0].templateId))
             .limit(1);
 
         const maxViolations = templateData[0]?.maxViolations || 3;
+        const violationSettings = templateData[0]?.violationSettings;
+        // Default to 'strict' if not set, for backward compatibility
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const violationMode = (violationSettings as any)?.mode || 'strict';
 
         // Update violation log
         let currentLog: any[] = [];
@@ -90,7 +95,10 @@ export async function POST(
         ];
 
         const newViolationCount = (submission.violationCount || 0) + 1;
-        const shouldTerminate = newViolationCount >= maxViolations;
+
+        // Only terminate if mode is 'strict' AND max violations reached
+        // In 'lenient' (Toleran) mode, we just log and warn
+        const shouldTerminate = violationMode === 'strict' && newViolationCount >= maxViolations;
 
         // Update submission
         await db.update(submissions)

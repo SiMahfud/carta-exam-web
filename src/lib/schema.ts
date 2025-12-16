@@ -2,7 +2,7 @@ import * as schemaSqlite from './schemas/sqlite';
 import * as schemaMysql from './schemas/mysql';
 import * as schemaPg from './schemas/postgresql';
 
-const provider = process.env.DATABASE_PROVIDER || 'sqlite';
+const provider = process.env.DB_TYPE || 'sqlite';
 
 const s = (provider === 'mysql' ? schemaMysql : (provider === 'postgres' ? schemaPg : schemaSqlite));
 
