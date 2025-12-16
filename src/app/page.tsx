@@ -110,46 +110,55 @@ export default async function Home() {
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-              {[
+              {(settings?.features && settings.features.length > 0 ? settings.features : [
                 {
-                  icon: ShieldCheck,
+                  icon: "ShieldCheck",
                   title: "Keamanan Tinggi",
-                  desc: "Lockdown browser, deteksi tab switching, dan anti copy-paste untuk integritas maksimal.",
+                  description: "Lockdown browser, deteksi tab switching, dan anti copy-paste untuk integritas maksimal.",
                   color: "text-blue-500"
                 },
                 {
-                  icon: BookOpen,
+                  icon: "BookOpen",
                   title: "Bank Soal Fleksibel",
-                  desc: "Mendukung Pilihan Ganda, Kompleks, Menjodohkan, Isian Singkat, dan Esai.",
+                  description: "Mendukung Pilihan Ganda, Kompleks, Menjodohkan, Isian Singkat, dan Esai.",
                   color: "text-purple-500"
                 },
                 {
-                  icon: MonitorPlay,
+                  icon: "MonitorPlay",
                   title: "Monitoring Real-time",
-                  desc: "Pantau aktivitas siswa secara langsung. Deteksi kecurangan secara instan.",
+                  description: "Pantau aktivitas siswa secara langsung. Deteksi kecurangan secara instan.",
                   color: "text-green-500"
                 },
                 {
-                  icon: CheckCircle,
+                  icon: "CheckCircle",
                   title: "Auto Grading",
-                  desc: "Penilaian otomatis untuk soal objektif. Hasil keluar instan dan akurat.",
+                  description: "Penilaian otomatis untuk soal objektif. Hasil keluar instan dan akurat.",
                   color: "text-orange-500"
                 }
-              ].map((feature, i) => (
-                <Card key={i} className="border-none shadow-md hover:shadow-xl transition-all duration-300 hover:-translate-y-1 bg-background/50 backdrop-blur-sm">
-                  <CardHeader>
-                    <div className={`h-12 w-12 rounded-lg bg-background shadow-sm flex items-center justify-center mb-4 ${feature.color}`}>
-                      <feature.icon className="h-6 w-6" />
-                    </div>
-                    <CardTitle className="text-xl">{feature.title}</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <CardDescription className="text-base leading-relaxed">
-                      {feature.desc}
-                    </CardDescription>
-                  </CardContent>
-                </Card>
-              ))}
+              ]).map((feature: any, i: number) => {
+                // Feature icon mapping
+                const IconComponent = feature.icon === "ShieldCheck" ? ShieldCheck :
+                  feature.icon === "BookOpen" ? BookOpen :
+                    feature.icon === "MonitorPlay" ? MonitorPlay :
+                      feature.icon === "CheckCircle" ? CheckCircle :
+                        CheckCircle; // Default fallback
+
+                return (
+                  <Card key={i} className="border-none shadow-md hover:shadow-xl transition-all duration-300 hover:-translate-y-1 bg-background/50 backdrop-blur-sm">
+                    <CardHeader>
+                      <div className={`h-12 w-12 rounded-lg bg-background shadow-sm flex items-center justify-center mb-4 ${feature.color}`}>
+                        <IconComponent className="h-6 w-6" />
+                      </div>
+                      <CardTitle className="text-xl">{feature.title}</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <CardDescription className="text-base leading-relaxed">
+                        {feature.description || feature.desc /* Handle both keys for compatibility */}
+                      </CardDescription>
+                    </CardContent>
+                  </Card>
+                )
+              })}
             </div>
           </div>
         </section>

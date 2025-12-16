@@ -67,6 +67,7 @@ export default function AdminLayout({
         { href: "/admin/exam-sessions", label: "Sesi Ujian", icon: Calendar },
         { href: "/admin/grading", label: "Penilaian", icon: Edit3 },
         { href: "/admin/users", label: "Manajemen User", icon: GraduationCap },
+        { href: "/admin/settings", label: "Pengaturan Sekolah", icon: Settings },
     ];
 
     return (

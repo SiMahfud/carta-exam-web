@@ -377,6 +377,8 @@ export const schoolSettings = mysqlTable("school_settings", {
     logoUrl: varchar("logo_url", { length: 500 }),
 
     // Landing Page Components
+    htmlTitle: varchar("html_title", { length: 255 }).default("CartaExam"),
+    faviconUrl: varchar("favicon_url", { length: 500 }),
     heroTitle: varchar("hero_title", { length: 255 }).notNull().default("Ujian Modern untuk Generasi Digital"),
     heroDescription: varchar("hero_description", { length: 500 }).notNull().default("Platform ujian yang aman, cerdas, dan mudah digunakan."),
     heroShowStats: boolean("hero_show_stats").default(true),
