@@ -15,19 +15,19 @@ import {
     FormItem,
     FormLabel,
     FormMessage,
-} from "@/components/ui/form";
+} from "../ui/form";
 import {
     Card,
     CardContent,
     CardDescription,
     CardHeader,
     CardTitle,
-} from "@/components/ui/card";
-import { Switch } from "@/components/ui/switch";
-import { toast } from "@/lib/toast-store";
-import { updateSchoolSettings, SchoolSettings } from "@/actions/settings";
+} from "../ui/card";
+import { Switch } from "../ui/switch";
+import { toast } from "../../lib/toast-store";
+import { updateSchoolSettings, SchoolSettings } from "../../actions/settings";
 import { Loader2, Plus, Trash2 } from "lucide-react";
-import { Separator } from "@/components/ui/separator";
+import { Separator } from "../ui/separator";
 
 const settingsSchema = z.object({
     schoolName: z.string().min(1, "Nama sekolah wajib diisi"),
@@ -39,7 +39,7 @@ const settingsSchema = z.object({
     // Landing Page
     heroTitle: z.string().min(1, "Judul Hero wajib diisi"),
     heroDescription: z.string().min(1, "Deskripsi Hero wajib diisi"),
-    heroShowStats: z.boolean().default(true).or(z.literal(undefined)).transform(val => !!val),
+    heroShowStats: z.boolean(),
 
     // Features Section
     featuresTitle: z.string().optional(),
