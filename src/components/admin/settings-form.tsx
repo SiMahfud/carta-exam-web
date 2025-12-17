@@ -7,6 +7,7 @@ import * as z from "zod";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { FileUpload } from "@/components/ui/file-upload";
 import {
     Form,
     FormControl,
@@ -59,7 +60,6 @@ interface SettingsFormProps {
 
 export function SettingsForm({ initialSettings }: SettingsFormProps) {
     const [isSubmitting, setIsSubmitting] = useState(false);
-    const [isUploading, setIsUploading] = useState(false);
 
     const form = useForm<SettingsFormValues>({
         resolver: zodResolver(settingsSchema),
@@ -81,34 +81,7 @@ export function SettingsForm({ initialSettings }: SettingsFormProps) {
         },
     });
 
-    async function handleFileUpload(e: React.ChangeEvent<HTMLInputElement>, fieldName: "logoUrl" | "faviconUrl") {
-        const file = e.target.files?.[0];
-        if (!file) return;
 
-        setIsUploading(true);
-        const formData = new FormData();
-        formData.append("file", file);
-
-        try {
-            const res = await fetch("/api/upload", {
-                method: "POST",
-                body: formData,
-            });
-            const data = await res.json();
-
-            if (res.ok) {
-                form.setValue(fieldName, data.url);
-                toast({ title: "Sukses", description: "File berhasil diupload", variant: "success" });
-            } else {
-                toast({ title: "Gagal", description: data.error || "Gagal upload file", variant: "destructive" });
-            }
-        } catch (error) {
-            console.error("Upload error:", error);
-            toast({ title: "Error", description: "Terjadi kesalahan saat upload", variant: "destructive" });
-        } finally {
-            setIsUploading(false);
-        }
-    }
 
     async function onSubmit(data: SettingsFormValues) {
         setIsSubmitting(true);
@@ -159,19 +132,34 @@ export function SettingsForm({ initialSettings }: SettingsFormProps) {
                                 render={({ field }) => (
                                     <FormItem>
                                         <FormLabel>URL Logo</FormLabel>
-                                        <div className="flex gap-2">
-                                            <FormControl>
-                                                <Input placeholder="https://..." {...field} />
-                                            </FormControl>
-                                            <Input
-                                                type="file"
-                                                className="w-[150px]"
-                                                onChange={(e) => handleFileUpload(e, "logoUrl")}
-                                                disabled={isUploading}
+                                        <FormControl>
+                                            <FileUpload
+                                                value={field.value}
+                                                onChange={field.onChange}
                                             />
-                                        </div>
+                                        </FormControl>
                                         <FormDescription>
-                                            Masukkan URL atau upload gambar logo sekolah (PNG/Transparan).
+                                            Upload gambar logo sekolah (PNG/Transparan).
+                                        </FormDescription>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+                            <FormField
+                                control={form.control}
+                                name="faviconUrl"
+                                render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>Favicon</FormLabel>
+                                        <FormControl>
+                                            <FileUpload
+                                                value={field.value}
+                                                onChange={field.onChange}
+                                                accept="image/x-icon,image/png,image/svg+xml"
+                                            />
+                                        </FormControl>
+                                        <FormDescription>
+                                            Upload ikon tab browser (ICO, PNG, SVG).
                                         </FormDescription>
                                         <FormMessage />
                                     </FormItem>
