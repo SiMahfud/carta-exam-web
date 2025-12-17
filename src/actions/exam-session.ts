@@ -48,7 +48,6 @@ export async function finishExam(submissionId: string) {
         let isCorrect = false
         // Auto-grading logic
         if (q.type === "mc") {
-            // @ts-expect-error - Drizzle flexibility
             if (ans.studentAnswer == q.answerKey.correct) isCorrect = true
         } else if (q.type === "short") {
             // @ts-expect-error - Drizzle flexibility
