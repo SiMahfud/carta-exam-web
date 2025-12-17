@@ -16,7 +16,7 @@ export async function GET(
 
         // Extract unique tags
         const uniqueTags = new Set<string>();
-        questions.forEach((q) => {
+        questions.forEach((q: any) => {
             let tags = q.tags;
 
             // Handle potential string format (if DB returns string instead of parsed JSON)

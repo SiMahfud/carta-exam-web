@@ -117,7 +117,7 @@ export default function ClassesPage() {
                 // API returns students directly on the object
                 setClassStudents(result.students || []);
             }
-        } catch {
+        } catch (error) {
             console.error("Error fetching students:", error);
         }
     };
@@ -131,7 +131,7 @@ export default function ClassesPage() {
                 // Users API returns array directly, not wrapped in data
                 setAvailableStudents(Array.isArray(result) ? result : result.data || []);
             }
-        } catch {
+        } catch (error) {
             console.error("Error fetching available students:", error);
         }
     };
