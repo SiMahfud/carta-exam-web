@@ -64,7 +64,20 @@ export async function POST(
             .limit(1);
 
         const maxViolations = templateData[0]?.maxViolations || 3;
-        const violationSettings = templateData[0]?.violationSettings;
+        let violationSettings = templateData[0]?.violationSettings;
+
+        // Robust parsing for violationSettings
+        try {
+            if (typeof violationSettings === 'string') {
+                try { violationSettings = JSON.parse(violationSettings); } catch { }
+            }
+            if (typeof violationSettings === 'string') {
+                try { violationSettings = JSON.parse(violationSettings); } catch { }
+            }
+        } catch {
+            // Keep original value if parsing fails
+        }
+
         // Default to 'strict' if not set, for backward compatibility
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const violationMode = (violationSettings as any)?.mode || 'strict';
