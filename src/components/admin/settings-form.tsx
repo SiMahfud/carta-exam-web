@@ -41,6 +41,10 @@ const settingsSchema = z.object({
     heroDescription: z.string().min(1, "Deskripsi Hero wajib diisi"),
     heroShowStats: z.boolean(),
 
+    // Announcement (NEW)
+    announcementTitle: z.string().optional(),
+    announcementContent: z.string().optional(),
+
     // Features Section
     featuresTitle: z.string().optional(),
     featuresSubtitle: z.string().optional(),
@@ -72,6 +76,8 @@ export function SettingsForm({ initialSettings }: SettingsFormProps) {
             heroTitle: initialSettings?.heroTitle || "Ujian Modern untuk Generasi Digital",
             heroDescription: initialSettings?.heroDescription || "Platform ujian yang aman, cerdas, dan mudah digunakan.",
             heroShowStats: initialSettings?.heroShowStats ?? true,
+            announcementTitle: (initialSettings as any)?.announcementTitle || "",
+            announcementContent: (initialSettings as any)?.announcementContent || "",
             featuresTitle: initialSettings?.featuresTitle || "Fitur Unggulan",
             featuresSubtitle: initialSettings?.featuresSubtitle || "Dirancang khusus untuk kebutuhan evaluasi akademik modern.",
             contactEmail: initialSettings?.contactEmail || "",
@@ -234,6 +240,44 @@ export function SettingsForm({ initialSettings }: SettingsFormProps) {
                                             onCheckedChange={field.onChange}
                                         />
                                     </FormControl>
+                                </FormItem>
+                            )}
+                        />
+                    </CardContent>
+                </Card>
+
+                {/* Announcement Section */}
+                <Card>
+                    <CardHeader>
+                        <CardTitle>Pengumuman (Penting)</CardTitle>
+                        <CardDescription>
+                            Tampilkan pesan penting di halaman depan. Kosongkan untuk menyembunyikan.
+                        </CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                        <FormField
+                            control={form.control}
+                            name="announcementTitle"
+                            render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>Judul Pengumuman</FormLabel>
+                                    <FormControl>
+                                        <Input placeholder="PENGUMUMAN PENTING" {...field} />
+                                    </FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+                        <FormField
+                            control={form.control}
+                            name="announcementContent"
+                            render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>Isi Pengumuman</FormLabel>
+                                    <FormControl>
+                                        <Textarea placeholder="Isi pesan pengumuman..." {...field} />
+                                    </FormControl>
+                                    <FormMessage />
                                 </FormItem>
                             )}
                         />

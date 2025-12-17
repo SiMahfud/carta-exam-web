@@ -2,11 +2,13 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { ModeToggle } from "@/components/ui/mode-toggle";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { ShieldCheck, BookOpen, MonitorPlay, CheckCircle, ArrowRight, GraduationCap } from "lucide-react";
+import { ShieldCheck, BookOpen, MonitorPlay, CheckCircle, ArrowRight, GraduationCap, Calendar, Clock, AlertCircle, HelpCircle, ChevronDown, User, Play } from "lucide-react";
 import { getSchoolSettings } from "@/actions/settings";
+import { getPublicExamSchedule } from "@/actions/public";
 
 export default async function Home() {
   const settings = await getSchoolSettings();
+  const schedule = await getPublicExamSchedule();
 
   const schoolName = settings?.schoolName || "CartaExam";
   const heroTitle = settings?.heroTitle || "Ujian Modern untuk Generasi Digital";
@@ -30,7 +32,7 @@ export default async function Home() {
                 <ShieldCheck className="h-6 w-6 text-primary" />
               )}
             </div>
-            <span className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-primary to-purple-600">
+            <span className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-primary to-purple-600 hidden sm:inline-block">
               {schoolName}
             </span>
           </div>
@@ -42,8 +44,9 @@ export default async function Home() {
             </Link>
             <ModeToggle />
             <Link href="/login">
-              <Button className="rounded-full px-6 shadow-lg shadow-primary/20">
-                Mulai Ujian
+              <Button className="rounded-full px-4 md:px-6 shadow-lg shadow-primary/20">
+                <span className="hidden md:inline">Mulai Ujian</span>
+                <span className="md:hidden">Login</span>
               </Button>
             </Link>
           </nav>
@@ -99,8 +102,143 @@ export default async function Home() {
           </div>
         </section>
 
+        {/* Announcement Section */}
+        {settings?.announcementTitle && (
+          <section className="py-8 bg-amber-50 dark:bg-amber-950/30 border-y border-amber-200 dark:border-amber-800">
+            <div className="container mx-auto px-4">
+              <div className="flex flex-col md:flex-row items-center gap-4 text-center md:text-left">
+                <div className="bg-amber-100 dark:bg-amber-900/50 p-3 rounded-full shrink-0">
+                  <AlertCircle className="h-6 w-6 text-amber-600 dark:text-amber-400" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-bold text-amber-800 dark:text-amber-200">{settings.announcementTitle}</h3>
+                  <p className="text-amber-700 dark:text-amber-300/80 max-w-3xl">
+                    {settings.announcementContent}
+                  </p>
+                </div>
+              </div>
+            </div>
+          </section>
+        )}
+
+        {/* Live Schedule Section */}
+        <section id="jadwal" className="py-20 bg-background">
+          <div className="container mx-auto px-4">
+            <div className="flex items-center justify-between mb-10">
+              <div>
+                <h2 className="text-3xl font-bold mb-2">Jadwal Ujian</h2>
+                <p className="text-muted-foreground">Jadwal ujian yang sedang dan akan berlangsung.</p>
+              </div>
+              <Calendar className="h-10 w-10 text-primary/20" />
+            </div>
+
+            <div className="bg-card border rounded-xl overflow-hidden shadow-sm">
+              {schedule.length > 0 ? (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm text-left">
+                    <thead className="text-xs text-muted-foreground uppercase bg-muted/50">
+                      <tr>
+                        <th className="px-6 py-4 font-medium">Waktu</th>
+                        <th className="px-6 py-4 font-medium">Mata Pelajaran</th>
+                        <th className="px-6 py-4 font-medium">Sesi / Kelas</th>
+                        <th className="px-6 py-4 font-medium">Status</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y">
+                      {schedule.map((session) => (
+                        <tr key={session.id} className="bg-background hover:bg-muted/50 transition-colors">
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <div className="flex items-center gap-2">
+                              <Clock className="h-4 w-4 text-muted-foreground" />
+                              <span className="font-medium">
+                                {new Date(session.startTime).toLocaleTimeString("id-ID", { hour: '2-digit', minute: '2-digit' })}
+                              </span>
+                              <span className="text-muted-foreground text-xs">
+                                - {new Date(session.endTime).toLocaleTimeString("id-ID", { hour: '2-digit', minute: '2-digit' })}
+                              </span>
+                            </div>
+                            <div className="text-xs text-muted-foreground mt-1 ml-6">
+                              {new Date(session.startTime).toLocaleDateString("id-ID", { weekday: 'long', day: 'numeric', month: 'short' })}
+                            </div>
+                          </td>
+                          <td className="px-6 py-4 font-medium">{session.subjectName}</td>
+                          <td className="px-6 py-4 text-muted-foreground">{session.className}</td>
+                          <td className="px-6 py-4">
+                            <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${session.status === 'active'
+                              ? 'bg-green-100 text-green-800 border-green-200 dark:bg-green-900/30 dark:text-green-400 dark:border-green-800'
+                              : 'bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-900/30 dark:text-blue-400 dark:border-blue-800'
+                              }`}>
+                              {session.status === 'active' ? (
+                                <span className="flex items-center gap-1">
+                                  <span className="relative flex h-2 w-2">
+                                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+                                    <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
+                                  </span>
+                                  Berlangsung
+                                </span>
+                              ) : 'Akan Datang'}
+                            </span>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              ) : (
+                <div className="p-12 text-center text-muted-foreground">
+                  <Calendar className="h-12 w-12 mx-auto mb-4 text-muted-foreground/30" />
+                  <p>Tidak ada jadwal ujian aktif saat ini.</p>
+                </div>
+              )}
+            </div>
+          </div>
+        </section>
+
+        {/* Guide Section */}
+        <section className="py-20 bg-muted/30">
+          <div className="container mx-auto px-4">
+            <div className="text-center mb-16">
+              <h2 className="text-3xl font-bold mb-4">Panduan Penggunaan</h2>
+              <p className="text-muted-foreground max-w-2xl mx-auto">
+                Cara mudah mengerjakan ujian di CartaExam.
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+              {[
+                {
+                  icon: User,
+                  title: "1. Login Siswa",
+                  desc: "Masuk menggunakan username dan password yang diberikan oleh admin sekolah."
+                },
+                {
+                  icon: CheckCircle,
+                  title: "2. Pilih Ujian",
+                  desc: "Pilih ujian yang berstatus 'Aktif' di halaman dashboard siswa."
+                },
+                {
+                  icon: Play,
+                  title: "3. Kerjakan",
+                  desc: "Kerjakan soal dengan teliti. Jangan keluar dari mode fullscreen untuk menghindari pelanggaran."
+                }
+              ].map((step, i) => (
+                <div key={i} className="relative flex flex-col items-center text-center p-6 bg-background rounded-xl shadow-sm border">
+                  <div className="h-16 w-16 bg-primary/10 rounded-full flex items-center justify-center mb-6">
+                    <step.icon className="h-8 w-8 text-primary" />
+                  </div>
+                  <h3 className="text-xl font-bold mb-3">{step.title}</h3>
+                  <p className="text-muted-foreground leading-relaxed">
+                    {step.desc}
+                  </p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+
+
         {/* Features Section */}
-        <section id="features" className="py-24 bg-muted/30 relative">
+        <section id="features" className="py-24 bg-background relative">
           <div className="container mx-auto px-4">
             <div className="text-center mb-16">
               <h2 className="text-3xl md:text-4xl font-bold mb-4">{featuresTitle}</h2>
@@ -186,6 +324,53 @@ export default async function Home() {
             </div>
           </div>
         </section>
+        {/* FAQ Section */}
+        <section className="py-20 bg-muted/30">
+          <div className="container mx-auto px-4 max-w-3xl">
+            <div className="text-center mb-12">
+              <div className="inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold border-transparent bg-primary/10 text-primary mb-4">
+                <HelpCircle className="w-3 h-3 mr-2" />
+                Bantuan
+              </div>
+              <h2 className="text-3xl font-bold mb-4">Pertanyaan Umum (FAQ)</h2>
+              <p className="text-muted-foreground">
+                Jawaban atas pertanyaan yang sering diajukan.
+              </p>
+            </div>
+
+            <div className="space-y-4">
+              {[
+                {
+                  q: "Bagaimana jika HP/Laptop mati saat ujian?",
+                  a: "Jangan panik. Jawaban Anda tersimpan otomatis di server. Segera nyalakan kembali perangkat, login, dan lanjutkan ujian. Waktu ujian akan terus berjalan."
+                },
+                {
+                  q: "Apa yang dimaksud dengan 'Pelanggaran'?",
+                  a: "Pelanggaran terjadi jika Anda mencoba membuka tab lain, aplikasi lain, atau keluar dari mode layar penuh. Jika melampaui batas pelanggaran, ujian dapat dihentikan otomatis."
+                },
+                {
+                  q: "Bagaimana cara mereset password?",
+                  a: "Hubungi proktor atau admin sekolah untuk mereset password Anda."
+                },
+                {
+                  q: "Apakah saya bisa mengerjakan ulang ujian?",
+                  a: "Tergantung pengaturan ujian. Biasanya ujian hanya dapat dikerjakan satu kali kecuali diizinkan oleh guru untuk perbaikan."
+                }
+              ].map((faq, i) => (
+                <details key={i} className="group border rounded-lg bg-card open:ring-1 open:ring-primary/20 transition-all">
+                  <summary className="flex cursor-pointer items-center justify-between p-6 font-medium bg-transparent group-hover:bg-muted/30 transition-colors list-none">
+                    <span className="text-lg">{faq.q}</span>
+                    <ChevronDown className="h-5 w-5 text-muted-foreground transition-transform group-open:rotate-180" />
+                  </summary>
+                  <div className="px-6 pb-6 pt-2 text-muted-foreground leading-relaxed border-t bg-muted/10">
+                    {faq.a}
+                  </div>
+                </details>
+              ))}
+            </div>
+          </div>
+        </section>
+
       </main>
 
       {/* Footer */}

@@ -396,6 +396,10 @@ export const schoolSettings = mysqlTable("school_settings", {
     contactPhone: varchar("contact_phone", { length: 50 }),
     address: text("address"),
 
+    // Announcement
+    announcementTitle: varchar("announcement_title", { length: 255 }),
+    announcementContent: text("announcement_content"),
+
     updatedBy: varchar("updated_by", { length: 36 }).references(() => users.id, { onDelete: "set null" }),
     updatedAt: datetime("updated_at").default(sql`CURRENT_TIMESTAMP`),
 });
