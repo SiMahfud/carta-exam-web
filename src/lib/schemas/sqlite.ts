@@ -373,6 +373,8 @@ export const schoolSettings = sqliteTable("school_settings", {
     logoUrl: text("logo_url"), // URL relative to public or external
 
     // Landing Page Components
+    htmlTitle: text("html_title").default("CartaExam"),
+    faviconUrl: text("favicon_url"),
     heroTitle: text("hero_title").notNull().default("Ujian Modern untuk Generasi Digital"),
     heroDescription: text("hero_description").notNull().default("Platform ujian yang aman, cerdas, dan mudah digunakan."),
     heroShowStats: integer("hero_show_stats", { mode: "boolean" }).default(true),

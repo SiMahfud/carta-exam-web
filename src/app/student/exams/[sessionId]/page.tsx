@@ -60,6 +60,158 @@ export default function TakeExamPage() {
 
     const sessionId = params.sessionId as string;
 
+    // Log security violations to backend and check for termination
+    const logSecurityViolation = useCallback(async (type: string, details?: string) => {
+        try {
+            const response = await fetch(`/api/student/exams/${sessionId}/violation`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ studentId, type, details, timestamp: new Date().toISOString() }),
+            });
+
+            if (response.ok) {
+                const data = await response.json();
+
+                // Update violation count from server
+                if (data.violationCount !== undefined) {
+                    setViolationCount(data.violationCount);
+                }
+
+                // Check if should terminate - immediately show terminated page
+                if (data.shouldTerminate) {
+                    setIsTerminated(true);
+                    // Exit fullscreen
+                    if (isFullscreen) {
+                        await exitFullscreen();
+                    }
+                    toast({
+                        title: "Ujian Dihentikan",
+                        description: data.message || "Batas pelanggaran tercapai. Ujian dihentikan.",
+                        variant: "destructive",
+                    });
+                }
+            }
+        } catch (error) {
+            console.error("Failed to log violation:", error);
+        }
+    }, [sessionId, studentId, isFullscreen, exitFullscreen, toast]);
+
+    const fetchStudentId = useCallback(async () => {
+        try {
+            const response = await fetch("/api/auth/session");
+            if (response.ok) {
+                const data = await response.json();
+                setStudentId(data.user.id);
+            } else {
+                router.push("/login");
+            }
+        } catch (error) {
+            console.error("Error fetching session:", error);
+            router.push("/login");
+        }
+    }, [router]);
+
+    const fetchQuestions = useCallback(async () => {
+        if (!studentId) return;
+
+        try {
+            const response = await fetch(`/api/student/exams/${sessionId}/questions?studentId=${studentId}`);
+            if (response.ok) {
+                const data = await response.json();
+                setQuestions(data.questions);
+                setEndTime(new Date(data.endTime));
+                setExamName(data.examName || "");
+                setMinSubmitMinutes(data.minDurationMinutes || 0);
+                if (data.startTime) {
+                    setStartTime(new Date(data.startTime));
+                }
+
+                // Restore violation count from server
+                if (data.violationCount !== undefined) {
+                    setViolationCount(data.violationCount);
+                }
+
+                if (data.violationSettings) {
+                    setViolationSettings(data.violationSettings);
+                }
+
+                // Restore answers if available
+                if (data.answers) {
+                    const restoredAnswers = new Map<string, Answer>();
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                    Object.entries(data.answers).forEach(([qId, ans]: [string, any]) => {
+                        restoredAnswers.set(qId, {
+                            questionId: qId,
+                            answer: ans.answer,
+                            isFlagged: ans.isFlagged
+                        });
+                    });
+                    setAnswers(restoredAnswers);
+                }
+            } else if (response.status === 403) {
+                // Check if terminated
+                const data = await response.json();
+                if (data.terminated) {
+                    setIsTerminated(true);
+                    setViolationCount(data.violationCount || 0);
+                }
+            } else {
+                throw new Error("Failed to load questions");
+            }
+        } catch (error) {
+            void error;
+            toast({
+                title: "Error",
+                description: "Gagal memuat soal ujian",
+                variant: "destructive",
+            });
+        } finally {
+            setLoading(false);
+        }
+    }, [sessionId, studentId, toast]);
+
+    const handleSubmit = useCallback(async () => {
+        setSubmitting(true);
+        try {
+            const response = await fetch(`/api/student/exams/${sessionId}/submit`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ studentId, violationCount }),
+            });
+
+            if (response.ok) {
+                // Exit fullscreen before navigating
+                if (isFullscreen) {
+                    await exitFullscreen();
+                }
+                toast({
+                    title: "Berhasil",
+                    description: "Ujian berhasil dikumpulkan",
+                });
+                router.push("/student/exams");
+                // Don't setSubmitting(false) here, keep it true while navigating to prevent violations
+            } else {
+                throw new Error("Failed to submit");
+            }
+        } catch (error) {
+            void error;
+            toast({
+                title: "Error",
+                description: "Gagal mengumpulkan ujian",
+                variant: "destructive",
+            });
+            setSubmitting(false);
+        }
+    }, [sessionId, studentId, violationCount, isFullscreen, exitFullscreen, router, toast]);
+
+    const handleAutoSubmit = useCallback(() => {
+        toast({
+            title: "Waktu Habis",
+            description: "Ujian otomatis dikumpulkan",
+        });
+        handleSubmit();
+    }, [handleSubmit, toast]);
+
     // Security hook - only enabled after exam starts
     useExamSecurity({
         enabled: examStarted,
@@ -187,43 +339,9 @@ export default function TakeExamPage() {
             window.removeEventListener("popstate", handlePopState);
             document.removeEventListener("visibilitychange", handleVisibilityChange);
         };
-    }, [examStarted, submitting, enterFullscreen, toast]);
+    }, [examStarted, submitting, enterFullscreen, toast, logSecurityViolation]);
 
-    // Log security violations to backend and check for termination
-    const logSecurityViolation = async (type: string, details?: string) => {
-        try {
-            const response = await fetch(`/api/student/exams/${sessionId}/violation`, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ studentId, type, details, timestamp: new Date().toISOString() }),
-            });
 
-            if (response.ok) {
-                const data = await response.json();
-
-                // Update violation count from server
-                if (data.violationCount !== undefined) {
-                    setViolationCount(data.violationCount);
-                }
-
-                // Check if should terminate - immediately show terminated page
-                if (data.shouldTerminate) {
-                    setIsTerminated(true);
-                    // Exit fullscreen
-                    if (isFullscreen) {
-                        await exitFullscreen();
-                    }
-                    toast({
-                        title: "Ujian Dihentikan",
-                        description: data.message || "Batas pelanggaran tercapai. Ujian dihentikan.",
-                        variant: "destructive",
-                    });
-                }
-            }
-        } catch (error) {
-            console.error("Failed to log violation:", error);
-        }
-    };
 
     // Check if session requires token
     const checkTokenRequired = async () => {
@@ -328,28 +446,15 @@ export default function TakeExamPage() {
 
     useEffect(() => {
         fetchStudentId();
-    }, []);
+    }, [fetchStudentId]);
 
     useEffect(() => {
         if (studentId) {
             fetchQuestions();
         }
-    }, [studentId]);
+    }, [studentId, fetchQuestions]);
 
-    const fetchStudentId = async () => {
-        try {
-            const response = await fetch("/api/auth/session");
-            if (response.ok) {
-                const data = await response.json();
-                setStudentId(data.user.id);
-            } else {
-                router.push("/login");
-            }
-        } catch (error) {
-            console.error("Error fetching session:", error);
-            router.push("/login");
-        }
-    };
+
 
     useEffect(() => {
         if (!endTime) return;
@@ -365,66 +470,9 @@ export default function TakeExamPage() {
         }, 1000);
 
         return () => clearInterval(interval);
-    }, [endTime]);
+    }, [endTime, handleAutoSubmit]);
 
-    const fetchQuestions = async () => {
-        if (!studentId) return;
 
-        try {
-            const response = await fetch(`/api/student/exams/${sessionId}/questions?studentId=${studentId}`);
-            if (response.ok) {
-                const data = await response.json();
-                setQuestions(data.questions);
-                setEndTime(new Date(data.endTime));
-                setExamName(data.examName || "");
-                setMinSubmitMinutes(data.minDurationMinutes || 0);
-                if (data.startTime) {
-                    setStartTime(new Date(data.startTime));
-                }
-
-                // Restore violation count from server
-                if (data.violationCount !== undefined) {
-                    setViolationCount(data.violationCount);
-                }
-
-                if (data.violationSettings) {
-                    setViolationSettings(data.violationSettings);
-                }
-
-                // Restore answers if available
-                if (data.answers) {
-                    const restoredAnswers = new Map<string, Answer>();
-                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                    Object.entries(data.answers).forEach(([qId, ans]: [string, any]) => {
-                        restoredAnswers.set(qId, {
-                            questionId: qId,
-                            answer: ans.answer,
-                            isFlagged: ans.isFlagged
-                        });
-                    });
-                    setAnswers(restoredAnswers);
-                }
-            } else if (response.status === 403) {
-                // Check if terminated
-                const data = await response.json();
-                if (data.terminated) {
-                    setIsTerminated(true);
-                    setViolationCount(data.violationCount || 0);
-                }
-            } else {
-                throw new Error("Failed to load questions");
-            }
-        } catch (error) {
-            void error;
-            toast({
-                title: "Error",
-                description: "Gagal memuat soal ujian",
-                variant: "destructive",
-            });
-        } finally {
-            setLoading(false);
-        }
-    };
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const saveAnswer = useCallback(async (questionId: string, answer: any, isFlagged: boolean = false) => {
@@ -465,47 +513,9 @@ export default function TakeExamPage() {
         saveAnswer(question.id, existing.answer, existing.isFlagged);
     };
 
-    const handleSubmit = async () => {
-        setSubmitting(true);
-        try {
-            const response = await fetch(`/api/student/exams/${sessionId}/submit`, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ studentId, violationCount }),
-            });
 
-            if (response.ok) {
-                // Exit fullscreen before navigating
-                if (isFullscreen) {
-                    await exitFullscreen();
-                }
-                toast({
-                    title: "Berhasil",
-                    description: "Ujian berhasil dikumpulkan",
-                });
-                router.push("/student/exams");
-                // Don't setSubmitting(false) here, keep it true while navigating to prevent violations
-            } else {
-                throw new Error("Failed to submit");
-            }
-        } catch (error) {
-            void error;
-            toast({
-                title: "Error",
-                description: "Gagal mengumpulkan ujian",
-                variant: "destructive",
-            });
-            setSubmitting(false);
-        }
-    };
 
-    const handleAutoSubmit = () => {
-        toast({
-            title: "Waktu Habis",
-            description: "Ujian otomatis dikumpulkan",
-        });
-        handleSubmit();
-    };
+
 
     const currentQuestion = questions[currentQuestionIndex];
     const currentAnswer = currentQuestion ? answers.get(currentQuestion.id) : null;

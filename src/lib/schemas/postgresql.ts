@@ -1,4 +1,4 @@
-import { pgTable, text, integer, timestamp, json, boolean, index, uuid } from "drizzle-orm/pg-core";
+import { pgTable, text, integer, timestamp, json, boolean, index } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
 
 // ============================================================================
@@ -373,6 +373,8 @@ export const schoolSettings = pgTable("school_settings", {
     logoUrl: text("logo_url"), // URL relative to public or external
 
     // Landing Page Components
+    htmlTitle: text("html_title").default("CartaExam"),
+    faviconUrl: text("favicon_url"),
     heroTitle: text("hero_title").notNull().default("Ujian Modern untuk Generasi Digital"),
     heroDescription: text("hero_description").notNull().default("Platform ujian yang aman, cerdas, dan mudah digunakan."),
     heroShowStats: boolean("hero_show_stats").default(true),

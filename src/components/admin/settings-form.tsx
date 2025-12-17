@@ -26,8 +26,7 @@ import {
 import { Switch } from "../ui/switch";
 import { toast } from "../../lib/toast-store";
 import { updateSchoolSettings, SchoolSettings } from "../../actions/settings";
-import { Loader2, Plus, Trash2 } from "lucide-react";
-import { Separator } from "../ui/separator";
+import { Loader2 } from "lucide-react";
 
 const settingsSchema = z.object({
     schoolName: z.string().min(1, "Nama sekolah wajib diisi"),
@@ -68,8 +67,8 @@ export function SettingsForm({ initialSettings }: SettingsFormProps) {
             schoolName: initialSettings?.schoolName || "SMAN 1 Campurdarat",
             schoolDescription: initialSettings?.schoolDescription || "",
             logoUrl: initialSettings?.logoUrl || "",
-            htmlTitle: (initialSettings as any)?.htmlTitle || "CartaExam",
-            faviconUrl: (initialSettings as any)?.faviconUrl || "",
+            htmlTitle: initialSettings?.htmlTitle || "CartaExam",
+            faviconUrl: initialSettings?.faviconUrl || "",
             heroTitle: initialSettings?.heroTitle || "Ujian Modern untuk Generasi Digital",
             heroDescription: initialSettings?.heroDescription || "Platform ujian yang aman, cerdas, dan mudah digunakan.",
             heroShowStats: initialSettings?.heroShowStats ?? true,
@@ -120,7 +119,7 @@ export function SettingsForm({ initialSettings }: SettingsFormProps) {
             } else {
                 toast({ title: "Gagal", description: result.error || "Gagal menyimpan pengaturan", variant: "destructive" });
             }
-        } catch (error) {
+        } catch {
             toast({ title: "Error", description: "Terjadi kesalahan saat menyimpan", variant: "destructive" });
         } finally {
             setIsSubmitting(false);
@@ -144,7 +143,7 @@ export function SettingsForm({ initialSettings }: SettingsFormProps) {
                             <FormField
                                 control={form.control}
                                 name="schoolName"
-                                render={({ field }: { field: any }) => (
+                                render={({ field }) => (
                                     <FormItem>
                                         <FormLabel>Nama Sekolah</FormLabel>
                                         <FormControl>
@@ -157,7 +156,7 @@ export function SettingsForm({ initialSettings }: SettingsFormProps) {
                             <FormField
                                 control={form.control}
                                 name="logoUrl"
-                                render={({ field }: { field: any }) => (
+                                render={({ field }) => (
                                     <FormItem>
                                         <FormLabel>URL Logo</FormLabel>
                                         <div className="flex gap-2">
@@ -182,7 +181,7 @@ export function SettingsForm({ initialSettings }: SettingsFormProps) {
                         <FormField
                             control={form.control}
                             name="schoolDescription"
-                            render={({ field }: { field: any }) => (
+                            render={({ field }) => (
                                 <FormItem>
                                     <FormLabel>Deskripsi Singkat</FormLabel>
                                     <FormControl>
@@ -207,7 +206,7 @@ export function SettingsForm({ initialSettings }: SettingsFormProps) {
                         <FormField
                             control={form.control}
                             name="heroTitle"
-                            render={({ field }: { field: any }) => (
+                            render={({ field }) => (
                                 <FormItem>
                                     <FormLabel>Judul Utama (Hero Title)</FormLabel>
                                     <FormControl>
@@ -220,7 +219,7 @@ export function SettingsForm({ initialSettings }: SettingsFormProps) {
                         <FormField
                             control={form.control}
                             name="heroDescription"
-                            render={({ field }: { field: any }) => (
+                            render={({ field }) => (
                                 <FormItem>
                                     <FormLabel>Sub-judul / Deskripsi</FormLabel>
                                     <FormControl>
@@ -233,7 +232,7 @@ export function SettingsForm({ initialSettings }: SettingsFormProps) {
                         <FormField
                             control={form.control}
                             name="heroShowStats"
-                            render={({ field }: { field: any }) => (
+                            render={({ field }) => (
                                 <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
                                     <div className="space-y-0.5">
                                         <FormLabel className="text-base">Tampilkan Statistik</FormLabel>
@@ -266,7 +265,7 @@ export function SettingsForm({ initialSettings }: SettingsFormProps) {
                             <FormField
                                 control={form.control}
                                 name="featuresTitle"
-                                render={({ field }: { field: any }) => (
+                                render={({ field }) => (
                                     <FormItem>
                                         <FormLabel>Judul Bagian Fitur</FormLabel>
                                         <FormControl>
@@ -279,7 +278,7 @@ export function SettingsForm({ initialSettings }: SettingsFormProps) {
                             <FormField
                                 control={form.control}
                                 name="featuresSubtitle"
-                                render={({ field }: { field: any }) => (
+                                render={({ field }) => (
                                     <FormItem>
                                         <FormLabel>Sub-judul Bagian Fitur</FormLabel>
                                         <FormControl>
@@ -306,7 +305,7 @@ export function SettingsForm({ initialSettings }: SettingsFormProps) {
                             <FormField
                                 control={form.control}
                                 name="contactEmail"
-                                render={({ field }: { field: any }) => (
+                                render={({ field }) => (
                                     <FormItem>
                                         <FormLabel>Email Kontak</FormLabel>
                                         <FormControl>
@@ -319,7 +318,7 @@ export function SettingsForm({ initialSettings }: SettingsFormProps) {
                             <FormField
                                 control={form.control}
                                 name="contactPhone"
-                                render={({ field }: { field: any }) => (
+                                render={({ field }) => (
                                     <FormItem>
                                         <FormLabel>Nomor Telepon</FormLabel>
                                         <FormControl>
@@ -333,7 +332,7 @@ export function SettingsForm({ initialSettings }: SettingsFormProps) {
                         <FormField
                             control={form.control}
                             name="address"
-                            render={({ field }: { field: any }) => (
+                            render={({ field }) => (
                                 <FormItem>
                                     <FormLabel>Alamat</FormLabel>
                                     <FormControl>
@@ -346,7 +345,7 @@ export function SettingsForm({ initialSettings }: SettingsFormProps) {
                         <FormField
                             control={form.control}
                             name="footerText"
-                            render={({ field }: { field: any }) => (
+                            render={({ field }) => (
                                 <FormItem>
                                     <FormLabel>Teks Footer</FormLabel>
                                     <FormControl>

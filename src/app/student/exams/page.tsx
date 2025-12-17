@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
@@ -34,17 +34,7 @@ export default function StudentExamsPage() {
     const [filter, setFilter] = useState("all");
     const [studentId, setStudentId] = useState<string | null>(null);
 
-    useEffect(() => {
-        fetchStudentId();
-    }, []);
-
-    useEffect(() => {
-        if (studentId) {
-            fetchExams();
-        }
-    }, [filter, studentId]);
-
-    const fetchStudentId = async () => {
+    const fetchStudentId = useCallback(async () => {
         try {
             const response = await fetch("/api/auth/session");
             if (response.ok) {
@@ -57,9 +47,9 @@ export default function StudentExamsPage() {
             console.error("Error fetching session:", error);
             router.push("/login");
         }
-    };
+    }, [router]);
 
-    const fetchExams = async () => {
+    const fetchExams = useCallback(async () => {
         if (!studentId) return;
 
         setLoading(true);
@@ -84,7 +74,17 @@ export default function StudentExamsPage() {
         } finally {
             setLoading(false);
         }
-    };
+    }, [studentId, filter, toast]);
+
+    useEffect(() => {
+        fetchStudentId();
+    }, [fetchStudentId]);
+
+    useEffect(() => {
+        if (studentId) {
+            fetchExams();
+        }
+    }, [fetchExams, studentId]);
 
     const getStatusBadge = (examStatus: string) => {
         switch (examStatus) {

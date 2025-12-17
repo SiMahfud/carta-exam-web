@@ -79,7 +79,7 @@ export function SettingsForm({ initialSettings }: SettingsFormProps) {
             } else {
                 toast({ title: "Error", description: "Failed to update settings", variant: "destructive" });
             }
-        } catch (error) {
+        } catch {
             toast({ title: "Error", description: "An unexpected error occurred", variant: "destructive" });
         } finally {
             setIsSaving(false);
@@ -92,7 +92,7 @@ export function SettingsForm({ initialSettings }: SettingsFormProps) {
                 <div>
                     <h2 className="text-2xl font-bold tracking-tight">School Settings</h2>
                     <p className="text-muted-foreground">
-                        Manage your school's information and landing page content.
+                        Manage your school&apos;s information and landing page content.
                     </p>
                 </div>
                 <Button type="submit" disabled={isSaving}>

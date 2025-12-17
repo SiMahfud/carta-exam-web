@@ -15,6 +15,15 @@ interface MatchingQuestionRendererProps {
     onChange: (answer: { left: string; right: string }[]) => void;
 }
 
+
+const COLORS = [
+    "#ef4444", // red
+    "#f97316", // orange
+    "#eab308", // yellow
+];
+
+const getColor = (index: number) => COLORS[index % COLORS.length];
+
 export function MatchingQuestionRenderer({ question, answer, onChange }: MatchingQuestionRendererProps) {
     const [selectedLeft, setSelectedLeft] = useState<string | null>(null);
     const containerRef = useRef<HTMLDivElement>(null);
@@ -26,14 +35,7 @@ export function MatchingQuestionRenderer({ question, answer, onChange }: Matchin
     const leftItems = useMemo(() => question.leftItems || [], [question.leftItems]);
     const rightItems = useMemo(() => question.rightItems || [], [question.rightItems]);
 
-    // Colors for connections to make them distinct
-    const colors = [
-        "#ef4444", // red
-        "#f97316", // orange
-        "#eab308", // yellow
-    ];
 
-    const getColor = (index: number) => colors[index % colors.length];
 
     const getItemId = (item: string | { id: string; text: string }) => {
         if (typeof item === 'string') return item;
