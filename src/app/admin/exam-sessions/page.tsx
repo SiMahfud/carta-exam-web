@@ -77,6 +77,7 @@ export default function ExamSessionsPage() {
     // Delete Confirmation State
     const [deleteId, setDeleteId] = useState<string | null>(null);
     const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+    const [deleteWarning, setDeleteWarning] = useState<string | null>(null);
 
     const fetchSessions = async () => {
         setLoading(true);
@@ -146,12 +147,38 @@ export default function ExamSessionsPage() {
         } finally {
             setDeleteId(null);
             setIsDeleteDialogOpen(false);
+            setDeleteWarning(null);
         }
     };
 
-    const handleDeleteClick = (id: string) => {
+    const handleDeleteClick = async (id: string) => {
         setDeleteId(id);
         setIsDeleteDialogOpen(true);
+        setDeleteWarning(null); // Reset warning
+
+        // Check for submissions
+        try {
+            // We can fetch the session details which we might already have, but better to check specifically
+            // Or reuse the list data if we had submission counts there. 
+            // Since we don't have submission count in list, we can quickly fetch it or just a check endpoint.
+            // For now, let's fetch the session details to see if we can get related data or hit a specific check.
+            // We'll add a lightweight check to the DELETE endpoint? No, that's too late.
+            // Let's call the session detail endpoint. If we want submission count, we need to ensure the API returns it.
+            // A better way for now without changing too much API surface: 
+            // We'll optimistically warn. Or, we can modify the GET /api/exam-sessions/[id] to return submission count.
+
+            // Let's assume we modify GET /api/exam-sessions/[id] to return submission count.
+            const res = await fetch(`/api/exam-sessions/${id}`);
+            if (res.ok) {
+                const data = await res.json();
+                // We will need to add submissionCount to the API response for this to work
+                if (data.submissionCount && data.submissionCount > 0) {
+                    setDeleteWarning(`Peringatan: Sesi ini memiliki ${data.submissionCount} data nilai/jawaban siswa. Menghapus sesi ini akan menghapus nilai siswa tersebut secara permanen.`);
+                }
+            }
+        } catch (e) {
+            console.error("Failed to check submissions", e);
+        }
     };
 
     const handleApplySavedFilters = (filters: Record<string, any>) => {
@@ -363,7 +390,11 @@ export default function ExamSessionsPage() {
                     <AlertDialogHeader>
                         <AlertDialogTitle>Apakah Anda yakin?</AlertDialogTitle>
                         <AlertDialogDescription>
-                            Tindakan ini tidak dapat dibatalkan. Sesi ujian akan dihapus secara permanen beserta data terkait.
+                            {deleteWarning ? (
+                                <span className="text-red-500 font-bold block mb-2">{deleteWarning}</span>
+                            ) : (
+                                "Tindakan ini tidak dapat dibatalkan. Sesi ujian akan dihapus secara permanen beserta data terkait."
+                            )}
                         </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>

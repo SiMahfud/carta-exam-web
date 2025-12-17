@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { examSessions, examTemplates, questionPools, submissions, exams } from "@/lib/schema";
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import { fromDateTimeLocalString } from "@/lib/date-utils";
 import { ActivityLogger } from "@/lib/activity-logger";
 
@@ -24,6 +24,7 @@ export async function GET(
             durationMinutes: examTemplates.durationMinutes,
             totalScore: examTemplates.totalScore,
             createdAt: examSessions.createdAt,
+            submissionCount: sql<number>`(SELECT COUNT(*) FROM ${submissions} WHERE ${submissions.sessionId} = ${examSessions.id})`
         })
             .from(examSessions)
             .innerJoin(examTemplates, eq(examSessions.templateId, examTemplates.id))
@@ -37,7 +38,28 @@ export async function GET(
             );
         }
 
-        return NextResponse.json(session[0]);
+        const sessionData = session[0];
+        // Safe parsing for targetIds for GET /id endpoint as well
+        let targetIds = sessionData.targetIds;
+        if (typeof targetIds === 'string') {
+            try {
+                const parsed = JSON.parse(targetIds as string);
+                if (Array.isArray(parsed)) {
+                    targetIds = parsed;
+                } else if (typeof parsed === 'string') {
+                    try {
+                        const parsed2 = JSON.parse(parsed);
+                        if (Array.isArray(parsed2)) {
+                            targetIds = parsed2;
+                        }
+                    } catch { }
+                }
+            } catch (e) {
+                targetIds = [];
+            }
+        }
+
+        return NextResponse.json({ ...sessionData, targetIds: Array.isArray(targetIds) ? targetIds : [] });
     } catch (error) {
         console.error("Error fetching session:", error);
         return NextResponse.json(
@@ -75,7 +97,18 @@ export async function PATCH(
             updateData.status = status;
         }
         if ('targetIds' in body && targetIds !== undefined) {
-            updateData.targetIds = targetIds;
+            let finalTargetIds = targetIds;
+            if (typeof finalTargetIds === 'string') {
+                try {
+                    const parsed = JSON.parse(finalTargetIds);
+                    if (Array.isArray(parsed)) {
+                        finalTargetIds = parsed;
+                    }
+                } catch (e) {
+                    finalTargetIds = [];
+                }
+            }
+            updateData.targetIds = finalTargetIds;
         }
 
         await db.update(examSessions)

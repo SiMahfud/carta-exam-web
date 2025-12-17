@@ -84,13 +84,23 @@ export default function EditExamSessionPage() {
                 const startTime = toDateTimeLocalString(session.startTime);
                 const endTime = toDateTimeLocalString(session.endTime);
 
+                let targetIds = session.targetIds || [];
+                // Defensive: Handle case where targetIds might be a string (double-encoded JSON)
+                if (typeof targetIds === 'string') {
+                    try {
+                        targetIds = JSON.parse(targetIds);
+                    } catch (e) {
+                        targetIds = [];
+                    }
+                }
+
                 setFormData({
                     sessionName: session.sessionName,
                     templateId: session.templateId,
                     startTime,
                     endTime,
                     targetType: session.targetType || "class",
-                    targetIds: session.targetIds || [],
+                    targetIds: Array.isArray(targetIds) ? targetIds : [],
                     status: session.status
                 });
             }
@@ -120,7 +130,20 @@ export default function EditExamSessionPage() {
 
     const handleTargetToggle = (targetId: string) => {
         setFormData(prev => {
-            const current = prev.targetIds || [];
+            let current = prev.targetIds || [];
+            // Defensive: Handle case where targetIds might be a string (double-encoded JSON)
+            if (typeof current === 'string') {
+                try {
+                    current = JSON.parse(current);
+                } catch (e) {
+                    current = [];
+                }
+            }
+            // Ensure current is an array
+            if (!Array.isArray(current)) {
+                current = [];
+            }
+
             const updated = current.includes(targetId)
                 ? current.filter(id => id !== targetId)
                 : [...current, targetId];

@@ -60,8 +60,33 @@ export const GET = (req: Request) => apiHandler(async () => {
         .limit(limit)
         .offset(offset);
 
+    // Safe mapping to handle potentially corrupted/double-encoded targetIds
+    const safeSessions = sessions.map((session: typeof sessions[0]) => {
+        let targetIds = session.targetIds;
+        if (typeof targetIds === 'string') {
+            try {
+                // Try to parse if it's a string
+                const parsed = JSON.parse(targetIds as string);
+                if (Array.isArray(parsed)) {
+                    targetIds = parsed;
+                } else if (typeof parsed === 'string') {
+                    // Try one more level of parsing (double encoded)
+                    try {
+                        const parsed2 = JSON.parse(parsed);
+                        if (Array.isArray(parsed2)) {
+                            targetIds = parsed2;
+                        }
+                    } catch { }
+                }
+            } catch (e) {
+                targetIds = [];
+            }
+        }
+        return { ...session, targetIds: Array.isArray(targetIds) ? targetIds : [] };
+    });
+
     return {
-        data: sessions,
+        data: safeSessions,
         metadata: {
             total,
             page,
@@ -123,6 +148,20 @@ export const POST = (req: Request) => apiHandler(async () => {
         userId = adminUsers[0].id;
     }
 
+    // Sanitize targetIds: Ensure it's not a double-encoded string
+    let finalTargetIds = targetIds;
+    if (typeof finalTargetIds === 'string') {
+        try {
+            const parsed = JSON.parse(finalTargetIds);
+            if (Array.isArray(parsed)) {
+                finalTargetIds = parsed;
+            }
+        } catch (e) {
+            // If parse fails, assume it's meant to be an empty array or keep as is if it's not JSON
+            finalTargetIds = [];
+        }
+    }
+
     // Create session
     const id = crypto.randomUUID();
     const newSessionValues = {
@@ -133,7 +172,7 @@ export const POST = (req: Request) => apiHandler(async () => {
         endTime: end,
         status: status as any,
         targetType,
-        targetIds,
+        targetIds: finalTargetIds,
         createdBy: userId,
     };
 
