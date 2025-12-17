@@ -53,6 +53,7 @@ export default function ExamTemplateWizard({ initialData, onSubmit, isEditMode =
             showQuestionNumber: true,
             showRemainingTime: true,
             showNavigation: true,
+            showResultImmediately: false,
         },
         // Security defaults
         enableLockdown: true,

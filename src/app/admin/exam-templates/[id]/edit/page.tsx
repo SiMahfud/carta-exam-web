@@ -51,6 +51,7 @@ export default function EditExamTemplatePage({ params }: { params: { id: string 
                         showQuestionNumber: true,
                         showRemainingTime: true,
                         showNavigation: true,
+                        showResultImmediately: data.showResultImmediately || false,
                     }),
                     enableLockdown: data.enableLockdown ?? true,
                     requireToken: data.requireToken ?? false,
@@ -101,6 +102,7 @@ export default function EditExamTemplatePage({ params }: { params: { id: string 
                 body: JSON.stringify({
                     ...formData,
                     minDurationMinutes: formData.minSubmitMinutes,
+                    showResultImmediately: formData.displaySettings.showResultImmediately,
                 }),
             });
 

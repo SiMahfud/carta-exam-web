@@ -24,6 +24,7 @@ interface Exam {
     hasSubmission: boolean;
     submissionId?: string;
     score?: number;
+    showScore?: boolean;
 }
 
 export default function StudentExamsPage() {
@@ -189,7 +190,7 @@ export default function StudentExamsPage() {
                             <CardHeader className="pb-3">
                                 <div className="flex justify-between items-start mb-2">
                                     {getStatusBadge(exam.examStatus)}
-                                    {exam.score !== undefined && (
+                                    {exam.score !== undefined && exam.showScore && (
                                         <Badge variant={exam.score >= 75 ? "default" : "destructive"} className="ml-2">
                                             Nilai: {exam.score}
                                         </Badge>

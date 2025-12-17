@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { submissions, answers, bankQuestions, users, examSessions } from "@/lib/schema";
-import { eq } from "drizzle-orm";
+import { eq, inArray } from "drizzle-orm";
 
 // GET /api/grading/submissions/[id] - Get submission details for grading
 export async function GET(
@@ -24,6 +24,7 @@ export async function GET(
             startTime: submissions.startTime,
             endTime: submissions.endTime,
             violationCount: submissions.violationCount,
+            questionOrder: submissions.questionOrder,
         })
             .from(submissions)
             .innerJoin(users, eq(submissions.userId, users.id))
@@ -40,104 +41,97 @@ export async function GET(
 
         const submission = submissionData[0];
 
-        // Get all answers with question details (FIX: use bankQuestionId)
-        const answersData = await db.select({
-            answerId: answers.id,
-            questionId: answers.bankQuestionId,
-            studentAnswer: answers.studentAnswer,
-            isFlagged: answers.isFlagged,
-            isCorrect: answers.isCorrect,
-            score: answers.score,
-            maxPoints: answers.maxPoints,
-            partialPoints: answers.partialPoints,
-            gradingStatus: answers.gradingStatus,
-            gradingNotes: answers.gradingNotes,
-            questionType: bankQuestions.type,
-            questionContent: bankQuestions.content,
-            questionAnswerKey: bankQuestions.answerKey,
-            defaultPoints: bankQuestions.defaultPoints,
-        })
+        // 1. Get ordered question IDs
+        let questionIds: string[] = [];
+        try {
+            let parsed = submission.questionOrder;
+            if (typeof parsed === 'string') { try { parsed = JSON.parse(parsed); } catch { } }
+            if (typeof parsed === 'string') { try { parsed = JSON.parse(parsed); } catch { } }
+            if (Array.isArray(parsed)) questionIds = parsed;
+        } catch { }
+
+        // 2. Fetch ALL questions in the order
+        let assignedQuestions: any[] = [];
+        if (questionIds.length > 0) {
+            assignedQuestions = await db.select()
+                .from(bankQuestions)
+                .where(inArray(bankQuestions.id, questionIds));
+        }
+
+        // 3. Fetch existing answers
+        const existingAnswers = await db.select()
             .from(answers)
-            .innerJoin(bankQuestions, eq(answers.bankQuestionId, bankQuestions.id))
             .where(eq(answers.submissionId, params.id));
 
-        // Format answers for frontend with proper answer key conversion
-        const formattedAnswers = answersData.map((a: typeof answersData[0]) => {
-            // Parse questionAnswerKey if it's a JSON string
-            let parsedAnswerKey: any;
-            try {
-                parsedAnswerKey = a.questionAnswerKey;
-                if (typeof parsedAnswerKey === 'string') { try { parsedAnswerKey = JSON.parse(parsedAnswerKey); } catch { } }
-                if (typeof parsedAnswerKey === 'string') { try { parsedAnswerKey = JSON.parse(parsedAnswerKey); } catch { } }
-                if (!parsedAnswerKey || typeof parsedAnswerKey !== 'object') parsedAnswerKey = {};
-            } catch { parsedAnswerKey = {}; }
+        // 4. Map questions to answers (combining them)
+        const combinedAnswers = questionIds.map(qId => {
+            const question = assignedQuestions.find((q: typeof assignedQuestions[0]) => q.id === qId);
+            const answer = existingAnswers.find((a: typeof existingAnswers[0]) => a.bankQuestionId === qId);
 
-            // Parse questionContent if it's a JSON string
-            let parsedContent: any;
+            if (!question) return null; // Should not happen if integrity is maintained
+
+            // Parse question content & key
+            let parsedContent: any = {};
             try {
-                parsedContent = a.questionContent;
+                parsedContent = question.content;
                 if (typeof parsedContent === 'string') { try { parsedContent = JSON.parse(parsedContent); } catch { } }
                 if (typeof parsedContent === 'string') { try { parsedContent = JSON.parse(parsedContent); } catch { } }
-                if (!parsedContent || typeof parsedContent !== 'object') parsedContent = {};
-            } catch { parsedContent = {}; }
-
-            // Parse studentAnswer if it's a JSON string
-            let parsedStudentAnswer: any;
-            try {
-                parsedStudentAnswer = a.studentAnswer;
-                if (typeof parsedStudentAnswer === 'string') { try { parsedStudentAnswer = JSON.parse(parsedStudentAnswer); } catch { } }
-                if (typeof parsedStudentAnswer === 'string') { try { parsedStudentAnswer = JSON.parse(parsedStudentAnswer); } catch { } }
             } catch { }
 
-            let correctAnswer = parsedAnswerKey;
+            let parsedAnswerKey: any = {};
+            try {
+                parsedAnswerKey = question.answerKey;
+                if (typeof parsedAnswerKey === 'string') { try { parsedAnswerKey = JSON.parse(parsedAnswerKey); } catch { } }
+                if (typeof parsedAnswerKey === 'string') { try { parsedAnswerKey = JSON.parse(parsedAnswerKey); } catch { } }
+            } catch { }
 
-            // Extract value if stored as object {correct: value}
+            // Parse student answer
+            let parsedStudentAnswer: any = null;
+            if (answer && answer.studentAnswer) {
+                try {
+                    parsedStudentAnswer = answer.studentAnswer;
+                    if (typeof parsedStudentAnswer === 'string') { try { parsedStudentAnswer = JSON.parse(parsedStudentAnswer); } catch { } }
+                    if (typeof parsedStudentAnswer === 'string') { try { parsedStudentAnswer = JSON.parse(parsedStudentAnswer); } catch { } }
+                } catch { }
+            }
+
+            // Improve correct answer format for frontend
+            let correctAnswer = parsedAnswerKey;
             if (correctAnswer && typeof correctAnswer === 'object' && 'correct' in correctAnswer) {
                 correctAnswer = correctAnswer.correct;
             }
-
-            // For MC: convert index to letter (0->A, 1->B, 2->C, etc.)
-            if (a.questionType === 'mc' && typeof correctAnswer === 'number') {
+            if (question.type === 'mc' && typeof correctAnswer === 'number') {
                 correctAnswer = String.fromCharCode(65 + correctAnswer);
             }
-
-            // For Complex MC: convert array of indices to array of letters
-            if (a.questionType === 'complex_mc' && Array.isArray(correctAnswer)) {
+            if (question.type === 'complex_mc' && Array.isArray(correctAnswer)) {
                 correctAnswer = correctAnswer.map((idx: any) =>
                     typeof idx === 'number' ? String.fromCharCode(65 + idx) : idx
                 );
             }
 
-            // For Matching: Return raw data to preserve structure (indices) and one-to-many relationships
-            // The frontend MatchingResultViewer handles the raw format best.
-            if (a.questionType === 'matching') {
-                // No transformation needed.
-                // studentAnswer is already [{left, right}] (or legacy object)
-                // correctAnswer is already { pairs: {0: 1} }
-            }
-
             return {
-                answerId: a.answerId,
-                questionId: a.questionId,
-                type: a.questionType,
-                questionText: parsedContent.question || parsedContent.questionText,
+                answerId: answer?.id || `missing-${qId}`, // Virtual ID for missing answers
+                questionId: question.id,
+                type: question.type,
+                questionText: parsedContent.question || parsedContent.questionText || "Pertanyaan tidak ditemukan",
                 questionContent: parsedContent,
                 studentAnswer: parsedStudentAnswer,
                 correctAnswer: correctAnswer,
-                isFlagged: a.isFlagged,
-                isCorrect: a.isCorrect,
-                score: a.score,
-                maxPoints: a.maxPoints,
-                partialPoints: a.partialPoints,
-                gradingStatus: a.gradingStatus,
-                gradingNotes: a.gradingNotes,
-                defaultPoints: a.defaultPoints,
+                isFlagged: answer?.isFlagged || false,
+                isCorrect: answer?.isCorrect || false,
+                score: answer?.score || 0,
+                maxPoints: answer?.maxPoints || question.defaultPoints,
+                partialPoints: answer?.partialPoints || 0,
+                gradingStatus: answer?.gradingStatus || (answer ? "auto" : "not_answered"),
+                gradingNotes: answer?.gradingNotes || null,
+                defaultPoints: question.defaultPoints,
             };
-        });
+        }).filter(Boolean);
+
 
         return NextResponse.json({
             submission,
-            answers: formattedAnswers,
+            answers: combinedAnswers,
         });
     } catch (error) {
         console.error("Error fetching submission details:", error);
@@ -169,25 +163,66 @@ export async function PATCH(
         for (const update of answerUpdates) {
             const { answerId, score, gradingNotes } = update;
 
-            await db.update(answers)
-                .set({
-                    partialPoints: score,
-                    gradingNotes: gradingNotes || null,
-                    gradingStatus: "manual" as any,
-                })
-                .where(eq(answers.id, answerId));
+            // ID starting with "missing-" means it wasn't in DB yet, but we are grading a realized answer?
+            // Actually, if it's "missing-", the user shouldn't be able to grade it properly unless they update the DB.
+            // But usually grading only happens on existing answers. 
+            // If the teacher wants to grade a skipped question (give points?), we might need to insert it.
+            // For now, assume we only update existing answers. Frontend likely only sends valid IDs.
+            if (!answerId.startsWith("missing-")) {
+                await db.update(answers)
+                    .set({
+                        partialPoints: score,
+                        gradingNotes: gradingNotes || null,
+                        gradingStatus: "manual",
+                    })
+                    .where(eq(answers.id, answerId));
+            }
         }
 
-        // Recalculate total score
-        const allAnswers = await db.select()
+        // Recalculate total score CORRECTLY (Denominator = All Questions)
+        // 1. Get submission ordering
+        const submissionData = await db.select({ questionOrder: submissions.questionOrder })
+            .from(submissions)
+            .where(eq(submissions.id, params.id))
+            .limit(1);
+
+        const submission = submissionData[0];
+        let questionIds: string[] = [];
+        try {
+            let parsed = submission?.questionOrder;
+            if (typeof parsed === 'string') { try { parsed = JSON.parse(parsed); } catch { } }
+            if (typeof parsed === 'string') { try { parsed = JSON.parse(parsed); } catch { } }
+            if (Array.isArray(parsed)) questionIds = parsed;
+        } catch { }
+
+        // 2. Calculate Total Max Points from ALL assigned questions
+        let totalMax = 0;
+        if (questionIds.length > 0) {
+            const allQuestions = await db.select({
+                id: bankQuestions.id,
+                defaultPoints: bankQuestions.defaultPoints
+            })
+                .from(bankQuestions)
+                .where(inArray(bankQuestions.id, questionIds));
+
+            // Sum distinct questions
+            totalMax = allQuestions.reduce((sum: number, q: typeof allQuestions[0]) => sum + (q.defaultPoints || 0), 0);
+        }
+
+        // 3. Calculate Earned Points from Answers
+        const allAnswers = await db.select({
+            partialPoints: answers.partialPoints,
+            gradingStatus: answers.gradingStatus
+        })
             .from(answers)
             .where(eq(answers.submissionId, params.id));
 
         const totalEarned = allAnswers.reduce((sum: number, a: typeof allAnswers[0]) => sum + (a.partialPoints || 0), 0);
-        const totalMax = allAnswers.reduce((sum: number, a: typeof allAnswers[0]) => sum + (a.maxPoints || 0), 0);
         const finalScore = totalMax > 0 ? Math.round((totalEarned / totalMax) * 100) : 0;
 
         // Check if all essays are graded
+        // Need to check if any assigned essay question is still pending
+        // Simplified: check if any existing answer is pending
         const hasPendingEssays = allAnswers.some((a: typeof allAnswers[0]) => a.gradingStatus === 'pending_manual');
 
         // Update submission

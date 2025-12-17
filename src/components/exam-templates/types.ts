@@ -41,6 +41,7 @@ export interface ExamTemplateFormData {
         showQuestionNumber: boolean;
         showRemainingTime: boolean;
         showNavigation: boolean;
+        showResultImmediately: boolean;
     };
     enableLockdown: boolean;
     requireToken: boolean;

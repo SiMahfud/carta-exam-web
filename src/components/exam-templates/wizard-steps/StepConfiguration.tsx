@@ -281,6 +281,17 @@ export function StepConfiguration({ formData, setFormData }: StepConfigurationPr
                         />
                         <Label htmlFor="showTime">Tampilkan Sisa Waktu</Label>
                     </div>
+                    <div className="flex items-center space-x-2">
+                        <Checkbox
+                            id="showResult"
+                            checked={formData.displaySettings.showResultImmediately}
+                            onCheckedChange={(checked) => setFormData({
+                                ...formData,
+                                displaySettings: { ...formData.displaySettings, showResultImmediately: checked as boolean }
+                            })}
+                        />
+                        <Label htmlFor="showResult">Tampilkan Nilai Segera Setelah Selesai</Label>
+                    </div>
                 </div>
             </div>
         </div>

@@ -40,6 +40,7 @@ export async function GET(request: Request) {
             subjectName: sql<string>`subjects.name`,
             durationMinutes: examTemplates.durationMinutes,
             totalScore: examTemplates.totalScore,
+            showResult: examTemplates.showResultImmediately,
         })
             .from(examSessions)
             .innerJoin(examTemplates, eq(examSessions.templateId, examTemplates.id))
@@ -100,6 +101,7 @@ export async function GET(request: Request) {
                 hasSubmission: !!submission,
                 submissionId: submission?.id,
                 score: submission?.score,
+                showScore: session.showResult,
             };
         });
 

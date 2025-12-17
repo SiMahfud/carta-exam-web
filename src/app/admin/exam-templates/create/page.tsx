@@ -18,6 +18,7 @@ export default function CreateExamTemplatePage() {
                     ...formData,
                     minDurationMinutes: formData.minSubmitMinutes,
                     createdBy: "412d0456-4fcd-473b-a3b5-e16b9a116976", // TODO: Replace with actual user ID from session
+                    showResultImmediately: formData.displaySettings.showResultImmediately,
                 }),
             });
 
