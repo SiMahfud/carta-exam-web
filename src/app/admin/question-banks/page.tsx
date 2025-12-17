@@ -27,7 +27,7 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@/components/ui/select";
-import { Plus, Database, ArrowRight, Pencil, Trash2, Search } from "lucide-react";
+import { Plus, Database, ArrowRight, Trash2, Search } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import {
     AlertDialog,

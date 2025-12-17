@@ -10,7 +10,7 @@ import {
     classStudents,
     classes
 } from "@/lib/schema";
-import { eq, inArray, and, like, sql } from "drizzle-orm";
+import { eq, inArray, and, like } from "drizzle-orm";
 
 // GET /api/exam-sessions/[id]/results - Get exam results with aggregation
 export async function GET(

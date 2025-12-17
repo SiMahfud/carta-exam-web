@@ -211,7 +211,7 @@ export default function GradingDetailPage() {
             } else {
                 throw new Error("Failed to save");
             }
-        } catch (error) {
+        } catch (_error) {
             toast({
                 title: "Error",
                 description: "Gagal menyimpan penilaian",

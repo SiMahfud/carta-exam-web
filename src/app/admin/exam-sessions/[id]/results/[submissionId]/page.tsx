@@ -64,15 +64,11 @@ interface SubmissionDetail {
 
 export default function SubmissionDetailPage() {
     const params = useParams();
-    const router = useRouter();
+    // const router = useRouter();
     const { toast } = useToast();
 
     const [loading, setLoading] = useState(true);
     const [data, setData] = useState<SubmissionDetail | null>(null);
-
-    useEffect(() => {
-        fetchSubmissionDetail();
-    }, []);
 
     const fetchSubmissionDetail = async () => {
         setLoading(true);
@@ -95,6 +91,13 @@ export default function SubmissionDetailPage() {
             setLoading(false);
         }
     };
+
+    useEffect(() => {
+        fetchSubmissionDetail();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
+
+
 
     const renderAnswer = (answer: Answer) => {
         switch (answer.type) {

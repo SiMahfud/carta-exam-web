@@ -6,9 +6,9 @@ import {
     bankQuestions,
     questionPools,
     classStudents,
-    users
+
 } from "@/lib/schema";
-import { eq, inArray, and } from "drizzle-orm";
+import { eq, inArray } from "drizzle-orm";
 import { applyQuestionRandomization, RandomizationRules } from "@/lib/randomization";
 
 // POST /api/exam-sessions/[id]/generate-questions - Generate questions for students

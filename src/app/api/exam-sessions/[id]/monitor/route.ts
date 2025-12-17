@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { examSessions, users, classStudents, submissions, classes } from "@/lib/schema";
-import { eq, inArray, and } from "drizzle-orm";
+import { eq, inArray } from "drizzle-orm";
 
 // GET /api/exam-sessions/[id]/monitor - Get monitoring data
 export async function GET(

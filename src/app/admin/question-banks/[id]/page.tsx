@@ -27,7 +27,6 @@ import {
     Pencil,
     ArrowLeft,
     Tag,
-    BarChart3,
 } from "lucide-react";
 import {
     Dialog,

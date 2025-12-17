@@ -63,7 +63,7 @@ export async function POST(
         } else {
             // Select random questions based on composition
             const questionsByType: Record<string, typeof allQuestions> = {};
-            allQuestions.forEach(q => {
+            allQuestions.forEach((q: any) => {
                 if (!questionsByType[q.type]) questionsByType[q.type] = [];
                 questionsByType[q.type].push(q);
             });
@@ -77,38 +77,11 @@ export async function POST(
         }
 
         // Format for preview
-        const formattedQuestions = selectedQuestions.map(q => {
-            // Recursively parse content
-            let content: any = {};
-            try {
-                let parsed = q.content;
-                if (typeof parsed === 'string') { try { parsed = JSON.parse(parsed); } catch { } }
-                if (typeof parsed === 'string') { try { parsed = JSON.parse(parsed); } catch { } }
-                if (parsed && typeof parsed === 'object') content = parsed;
-            } catch { }
 
-            // Recursively parse answerKey
-            let answerKey: any = {};
-            try {
-                let parsed = q.answerKey;
-                if (typeof parsed === 'string') { try { parsed = JSON.parse(parsed); } catch { } }
-                if (typeof parsed === 'string') { try { parsed = JSON.parse(parsed); } catch { } }
-                if (parsed && typeof parsed === 'object') answerKey = parsed;
-            } catch { }
-
-            return {
-                id: q.id,
-                type: q.type,
-                content,
-                answerKey,
-                difficulty: q.difficulty,
-                tags: q.tags,
-            };
-        });
 
 
         // DISABLE RANDOMIZATION FOR PREVIEW - Keep original order for easier checking
-        selectedQuestions = selectedQuestions.map((q, idx) => ({
+        selectedQuestions = selectedQuestions.map((q: any, idx: number) => ({
             ...q,
             number: idx + 1,
         }));
@@ -119,7 +92,7 @@ export async function POST(
                 durationMinutes: t.durationMinutes,
                 totalScore: t.totalScore || 100,
             },
-            questions: selectedQuestions.map((q) => {
+            questions: selectedQuestions.map((q: any) => {
                 // Parse content if it's a JSON string
                 let content: any;
                 if (typeof q.content === 'string') {

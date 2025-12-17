@@ -18,7 +18,6 @@ import {
     GraduationCap,
     Settings,
     Search,
-    Keyboard,
     HelpCircle
 } from "lucide-react";
 import { useState } from "react";

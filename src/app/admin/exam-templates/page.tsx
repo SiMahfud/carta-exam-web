@@ -142,7 +142,7 @@ export default function ExamTemplatesPage() {
             } else {
                 throw new Error("Failed to delete template");
             }
-        } catch (error) {
+        } catch (_error) {
             toast({
                 title: "Error",
                 description: "Gagal menghapus template",

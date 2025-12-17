@@ -126,7 +126,7 @@ export default function GradingPage() {
             } else {
                 throw new Error("Export failed");
             }
-        } catch (error) {
+        } catch (_error) {
             toast({
                 title: "Error",
                 description: "Gagal mengekspor data",
@@ -258,7 +258,7 @@ export default function GradingPage() {
             } else {
                 throw new Error("Failed to batch publish");
             }
-        } catch (error) {
+        } catch (_error) {
             toast({
                 title: "Error",
                 description: "Gagal mempublikasi submission",

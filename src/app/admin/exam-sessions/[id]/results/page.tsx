@@ -21,8 +21,8 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { format } from "date-fns";
-import { id as idLocale } from "date-fns/locale";
-import { exportToExcel } from "@/lib/excel-export";
+// import { id as idLocale } from "date-fns/locale";
+// import { exportToExcel } from "@/lib/excel-export";
 
 
 interface ScoreByType {
@@ -94,9 +94,7 @@ export default function ExamResultsPage() {
     const [searchQuery, setSearchQuery] = useState("");
     const [selectedView, setSelectedView] = useState<"auto" | "essay">("auto");
 
-    useEffect(() => {
-        fetchResults();
-    }, [classFilter, searchQuery]);
+
 
     const fetchResults = async () => {
         setLoading(true);
@@ -125,6 +123,13 @@ export default function ExamResultsPage() {
             setLoading(false);
         }
     };
+
+    useEffect(() => {
+        fetchResults();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [classFilter, searchQuery]);
+
+
 
     const getScoreColor = (score: number) => {
         if (score >= 80) return "text-green-600 font-semibold";

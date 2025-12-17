@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -53,7 +53,6 @@ interface Violation {
 
 export default function SessionMonitorPage() {
     const params = useParams();
-    const router = useRouter();
     const { toast } = useToast();
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
@@ -83,14 +82,6 @@ export default function SessionMonitorPage() {
     const [accessToken, setAccessToken] = useState<string | null>(null);
     const [requireToken, setRequireToken] = useState(false);
     const [generatingToken, setGeneratingToken] = useState(false);
-
-    useEffect(() => {
-        fetchData();
-        fetchToken();
-        // Auto-refresh every 30s
-        const interval = setInterval(fetchData, 30000);
-        return () => clearInterval(interval);
-    }, []);
 
     const fetchData = async () => {
         setRefreshing(true);
@@ -129,6 +120,19 @@ export default function SessionMonitorPage() {
             console.error("Error fetching token:", error);
         }
     };
+
+    useEffect(() => {
+        fetchData();
+        fetchToken();
+        // Auto-refresh every 30s
+        const interval = setInterval(fetchData, 30000);
+        return () => clearInterval(interval);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
+
+
+
+
 
     const generateToken = async () => {
         setGeneratingToken(true);

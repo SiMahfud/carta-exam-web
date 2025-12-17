@@ -5,9 +5,6 @@ import { Button } from "@/components/ui/button";
 import {
     Card,
     CardContent,
-    CardDescription,
-    CardHeader,
-    CardTitle,
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Plus, Calendar, Clock, Users, Monitor, MoreVertical, Trash2, Edit } from "lucide-react";
@@ -81,10 +78,6 @@ export default function ExamSessionsPage() {
     const [deleteId, setDeleteId] = useState<string | null>(null);
     const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
 
-    useEffect(() => {
-        fetchSessions();
-    }, [page, statusFilter, dateRange]);
-
     const fetchSessions = async () => {
         setLoading(true);
         try {
@@ -118,6 +111,13 @@ export default function ExamSessionsPage() {
             setLoading(false);
         }
     };
+
+    useEffect(() => {
+        fetchSessions();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [page, statusFilter, dateRange]);
+
+
 
     const confirmDelete = async () => {
         if (!deleteId) return;

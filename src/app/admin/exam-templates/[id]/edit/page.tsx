@@ -26,7 +26,7 @@ export default function EditExamTemplatePage({ params }: { params: { id: string 
                     if (typeof data === 'string') {
                         try {
                             return JSON.parse(data);
-                        } catch (e) {
+                        } catch (_e) {
                             return fallback;
                         }
                     }
