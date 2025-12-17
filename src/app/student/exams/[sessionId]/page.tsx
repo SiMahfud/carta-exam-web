@@ -216,7 +216,7 @@ export default function TakeExamPage() {
             });
             setSubmitting(false);
         }
-    }, [sessionId, studentId, violationCount, isFullscreen, exitFullscreen, router, toast]);
+    }, [sessionId, studentId, violationCount, isFullscreen, exitFullscreen, toast]);
 
     const handleAutoSubmit = useCallback(() => {
         toast({

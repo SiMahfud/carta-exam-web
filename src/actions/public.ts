@@ -55,7 +55,7 @@ export async function getPublicExamSchedule(): Promise<PublicExamSession[]> {
     // Optimized approach: Collect all class IDs needed
     const classIdsToFetch = new Set<string>();
 
-    sessions.forEach(session => {
+    sessions.forEach((session: typeof sessions[0]) => {
         if (session.targetType === "class" && Array.isArray(session.targetIds)) {
             session.targetIds.forEach((id: string) => classIdsToFetch.add(id));
         }
@@ -67,10 +67,10 @@ export async function getPublicExamSchedule(): Promise<PublicExamSession[]> {
             .from(classes)
             .where(or(...Array.from(classIdsToFetch).map(id => eq(classes.id, id))));
 
-        classList.forEach(c => classMap.set(c.id, c.name));
+        classList.forEach((c: { id: string; name: string }) => classMap.set(c.id, c.name));
     }
 
-    return sessions.map(session => {
+    return sessions.map((session: typeof sessions[0]) => {
         let className: string | undefined = undefined;
         if (session.targetType === "class" && Array.isArray(session.targetIds)) {
             const names = session.targetIds

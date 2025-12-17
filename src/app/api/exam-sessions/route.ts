@@ -78,7 +78,7 @@ export const GET = (req: Request) => apiHandler(async () => {
                         }
                     } catch { }
                 }
-            } catch (e) {
+            } catch {
                 targetIds = [];
             }
         }
@@ -156,7 +156,7 @@ export const POST = (req: Request) => apiHandler(async () => {
             if (Array.isArray(parsed)) {
                 finalTargetIds = parsed;
             }
-        } catch (e) {
+        } catch {
             // If parse fails, assume it's meant to be an empty array or keep as is if it's not JSON
             finalTargetIds = [];
         }

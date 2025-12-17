@@ -1,7 +1,7 @@
 "use client";
 
 import { useTransition, useState } from "react";
-import { UploadCloud, X, Loader2, Image as ImageIcon } from "lucide-react";
+import { UploadCloud, X, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "@/lib/toast-store";
 import Image from "next/image";

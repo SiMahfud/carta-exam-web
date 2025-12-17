@@ -89,7 +89,7 @@ export default function EditExamSessionPage() {
                 if (typeof targetIds === 'string') {
                     try {
                         targetIds = JSON.parse(targetIds);
-                    } catch (e) {
+                    } catch {
                         targetIds = [];
                     }
                 }
@@ -135,7 +135,7 @@ export default function EditExamSessionPage() {
             if (typeof current === 'string') {
                 try {
                     current = JSON.parse(current);
-                } catch (e) {
+                } catch {
                     current = [];
                 }
             }

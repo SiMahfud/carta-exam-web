@@ -54,7 +54,7 @@ export async function GET(
                         }
                     } catch { }
                 }
-            } catch (e) {
+            } catch {
                 targetIds = [];
             }
         }
@@ -104,7 +104,7 @@ export async function PATCH(
                     if (Array.isArray(parsed)) {
                         finalTargetIds = parsed;
                     }
-                } catch (e) {
+                } catch {
                     finalTargetIds = [];
                 }
             }
