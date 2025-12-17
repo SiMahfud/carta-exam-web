@@ -1,11 +1,11 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import {
     Card,
     CardContent,
-    CardDescription,
+
     CardHeader,
     CardTitle,
 } from "@/components/ui/card";
@@ -17,7 +17,7 @@ import {
     SelectValue,
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
+
 import { Label } from "@/components/ui/label";
 import {
     Plus,
@@ -92,17 +92,9 @@ export default function QuestionBankDetailPage() {
     const [page, setPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
 
-    useEffect(() => {
-        fetchBankDetails();
-        fetchQuestions();
-        fetchTags();
-    }, [bankId]);
 
-    useEffect(() => {
-        fetchQuestions();
-    }, [filterType, filterDifficulty, filterTags, page]);
 
-    const fetchBankDetails = async () => {
+    const fetchBankDetails = useCallback(async () => {
         try {
             const response = await fetch(`/api/question-banks/${bankId}`);
             if (response.ok) {
@@ -119,9 +111,9 @@ export default function QuestionBankDetailPage() {
         } catch (error) {
             console.error("Error fetching bank:", error);
         }
-    };
+    }, [bankId, router, toast]);
 
-    const fetchQuestions = async () => {
+    const fetchQuestions = useCallback(async () => {
         try {
             let url = `/api/question-banks/${bankId}/questions?page=${page}&limit=20`;
             if (filterType !== "all") url += `&type=${filterType}`;
@@ -144,9 +136,9 @@ export default function QuestionBankDetailPage() {
         } finally {
             setLoading(false);
         }
-    };
+    }, [bankId, page, filterType, filterDifficulty, filterTags, toast]);
 
-    const fetchTags = async () => {
+    const fetchTags = useCallback(async () => {
         try {
             const response = await fetch(`/api/question-banks/${bankId}/questions/tags`);
             if (response.ok) {
@@ -156,7 +148,17 @@ export default function QuestionBankDetailPage() {
         } catch (error) {
             console.error("Error fetching tags:", error);
         }
-    };
+    }, [bankId]);
+
+    useEffect(() => {
+        fetchBankDetails();
+        fetchQuestions();
+        fetchTags();
+    }, [bankId, fetchBankDetails, fetchQuestions, fetchTags]);
+
+    useEffect(() => {
+        fetchQuestions();
+    }, [filterType, filterDifficulty, filterTags, page, fetchQuestions]);
 
     const handleDeleteClick = (questionId: string) => {
         console.log("Delete button clicked for question:", questionId);

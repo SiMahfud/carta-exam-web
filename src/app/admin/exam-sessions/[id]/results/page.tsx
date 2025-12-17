@@ -20,7 +20,7 @@ import {
     Eye
 } from "lucide-react";
 import Link from "next/link";
-import { format } from "date-fns";
+// import { format } from "date-fns";
 // import { id as idLocale } from "date-fns/locale";
 // import { exportToExcel } from "@/lib/excel-export";
 
@@ -517,7 +517,7 @@ export default function ExamResultsPage() {
                                     Tidak ada soal essay dalam ujian ini
                                 </div>
                             ) : (
-                                resultsWithEssays.map((result, idx) => (
+                                resultsWithEssays.map((result, _idx) => (
                                     <div key={result.studentId} className="border rounded-lg p-4">
                                         <div className="flex justify-between items-start mb-4">
                                             <div>

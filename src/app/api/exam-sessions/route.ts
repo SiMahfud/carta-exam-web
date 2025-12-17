@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+
 import { db } from "@/lib/db";
 import { examSessions, examTemplates, users } from "@/lib/schema";
 import { eq, desc, and, sql } from "drizzle-orm";

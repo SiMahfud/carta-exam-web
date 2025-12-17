@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -72,51 +72,13 @@ export default function GradingDetailPage() {
     const [pendingSubmissions, setPendingSubmissions] = useState<string[]>([]);
     const [currentIndex, setCurrentIndex] = useState(-1);
 
-    useEffect(() => {
-        fetchSubmissionDetails();
-        fetchPendingSubmissions();
-    }, [params.id]);
 
-    useEffect(() => {
-        // Keyboard shortcuts
-        const handleKeyPress = (e: KeyboardEvent) => {
-            // Don't trigger if typing in input/textarea
-            if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) {
-                return;
-            }
 
-            // Ctrl+S to save
-            if (e.ctrlKey && e.key === 's') {
-                e.preventDefault();
-                handleSave();
-            }
 
-            // Ctrl+Enter to publish
-            if (e.ctrlKey && e.key === 'Enter') {
-                e.preventDefault();
-                if (submission?.gradingStatus !== "pending_manual") {
-                    handlePublish();
-                }
-            }
 
-            // n for next
-            if (e.key === 'n' && currentIndex < pendingSubmissions.length - 1) {
-                e.preventDefault();
-                navigateToNext();
-            }
 
-            // p for previous
-            if (e.key === 'p' && currentIndex > 0) {
-                e.preventDefault();
-                navigateToPrevious();
-            }
-        };
 
-        window.addEventListener('keydown', handleKeyPress);
-        return () => window.removeEventListener('keydown', handleKeyPress);
-    }, [submission, currentIndex, pendingSubmissions]);
-
-    const fetchPendingSubmissions = async () => {
+    const fetchPendingSubmissions = useCallback(async () => {
         try {
             // Fetch all pending submissions to enable navigation
             const response = await fetch("/api/grading/submissions?status=pending_manual&limit=1000");
@@ -131,27 +93,27 @@ export default function GradingDetailPage() {
         } catch (error) {
             console.error("Error fetching pending submissions:", error);
         }
-    };
+    }, [params.id]);
 
-    const navigateToNext = () => {
+    const navigateToNext = useCallback(() => {
         if (currentIndex >= 0 && currentIndex < pendingSubmissions.length - 1) {
             const nextId = pendingSubmissions[currentIndex + 1];
             router.push(`/admin/grading/${nextId}`);
         }
-    };
+    }, [currentIndex, pendingSubmissions, router]);
 
-    const navigateToPrevious = () => {
+    const navigateToPrevious = useCallback(() => {
         if (currentIndex > 0) {
             const prevId = pendingSubmissions[currentIndex - 1];
             router.push(`/admin/grading/${prevId}`);
         }
-    };
+    }, [currentIndex, pendingSubmissions, router]);
 
     const skipToNext = () => {
         navigateToNext();
     };
 
-    const fetchSubmissionDetails = async () => {
+    const fetchSubmissionDetails = useCallback(async () => {
         try {
             const response = await fetch(`/api/grading/submissions/${params.id}`);
             if (response.ok) {
@@ -179,7 +141,12 @@ export default function GradingDetailPage() {
         } finally {
             setLoading(false);
         }
-    };
+    }, [params.id, toast]);
+
+    useEffect(() => {
+        fetchSubmissionDetails();
+        fetchPendingSubmissions();
+    }, [fetchSubmissionDetails, fetchPendingSubmissions]);
 
     const handleGradeChange = (answerId: string, score: number, comment: string) => {
         const newGrades = new Map(grades);
@@ -187,7 +154,7 @@ export default function GradingDetailPage() {
         setGrades(newGrades);
     };
 
-    const handleSave = async () => {
+    const handleSave = useCallback(async () => {
         setSaving(true);
         try {
             const updates = Array.from(grades.entries()).map(([answerId, data]) => ({
@@ -211,7 +178,7 @@ export default function GradingDetailPage() {
             } else {
                 throw new Error("Failed to save");
             }
-        } catch (_error) {
+        } catch {
             toast({
                 title: "Error",
                 description: "Gagal menyimpan penilaian",
@@ -220,9 +187,9 @@ export default function GradingDetailPage() {
         } finally {
             setSaving(false);
         }
-    };
+    }, [grades, params.id, toast, fetchSubmissionDetails]);
 
-    const handlePublish = async () => {
+    const handlePublish = useCallback(async () => {
         setPublishing(true);
         try {
             const response = await fetch(`/api/grading/submissions/${params.id}/publish`, {
@@ -248,7 +215,47 @@ export default function GradingDetailPage() {
         } finally {
             setPublishing(false);
         }
-    };
+    }, [params.id, router, toast]);
+
+    useEffect(() => {
+        // Handle keyboard navigation
+        const handleKeyPress = (e: KeyboardEvent) => {
+            // ALT + S for Save
+            if (e.altKey && e.key === 's') {
+                e.preventDefault();
+                handleSave();
+            }
+
+            // ALT + P for Publish
+            if (e.altKey && e.key === 'p') {
+                e.preventDefault();
+                handlePublish();
+            }
+
+            // n for next
+            if (e.key === 'n' && currentIndex < pendingSubmissions.length - 1) {
+                e.preventDefault();
+                navigateToNext();
+            }
+
+            // p for previous
+            if (e.key === 'p' && currentIndex > 0) {
+                e.preventDefault();
+                navigateToPrevious();
+            }
+        };
+
+        window.addEventListener('keydown', handleKeyPress);
+        return () => window.removeEventListener('keydown', handleKeyPress);
+    }, [
+        submission,
+        currentIndex,
+        pendingSubmissions,
+        navigateToNext,
+        navigateToPrevious,
+        handleSave,
+        handlePublish
+    ]);
 
     const renderAnswer = (answer: Answer) => {
         const grade = grades.get(answer.answerId) || { score: answer.partialPoints, comment: "" };

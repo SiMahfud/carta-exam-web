@@ -1,6 +1,6 @@
-import { NextResponse } from "next/server";
+
 import { db } from "@/lib/db";
-import { classes, users, classStudents } from "@/lib/schema";
+import { classes, users } from "@/lib/schema";
 import { eq, sql } from "drizzle-orm";
 import { ActivityLogger } from "@/lib/activity-logger";
 import { apiHandler, ApiError } from "@/lib/api-handler";

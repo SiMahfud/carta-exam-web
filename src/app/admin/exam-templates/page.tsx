@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import {
     Card,
@@ -76,12 +76,7 @@ export default function ExamTemplatesPage() {
         fetchSubjects();
     }, []);
 
-    useEffect(() => {
-        const timer = setTimeout(() => {
-            fetchTemplates();
-        }, 500);
-        return () => clearTimeout(timer);
-    }, [searchQuery, page, subjectFilter, sort, order]);
+
 
     const fetchSubjects = async () => {
         try {
@@ -95,7 +90,7 @@ export default function ExamTemplatesPage() {
         }
     };
 
-    const fetchTemplates = async () => {
+    const fetchTemplates = useCallback(async () => {
         setLoading(true);
         try {
             const params = new URLSearchParams({
@@ -123,7 +118,14 @@ export default function ExamTemplatesPage() {
         } finally {
             setLoading(false);
         }
-    };
+    }, [page, searchQuery, subjectFilter, sort, order, toast]);
+
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            fetchTemplates();
+        }, 500);
+        return () => clearTimeout(timer);
+    }, [fetchTemplates]);
 
     const handleDelete = async () => {
         if (!templateToDelete) return;
@@ -142,7 +144,7 @@ export default function ExamTemplatesPage() {
             } else {
                 throw new Error("Failed to delete template");
             }
-        } catch (_error) {
+        } catch {
             toast({
                 title: "Error",
                 description: "Gagal menghapus template",

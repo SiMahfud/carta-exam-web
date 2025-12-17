@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import {
     Card,
@@ -71,11 +71,9 @@ export default function UsersPage() {
         role: "student" as "admin" | "teacher" | "student",
     });
 
-    useEffect(() => {
-        fetchUsers();
-    }, []);
 
-    const fetchUsers = async () => {
+
+    const fetchUsers = useCallback(async () => {
         try {
             const response = await fetch("/api/users");
             if (response.ok) {
@@ -92,7 +90,11 @@ export default function UsersPage() {
         } finally {
             setLoading(false);
         }
-    };
+    }, [toast]);
+
+    useEffect(() => {
+        fetchUsers();
+    }, [fetchUsers]);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();

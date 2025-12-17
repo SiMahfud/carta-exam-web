@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import {
     Card,
@@ -93,15 +93,9 @@ export default function QuestionBanksPage() {
         subjectId: "",
     });
 
-    useEffect(() => {
-        fetchSubjects();
-    }, []);
 
-    useEffect(() => {
-        fetchQuestionBanks();
-    }, [selectedSubject, searchQuery, dateRange]);
 
-    const fetchSubjects = async () => {
+    const fetchSubjects = useCallback(async () => {
         try {
             const response = await fetch("/api/subjects");
             if (response.ok) {
@@ -111,9 +105,9 @@ export default function QuestionBanksPage() {
         } catch (error) {
             console.error("Error fetching subjects:", error);
         }
-    };
+    }, []);
 
-    const fetchQuestionBanks = async () => {
+    const fetchQuestionBanks = useCallback(async () => {
         try {
             setLoading(true);
             const params = new URLSearchParams();
@@ -137,7 +131,15 @@ export default function QuestionBanksPage() {
         } finally {
             setLoading(false);
         }
-    };
+    }, [selectedSubject, searchQuery, dateRange, toast]);
+
+    useEffect(() => {
+        fetchSubjects();
+    }, [fetchSubjects]);
+
+    useEffect(() => {
+        fetchQuestionBanks();
+    }, [selectedSubject, searchQuery, dateRange, fetchQuestionBanks]);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();

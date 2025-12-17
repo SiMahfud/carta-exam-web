@@ -1,7 +1,7 @@
 'use server';
 
 import { db } from "@/lib/db";
-import { schoolSettings, savedFilters } from "@/lib/schema";
+import { schoolSettings } from "@/lib/schema";
 import { eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 

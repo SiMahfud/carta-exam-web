@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { users, submissions, examSessions } from "@/lib/schema";
-import { eq, and, sql, gte } from "drizzle-orm";
+import { eq, and, sql } from "drizzle-orm";
 
 // GET /api/admin/stats - Get dashboard statistics
 export async function GET() {

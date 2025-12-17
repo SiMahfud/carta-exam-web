@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { useToast } from "@/hooks/use-toast";
 import ExamTemplateWizard from "@/components/exam-templates/ExamTemplateWizard";
@@ -13,11 +13,7 @@ export default function EditExamTemplatePage({ params }: { params: { id: string 
     const [loading, setLoading] = useState(true);
     const [initialData, setInitialData] = useState<ExamTemplateFormData | null>(null);
 
-    useEffect(() => {
-        fetchTemplate();
-    }, [params.id]);
-
-    const fetchTemplate = async () => {
+    const fetchTemplate = useCallback(async () => {
         try {
             const response = await fetch(`/api/exam-templates/${params.id}`);
             if (response.ok) {
@@ -26,7 +22,7 @@ export default function EditExamTemplatePage({ params }: { params: { id: string 
                     if (typeof data === 'string') {
                         try {
                             return JSON.parse(data);
-                        } catch (_e) {
+                        } catch {
                             return fallback;
                         }
                     }
@@ -91,7 +87,11 @@ export default function EditExamTemplatePage({ params }: { params: { id: string 
         } finally {
             setLoading(false);
         }
-    };
+    }, [params.id, router, toast]);
+
+    useEffect(() => {
+        fetchTemplate();
+    }, [fetchTemplate]);
 
     const handleSubmit = async (formData: ExamTemplateFormData) => {
         try {

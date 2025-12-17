@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { classStudents, users } from "@/lib/schema";
+import { classStudents } from "@/lib/schema";
 import { eq } from "drizzle-orm";
 
 // POST /api/classes/[id]/students - Add student to class

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import {
     Card,
@@ -56,11 +56,9 @@ export default function SubjectsPage() {
         description: "",
     });
 
-    useEffect(() => {
-        fetchSubjects();
-    }, []);
 
-    const fetchSubjects = async () => {
+
+    const fetchSubjects = useCallback(async () => {
         try {
             const response = await fetch("/api/subjects");
             if (response.ok) {
@@ -77,7 +75,11 @@ export default function SubjectsPage() {
         } finally {
             setLoading(false);
         }
-    };
+    }, [toast]);
+
+    useEffect(() => {
+        fetchSubjects();
+    }, [fetchSubjects]);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();

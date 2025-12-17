@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -66,11 +66,9 @@ export default function EditExamSessionPage() {
         status: "scheduled"
     });
 
-    useEffect(() => {
-        fetchData();
-    }, [sessionId]);
 
-    const fetchData = async () => {
+
+    const fetchData = useCallback(async () => {
         setLoading(true);
         try {
             const [sessionRes, classesRes, studentsRes] = await Promise.all([
@@ -114,7 +112,11 @@ export default function EditExamSessionPage() {
         } finally {
             setLoading(false);
         }
-    };
+    }, [sessionId, toast]);
+
+    useEffect(() => {
+        fetchData();
+    }, [fetchData]);
 
     const handleTargetToggle = (targetId: string) => {
         setFormData(prev => {
