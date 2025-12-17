@@ -9,8 +9,8 @@ export async function createQuestion(formData: FormData) {
     const type = formData.get("type") as "mc" | "complex_mc" | "matching" | "short" | "essay"
     const questionText = formData.get("question") as string
 
-    let content: any = { question: questionText }
-    let answerKey: any = {}
+    const content: any = { question: questionText }
+    const answerKey: any = {}
 
     if (type === "mc") {
         const options = JSON.parse(formData.get("options") as string)

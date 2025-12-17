@@ -48,10 +48,10 @@ export async function finishExam(submissionId: string) {
         let isCorrect = false
         // Auto-grading logic
         if (q.type === "mc") {
-            // @ts-ignore
+            // @ts-expect-error - Drizzle flexibility
             if (ans.studentAnswer == q.answerKey.correct) isCorrect = true
         } else if (q.type === "short") {
-            // @ts-ignore
+            // @ts-expect-error - Drizzle flexibility
             if (q.answerKey.correct.map(s => s.toLowerCase()).includes(ans.studentAnswer?.toLowerCase())) isCorrect = true
         }
         // Add other types logic here

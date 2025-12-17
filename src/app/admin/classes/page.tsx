@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import {
     Card,
@@ -85,11 +85,8 @@ export default function ClassesPage() {
     const [deleteAlertOpen, setDeleteAlertOpen] = useState(false);
     const [itemToDelete, setItemToDelete] = useState<{ type: "class" | "student"; id: string; name?: string } | null>(null);
 
-    useEffect(() => {
-        fetchClasses();
-    }, []);
 
-    const fetchClasses = async () => {
+    const fetchClasses = useCallback(async () => {
         try {
             const response = await fetch("/api/classes");
             if (response.ok) {
@@ -106,7 +103,11 @@ export default function ClassesPage() {
         } finally {
             setLoading(false);
         }
-    };
+    }, [toast]);
+
+    useEffect(() => {
+        fetchClasses();
+    }, [fetchClasses]);
 
     const fetchClassStudents = async (classId: string) => {
         try {
@@ -116,7 +117,7 @@ export default function ClassesPage() {
                 // API returns students directly on the object
                 setClassStudents(result.students || []);
             }
-        } catch (error) {
+        } catch {
             console.error("Error fetching students:", error);
         }
     };
@@ -130,7 +131,7 @@ export default function ClassesPage() {
                 // Users API returns array directly, not wrapped in data
                 setAvailableStudents(Array.isArray(result) ? result : result.data || []);
             }
-        } catch (error) {
+        } catch {
             console.error("Error fetching available students:", error);
         }
     };
@@ -167,7 +168,7 @@ export default function ClassesPage() {
             } else {
                 throw new Error("Failed to save class");
             }
-        } catch (error) {
+        } catch {
             toast({
                 title: "Error",
                 description: "Gagal menyimpan kelas",
@@ -198,7 +199,7 @@ export default function ClassesPage() {
             } else {
                 throw new Error("Failed to delete class");
             }
-        } catch (error) {
+        } catch {
             toast({
                 title: "Error",
                 description: "Gagal menghapus kelas",
@@ -234,7 +235,7 @@ export default function ClassesPage() {
                     variant: "destructive",
                 });
             }
-        } catch (error) {
+        } catch {
             toast({
                 title: "Error",
                 description: "Terjadi kesalahan saat menambahkan siswa",
@@ -267,7 +268,7 @@ export default function ClassesPage() {
             } else {
                 throw new Error("Failed to remove student");
             }
-        } catch (error) {
+        } catch {
             toast({
                 title: "Error",
                 description: "Gagal menghapus siswa",

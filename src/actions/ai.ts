@@ -62,7 +62,7 @@ const cleanJson = (text: string): string => {
     // 2. Any other backslash is considered a "bad" LaTeX escape (e.g., \alpha instead of \\alpha) and is doubled.
     // Note: We deliberately exclude \b, \f, \r, \t from safe list because in the context of LaTeX, 
     // \beta, \frac, \rho, \theta are common and we want them to become \\beta, \\frac, etc.
-    return text.replace(/(\\\\|\\n|\\"|\\\/|\\u[0-9a-fA-F]{4})|(\\)/g, (match, safe, unsafe) => {
+    return text.replace(/(\\\\|\\n|\\"|\\\/|\\u[0-9a-fA-F]{4})|(\\)/g, (match, safe, _unsafe) => {
         if (safe) return safe;
         return "\\\\";
     });
