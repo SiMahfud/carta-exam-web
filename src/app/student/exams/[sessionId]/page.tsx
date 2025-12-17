@@ -149,11 +149,17 @@ export default function TakeExamPage() {
                     setAnswers(restoredAnswers);
                 }
             } else if (response.status === 403) {
-                // Check if terminated
+                // Check if terminated or completed
                 const data = await response.json();
                 if (data.terminated) {
                     setIsTerminated(true);
                     setViolationCount(data.violationCount || 0);
+                } else if (data.completed) {
+                    toast({
+                        title: "Ujian Selesai",
+                        description: "Anda sudah menyelesaikan ujian ini.",
+                    });
+                    router.push("/student/exams");
                 }
             } else {
                 throw new Error("Failed to load questions");
@@ -168,7 +174,7 @@ export default function TakeExamPage() {
         } finally {
             setLoading(false);
         }
-    }, [sessionId, studentId, toast]);
+    }, [sessionId, studentId, toast, router]);
 
     const handleSubmit = useCallback(async () => {
         setSubmitting(true);
@@ -182,13 +188,21 @@ export default function TakeExamPage() {
             if (response.ok) {
                 // Exit fullscreen before navigating
                 if (isFullscreen) {
-                    await exitFullscreen();
+                    try {
+                        await exitFullscreen();
+                    } catch (e) {
+                        console.error("Error exiting fullscreen:", e);
+                    }
                 }
+
                 toast({
                     title: "Berhasil",
                     description: "Ujian berhasil dikumpulkan",
                 });
-                router.push("/student/exams");
+
+                // Force navigation using window.location to ensure we exit the exam context completely
+                window.location.href = "/student/exams";
+
                 // Don't setSubmitting(false) here, keep it true while navigating to prevent violations
             } else {
                 throw new Error("Failed to submit");
