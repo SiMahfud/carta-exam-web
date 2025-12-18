@@ -76,7 +76,7 @@ export async function PATCH(
 ) {
     try {
         const body = await request.json();
-        const { sessionName, startTime, endTime, status, targetIds } = body;
+        const { sessionName, startTime, endTime, status, targetIds, targetType } = body;
 
         // Use a Record to avoid 'any', but ensure keys match schema
         const updateData: Record<string, unknown> = {};
@@ -95,6 +95,9 @@ export async function PATCH(
         }
         if ('status' in body && status !== undefined) {
             updateData.status = status;
+        }
+        if ('targetType' in body && targetType !== undefined) {
+            updateData.targetType = targetType;
         }
         if ('targetIds' in body && targetIds !== undefined) {
             let finalTargetIds = targetIds;

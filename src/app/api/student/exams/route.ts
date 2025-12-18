@@ -36,6 +36,7 @@ export async function GET(request: Request) {
             startTime: examSessions.startTime,
             endTime: examSessions.endTime,
             targetIds: examSessions.targetIds,
+            targetType: examSessions.targetType,
             templateName: examTemplates.name,
             subjectName: sql<string>`subjects.name`,
             durationMinutes: examTemplates.durationMinutes,
@@ -45,11 +46,11 @@ export async function GET(request: Request) {
             .from(examSessions)
             .innerJoin(examTemplates, eq(examSessions.templateId, examTemplates.id))
             .innerJoin(sql`subjects`, eq(examTemplates.subjectId, sql`subjects.id`))
-            .where(eq(examSessions.targetType, "class"));
+            .where(sql`${examSessions.targetType} IN ('class', 'individual')`);
 
         const allSessions = await sessionsQuery;
 
-        // Filter sessions where student's class is in targetIds
+        // Filter sessions based on target instructions
         const assignedSessions = allSessions.filter((session: typeof allSessions[0]) => {
             let targetIds: string[] = [];
             try {
@@ -70,7 +71,12 @@ export async function GET(request: Request) {
                 targetIds = [];
             }
 
-            return targetIds && targetIds.some((id: string) => classIds.includes(id));
+            if (session.targetType === 'individual') {
+                return targetIds && targetIds.includes(studentId);
+            } else {
+                // Class target
+                return targetIds && targetIds.some((id: string) => classIds.includes(id));
+            }
         });
 
         // Get student's submissions
