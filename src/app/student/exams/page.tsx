@@ -9,6 +9,7 @@ import { Calendar, Clock, FileText, Play, CheckCircle, XCircle, Timer } from "lu
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 import { id as idLocale } from "date-fns/locale";
+import { TokenInputDialog } from "@/components/exam/take-exam/TokenInputDialog";
 
 interface Exam {
     id: string;
@@ -34,6 +35,12 @@ export default function StudentExamsPage() {
     const [loading, setLoading] = useState(true);
     const [filter, setFilter] = useState("all");
     const [studentId, setStudentId] = useState<string | null>(null);
+
+    // Token Dialog State
+    const [tokenDialogOpen, setTokenDialogOpen] = useState(false);
+    const [selectedExamId, setSelectedExamId] = useState<string | null>(null);
+    const [tokenError, setTokenError] = useState<string | null>(null);
+    const [verifyingToken, setVerifyingToken] = useState(false);
 
     const fetchStudentId = useCallback(async () => {
         try {
@@ -104,22 +111,68 @@ export default function StudentExamsPage() {
         }
     };
 
-    const handleStartExam = async (sessionId: string) => {
+    const handleStartExam = async (sessionId: string, token?: string) => {
         if (!studentId) return;
 
+        if (token) {
+            setVerifyingToken(true);
+            setTokenError(null);
+        }
+
         try {
+            const body: any = { studentId };
+            if (token) {
+                body.token = token;
+            }
+
             const response = await fetch(`/api/student/exams/${sessionId}/start`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ studentId }),
+                body: JSON.stringify(body),
             });
 
             if (response.ok) {
                 const data = await response.json();
                 void data; // Response needed for success verification
+
+                // If we were in the dialog, close it
+                if (tokenDialogOpen) {
+                    setTokenDialogOpen(false);
+                    setSelectedExamId(null);
+                    setTokenError(null);
+                }
+
+                // Save token for next page to avoid double entry
+                if (token) {
+                    try {
+                        sessionStorage.setItem(`exam_token_${sessionId}`, token);
+                    } catch (e) {
+                        console.error("Failed to save token to session storage", e);
+                    }
+                }
+
                 router.push(`/student/exams/${sessionId}`);
             } else {
                 const error = await response.json();
+
+                // Check if token is required or invalid
+                if (response.status === 403 && error.requireToken) {
+                    // If we already sent a token, it means it was invalid
+                    if (token) {
+                        setTokenError("Token tidak valid. Silakan coba lagi.");
+                        // Ensure dialog is open (in case it was closed or we're retrying)
+                        if (!tokenDialogOpen) {
+                            setSelectedExamId(sessionId);
+                            setTokenDialogOpen(true);
+                        }
+                    } else {
+                        // If no token was sent, we need to ask for one
+                        setSelectedExamId(sessionId);
+                        setTokenDialogOpen(true);
+                    }
+                    return;
+                }
+
                 throw new Error(error.error || "Failed to start exam");
             }
         } catch (error: unknown) {
@@ -129,6 +182,16 @@ export default function StudentExamsPage() {
                 description: errorMessage,
                 variant: "destructive",
             });
+        } finally {
+            if (token) {
+                setVerifyingToken(false);
+            }
+        }
+    };
+
+    const handleTokenSubmit = (token: string) => {
+        if (selectedExamId) {
+            handleStartExam(selectedExamId, token);
         }
     };
 
@@ -255,6 +318,19 @@ export default function StudentExamsPage() {
                     ))}
                 </div>
             )}
+
+            <TokenInputDialog
+                open={tokenDialogOpen}
+                onCancel={() => {
+                    setTokenDialogOpen(false);
+                    setSelectedExamId(null);
+                    setTokenError(null);
+                }}
+                onSubmit={handleTokenSubmit}
+                loading={verifyingToken}
+                error={tokenError}
+                examName={exams.find(e => e.id === selectedExamId)?.sessionName}
+            />
         </div>
     );
 }

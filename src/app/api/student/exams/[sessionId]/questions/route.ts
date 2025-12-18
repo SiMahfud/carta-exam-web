@@ -93,6 +93,7 @@ export async function GET(
         const sessionData = await db.select({
             templateId: examSessions.templateId,
             endTime: examSessions.endTime,
+            accessToken: examSessions.accessToken,
         })
             .from(examSessions)
             .where(eq(examSessions.id, params.sessionId))
@@ -106,6 +107,7 @@ export async function GET(
 
         // Get template for randomization settings
         const templateData = await db.select({
+            requireToken: examTemplates.requireToken,
             randomizationRules: examTemplates.randomizationRules,
             durationMinutes: examTemplates.durationMinutes,
             minDurationMinutes: examTemplates.minDurationMinutes,
@@ -119,6 +121,24 @@ export async function GET(
             .limit(1);
 
         const template = templateData[0];
+
+        // Token validation on resume
+        if (template.requireToken) {
+            const tokenHeader = request.headers.get("X-Exam-Token");
+            const tokenParam = searchParams.get("token");
+            const providedToken = tokenHeader || tokenParam;
+
+            if (!providedToken || !session.accessToken || providedToken.trim() !== session.accessToken.trim()) {
+                return NextResponse.json(
+                    {
+                        error: "Token diperlukan untuk melanjutkan ujian",
+                        requireToken: true,
+                        message: "Sesi ujian ini memerlukan token untuk dilanjutkan."
+                    },
+                    { status: 403 }
+                );
+            }
+        }
 
         let randomizationRules: { shuffleAnswers?: boolean } = {};
         try {

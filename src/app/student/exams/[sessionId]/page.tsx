@@ -111,11 +111,19 @@ export default function TakeExamPage() {
         }
     }, [router]);
 
-    const fetchQuestions = useCallback(async () => {
+    const fetchQuestions = useCallback(async (token?: string) => {
         if (!studentId) return;
 
         try {
-            const response = await fetch(`/api/student/exams/${sessionId}/questions?studentId=${studentId}`);
+            const headers: Record<string, string> = { "Content-Type": "application/json" };
+            if (token) {
+                headers["X-Exam-Token"] = token;
+            }
+
+            const response = await fetch(`/api/student/exams/${sessionId}/questions?studentId=${studentId}`, {
+                headers
+            });
+
             if (response.ok) {
                 const data = await response.json();
                 setQuestions(data.questions);
@@ -148,9 +156,25 @@ export default function TakeExamPage() {
                     });
                     setAnswers(restoredAnswers);
                 }
+
+                // Clear token error if successful
+                setTokenRequired(false);
+                setTokenError(null);
+                return true;
             } else if (response.status === 403) {
-                // Check if terminated or completed
                 const data = await response.json();
+
+                // Check if token is required (resume flow)
+                if (data.requireToken) {
+                    setTokenRequired(true);
+                    if (token) {
+                        setTokenError("Token tidak valid");
+                    }
+                    // Don't throw error, let the UI handle it via FullscreenPrompt
+                    return;
+                }
+
+                // Check if terminated or completed
                 if (data.terminated) {
                     setIsTerminated(true);
                     setViolationCount(data.violationCount || 0);
@@ -372,16 +396,20 @@ export default function TakeExamPage() {
         return false;
     };
 
-    // Handle fullscreen start - may show token dialog first
-    const handleStartFullscreen = async () => {
-        // Check if token is required
-        const needsToken = await checkTokenRequired();
-
-        if (needsToken) {
-            // Show token dialog instead of starting
-            setShowTokenDialog(true);
+    // Handle fullscreen start (and optional token verification)
+    const handleStartFullscreen = async (token?: string) => {
+        if (tokenRequired) {
+            if (!token) {
+                setTokenError("Token harus diisi");
+                return;
+            }
+            // Re-fetch questions with token
+            const success = await fetchQuestions(token);
+            if (success) {
+                // If verification succeeded, proceed directly
+                await proceedWithExamStart();
+            }
         } else {
-            // No token needed, proceed directly
             await proceedWithExamStart();
         }
     };
@@ -464,9 +492,16 @@ export default function TakeExamPage() {
 
     useEffect(() => {
         if (studentId) {
-            fetchQuestions();
+            // Check for token in session storage (passed from list page)
+            let storedToken: string | undefined;
+            try {
+                storedToken = sessionStorage.getItem(`exam_token_${sessionId}`) || undefined;
+            } catch (e) {
+                console.error("Failed to read token from session storage", e);
+            }
+            fetchQuestions(storedToken);
         }
-    }, [studentId, fetchQuestions]);
+    }, [studentId, fetchQuestions, sessionId]);
 
 
 
@@ -576,7 +611,8 @@ export default function TakeExamPage() {
         );
     }
 
-    if (!currentQuestion) {
+    // If no questions and not loading/verifying, showing specific messages
+    if (!currentQuestion && !loading && !tokenRequired) {
         return <div className="flex items-center justify-center min-h-screen">Tidak ada soal</div>;
     }
 
@@ -587,6 +623,8 @@ export default function TakeExamPage() {
                 open={showFullscreenPrompt && !loading && !showTokenDialog}
                 onConfirm={handleStartFullscreen}
                 examName={examName}
+                requireToken={tokenRequired}
+                tokenError={tokenError}
             />
 
             {/* Token Input Dialog */}
@@ -611,140 +649,151 @@ export default function TakeExamPage() {
                 />
             )}
 
-            <div className={`min-h-screen bg-muted/30 flex flex-col ${showViolationBanner ? 'pt-10' : ''}`}>
-                <ExamHeader
-                    currentQuestionIndex={currentQuestionIndex}
-                    totalQuestions={questions.length}
-                    timeRemaining={timeRemaining}
-                    autoSaving={autoSaving}
-                    onShowSubmit={() => setShowSubmitDialog(true)}
-                    isSidebarOpen={isSidebarOpen}
-                    setIsSidebarOpen={setIsSidebarOpen}
-                />
-
-                <div className="flex-1 container mx-auto px-4 py-6 flex gap-6 relative">
-                    <ExamSidebar
-                        questions={questions}
-                        answers={answers}
+            {!currentQuestion ? (
+                // Just a placeholder while waiting for token input or loading
+                <div className="min-h-screen bg-muted/30 flex items-center justify-center">
+                    {tokenRequired ? (
+                        <div className="text-muted-foreground animate-pulse">Menunggu verifikasi token...</div>
+                    ) : (
+                        <div className="text-muted-foreground">Memuat...</div>
+                    )}
+                </div>
+            ) : (
+                <div className={`min-h-screen bg-muted/30 flex flex-col ${showViolationBanner ? 'pt-10' : ''}`}>
+                    <ExamHeader
                         currentQuestionIndex={currentQuestionIndex}
-                        setCurrentQuestionIndex={navigateToQuestion}
+                        totalQuestions={questions.length}
+                        timeRemaining={timeRemaining}
+                        autoSaving={autoSaving}
+                        onShowSubmit={() => setShowSubmitDialog(true)}
                         isSidebarOpen={isSidebarOpen}
                         setIsSidebarOpen={setIsSidebarOpen}
                     />
 
-                    {/* Main Content */}
-                    <main className="flex-1 min-w-0">
-                        <Card className="h-full flex flex-col shadow-sm border-none lg:border">
-                            <div className="p-6 border-b flex justify-between items-start gap-4 bg-muted/10">
-                                <div className="space-y-1">
-                                    <Badge variant="outline" className="bg-background">
-                                        {currentQuestion.type === "mc" ? "Pilihan Ganda" :
-                                            currentQuestion.type === "complex_mc" ? "Pilihan Ganda Kompleks" :
-                                                currentQuestion.type === "matching" ? "Menjodohkan" :
-                                                    currentQuestion.type === "short" ? "Jawaban Singkat" :
-                                                        currentQuestion.type === "true_false" ? "Benar/Salah" :
-                                                            "Essay"}
-                                    </Badge>
-                                    <div className="text-sm text-muted-foreground">
-                                        Bobot: <span className="font-medium text-foreground">{currentQuestion.points} poin</span>
+                    <div className="flex-1 container mx-auto px-4 py-6 flex gap-6 relative">
+                        <ExamSidebar
+                            questions={questions}
+                            answers={answers}
+                            currentQuestionIndex={currentQuestionIndex}
+                            setCurrentQuestionIndex={navigateToQuestion}
+                            isSidebarOpen={isSidebarOpen}
+                            setIsSidebarOpen={setIsSidebarOpen}
+                        />
+
+                        {/* Main Content */}
+                        <main className="flex-1 min-w-0">
+                            <Card className="h-full flex flex-col shadow-sm border-none lg:border">
+                                <div className="p-6 border-b flex justify-between items-start gap-4 bg-muted/10">
+                                    <div className="space-y-1">
+                                        <Badge variant="outline" className="bg-background">
+                                            {currentQuestion.type === "mc" ? "Pilihan Ganda" :
+                                                currentQuestion.type === "complex_mc" ? "Pilihan Ganda Kompleks" :
+                                                    currentQuestion.type === "matching" ? "Menjodohkan" :
+                                                        currentQuestion.type === "short" ? "Jawaban Singkat" :
+                                                            currentQuestion.type === "true_false" ? "Benar/Salah" :
+                                                                "Essay"}
+                                        </Badge>
+                                        <div className="text-sm text-muted-foreground">
+                                            Bobot: <span className="font-medium text-foreground">{currentQuestion.points} poin</span>
+                                        </div>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                        {/* Fullscreen toggle button */}
+                                        {fullscreenSupported && (
+                                            <Button
+                                                variant="outline"
+                                                size="sm"
+                                                onClick={() => isFullscreen ? exitFullscreen() : enterFullscreen()}
+                                                className="hidden"
+                                                disabled={examStarted} // Disabled during exam
+                                            >
+                                                {isFullscreen ? (
+                                                    <Minimize className="h-4 w-4" />
+                                                ) : (
+                                                    <Maximize className="h-4 w-4" />
+                                                )}
+                                            </Button>
+                                        )}
+                                        <Button
+                                            variant={currentAnswer?.isFlagged ? "default" : "outline"}
+                                            size="sm"
+                                            onClick={toggleFlag}
+                                            className={currentAnswer?.isFlagged ? "bg-yellow-500 hover:bg-yellow-600 text-white border-none" : "hover:bg-yellow-50 hover:text-yellow-600 hover:border-yellow-200"}
+                                        >
+                                            <Flag className={`mr-2 h-4 w-4 ${currentAnswer?.isFlagged ? "fill-current" : ""}`} />
+                                            {currentAnswer?.isFlagged ? "Ditandai" : "Tandai"}
+                                        </Button>
                                     </div>
                                 </div>
-                                <div className="flex items-center gap-2">
-                                    {/* Fullscreen toggle button */}
-                                    {fullscreenSupported && (
-                                        <Button
-                                            variant="outline"
-                                            size="sm"
-                                            onClick={() => isFullscreen ? exitFullscreen() : enterFullscreen()}
-                                            className="hidden"
-                                            disabled={examStarted} // Disabled during exam
-                                        >
-                                            {isFullscreen ? (
-                                                <Minimize className="h-4 w-4" />
-                                            ) : (
-                                                <Maximize className="h-4 w-4" />
-                                            )}
-                                        </Button>
-                                    )}
+
+                                <div className="flex-1 p-6 md:p-8 overflow-y-auto">
+                                    <div className="prose max-w-none mb-8">
+                                        <div className="text-lg md:text-xl leading-relaxed text-foreground font-medium">
+                                            <MathHtmlRenderer html={currentQuestion.questionText} />
+                                        </div>
+                                    </div>
+
+                                    <QuestionRenderer
+                                        question={currentQuestion}
+                                        answer={currentAnswer?.answer}
+                                        onChange={(answer) => handleAnswerChange(currentQuestion.id, answer)}
+                                    />
+                                </div>
+
+                                <div className="p-4 border-t bg-muted/10 flex justify-between items-center gap-4">
                                     <Button
-                                        variant={currentAnswer?.isFlagged ? "default" : "outline"}
-                                        size="sm"
-                                        onClick={toggleFlag}
-                                        className={currentAnswer?.isFlagged ? "bg-yellow-500 hover:bg-yellow-600 text-white border-none" : "hover:bg-yellow-50 hover:text-yellow-600 hover:border-yellow-200"}
+                                        variant="outline"
+                                        onClick={() => navigateToQuestion(Math.max(0, currentQuestionIndex - 1))}
+                                        disabled={currentQuestionIndex === 0}
+                                        className="w-32"
                                     >
-                                        <Flag className={`mr-2 h-4 w-4 ${currentAnswer?.isFlagged ? "fill-current" : ""}`} />
-                                        {currentAnswer?.isFlagged ? "Ditandai" : "Tandai"}
+                                        <ChevronLeft className="mr-2 h-4 w-4" />
+                                        Sebelumnya
+                                    </Button>
+
+                                    {/* Progress Dots (Mobile) */}
+                                    <div className="flex gap-1 lg:hidden">
+                                        {questions.map((_, i) => (
+                                            <div
+                                                key={i}
+                                                className={`h-1.5 w-1.5 rounded-full ${i === currentQuestionIndex ? "bg-primary" : "bg-muted"}`}
+                                            />
+                                        )).slice(Math.max(0, currentQuestionIndex - 2), Math.min(questions.length, currentQuestionIndex + 3))}
+                                    </div>
+
+                                    <Button
+                                        onClick={() => navigateToQuestion(Math.min(questions.length - 1, currentQuestionIndex + 1))}
+                                        disabled={currentQuestionIndex === questions.length - 1}
+                                        className="w-32 shadow-lg shadow-primary/10"
+                                    >
+                                        Selanjutnya
+                                        <ChevronRight className="ml-2 h-4 w-4" />
                                     </Button>
                                 </div>
-                            </div>
-
-                            <div className="flex-1 p-6 md:p-8 overflow-y-auto">
-                                <div className="prose max-w-none mb-8">
-                                    <div className="text-lg md:text-xl leading-relaxed text-foreground font-medium">
-                                        <MathHtmlRenderer html={currentQuestion.questionText} />
-                                    </div>
-                                </div>
-
-                                <QuestionRenderer
-                                    question={currentQuestion}
-                                    answer={currentAnswer?.answer}
-                                    onChange={(answer) => handleAnswerChange(currentQuestion.id, answer)}
-                                />
-                            </div>
-
-                            <div className="p-4 border-t bg-muted/10 flex justify-between items-center gap-4">
-                                <Button
-                                    variant="outline"
-                                    onClick={() => navigateToQuestion(Math.max(0, currentQuestionIndex - 1))}
-                                    disabled={currentQuestionIndex === 0}
-                                    className="w-32"
-                                >
-                                    <ChevronLeft className="mr-2 h-4 w-4" />
-                                    Sebelumnya
-                                </Button>
-
-                                {/* Progress Dots (Mobile) */}
-                                <div className="flex gap-1 lg:hidden">
-                                    {questions.map((_, i) => (
-                                        <div
-                                            key={i}
-                                            className={`h-1.5 w-1.5 rounded-full ${i === currentQuestionIndex ? "bg-primary" : "bg-muted"}`}
-                                        />
-                                    )).slice(Math.max(0, currentQuestionIndex - 2), Math.min(questions.length, currentQuestionIndex + 3))}
-                                </div>
-
-                                <Button
-                                    onClick={() => navigateToQuestion(Math.min(questions.length - 1, currentQuestionIndex + 1))}
-                                    disabled={currentQuestionIndex === questions.length - 1}
-                                    className="w-32 shadow-lg shadow-primary/10"
-                                >
-                                    Selanjutnya
-                                    <ChevronRight className="ml-2 h-4 w-4" />
-                                </Button>
-                            </div>
-                        </Card>
-                    </main>
-                </div>
-
-                {/* Violation count indicator */}
-                {violationCount > 0 && (
-                    <div className="fixed bottom-4 left-4 bg-red-100 text-red-700 px-3 py-1.5 rounded-full text-sm font-medium shadow-lg border border-red-200 flex items-center gap-2">
-                        <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse"></div>
-                        {violationCount} pelanggaran
+                            </Card>
+                        </main>
                     </div>
-                )}
 
-                <SubmitDialog
-                    open={showSubmitDialog}
-                    onOpenChange={setShowSubmitDialog}
-                    answeredCount={answeredCount}
-                    totalQuestions={questions.length}
-                    onSubmit={handleSubmit}
-                    submitting={submitting}
-                    minSubmitMinutes={minSubmitMinutes}
-                    elapsedMinutes={startTime ? Math.floor((Date.now() - startTime.getTime()) / 60000) : 0}
-                />
-            </div>
+                    {/* Violation count indicator */}
+                    {violationCount > 0 && (
+                        <div className="fixed bottom-4 left-4 bg-red-100 text-red-700 px-3 py-1.5 rounded-full text-sm font-medium shadow-lg border border-red-200 flex items-center gap-2">
+                            <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse"></div>
+                            {violationCount} pelanggaran
+                        </div>
+                    )}
+
+                    <SubmitDialog
+                        open={showSubmitDialog}
+                        onOpenChange={setShowSubmitDialog}
+                        answeredCount={answeredCount}
+                        totalQuestions={questions.length}
+                        onSubmit={handleSubmit}
+                        submitting={submitting}
+                        minSubmitMinutes={minSubmitMinutes}
+                        elapsedMinutes={startTime ? Math.floor((Date.now() - startTime.getTime()) / 60000) : 0}
+                    />
+                </div>
+            )}
         </>
     );
 }

@@ -382,18 +382,18 @@ export default function SessionMonitorPage() {
 
             {/* Token Card - only show if requireToken is enabled */}
             {requireToken && (
-                <Card className="border-orange-200 bg-orange-50/50">
+                <Card className="border-orange-200 bg-orange-50/50 dark:bg-orange-950/20 dark:border-orange-900/50">
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                         <div className="flex items-center gap-2">
-                            <Key className="h-5 w-5 text-orange-600" />
+                            <Key className="h-5 w-5 text-orange-600 dark:text-orange-400" />
                             <CardTitle className="text-base font-medium">Token Ujian</CardTitle>
                         </div>
-                        <Badge variant="outline" className="text-orange-600 border-orange-300">Diperlukan</Badge>
+                        <Badge variant="outline" className="text-orange-600 border-orange-300 dark:text-orange-400 dark:border-orange-800">Diperlukan</Badge>
                     </CardHeader>
                     <CardContent>
                         {accessToken ? (
                             <div className="flex items-center gap-3">
-                                <div className="text-3xl font-mono font-bold tracking-widest text-orange-700">
+                                <div className="text-3xl font-mono font-bold tracking-widest text-orange-700 dark:text-orange-400">
                                     {accessToken}
                                 </div>
                                 <Button
