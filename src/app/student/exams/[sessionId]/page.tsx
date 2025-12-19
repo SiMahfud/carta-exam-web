@@ -381,20 +381,6 @@ export default function TakeExamPage() {
 
 
 
-    // Check if session requires token
-    const checkTokenRequired = async () => {
-        try {
-            const response = await fetch(`/api/exam-sessions/${sessionId}/token`);
-            if (response.ok) {
-                const data = await response.json();
-                setTokenRequired(data.requireToken && !!data.accessToken);
-                return data.requireToken && !!data.accessToken;
-            }
-        } catch (error) {
-            console.error("Error checking token:", error);
-        }
-        return false;
-    };
 
     // Handle fullscreen start (and optional token verification)
     const handleStartFullscreen = async (token?: string) => {
