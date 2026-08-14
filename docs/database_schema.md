@@ -1,212 +1,73 @@
-# Dokumentasi Skema Database CartaExam
+# 🗄️ Dokumentasi Skema Database CartaExam
 
-Dokumen ini menjelaskan skema database untuk aplikasi CartaExam. Aplikasi ini menggunakan SQLite dengan Drizzle ORM.
+Dokumentasi resmi arsitektur basis data **CartaExam** (SMAN 1 Campurdarat). Basis data dirancang secara agnostik menggunakan **Drizzle ORM** yang mendukung 3 provider database utama: **SQLite** (Development/Local), **MySQL / MariaDB** (Production Server), dan **PostgreSQL** (Enterprise).
 
-## Ringkasan
+---
 
-Database diatur ke dalam beberapa modul:
-- **Manajemen Pengguna (User Management)**: Pengguna, peran (role).
-- **Manajemen Mata Pelajaran & Kelas (Subject & Class Management)**: Mata pelajaran, kelas, pendaftaran siswa.
-- **Manajemen Bank Soal (Question Bank Management)**: Bank soal, butir soal.
-- **Template Penilaian (Scoring Templates)**: Konfigurasi penilaian yang dapat digunakan kembali.
-- **Template & Sesi Ujian (Exam Templates & Sessions)**: Konfigurasi ujian dan sesi terjadwal.
-- **Legacy/Integrasi**: Tabel untuk kompatibilitas ke belakang dan pelaksanaan ujian aktif.
+## 🏗️ Struktur Modul Basis Data
 
-## Tabel
+```mermaid
+erDiagram
+    users ||--o{ class_students : "terdaftar"
+    classes ||--o{ class_students : "memiliki"
+    subjects ||--o{ question_banks : "kategori"
+    users ||--o{ question_banks : "dibuat oleh"
+    question_banks ||--o{ bank_questions : "memuat"
+    exam_templates ||--o{ exam_sessions : "blueprint"
+    exam_sessions ||--o{ question_pools : "menghasilkan"
+    exam_sessions ||--o{ submissions : "dikerjakan"
+    users ||--o{ submissions : "mengumpulkan"
+    submissions ||--o{ answers : "berisi"
+    users ||--o{ activity_logs : "mencatat"
+```
 
-### Manajemen Pengguna
+---
 
-#### `users`
-Menyimpan informasi pengguna untuk admin, guru, dan siswa.
+## 📑 Rincian Tabel Utama
 
-| Kolom | Tipe | Deskripsi |
-| :--- | :--- | :--- |
-| `id` | TEXT | Primary Key (UUID) |
-| `name` | TEXT | Nama Lengkap |
-| `username` | TEXT | Username unik |
-| `password` | TEXT | Password ter-hash |
-| `role` | TEXT | Enum: `admin`, `teacher`, `student` |
-| `created_at` | INTEGER | Timestamp |
+### 1. Entitas Inti (`users`, `subjects`, `classes`, `class_students`)
+- **`users`**: Akun pengguna sistem (Admin, Guru, Siswa).
+  - Kolom: `id` (PK UUID), `name`, `username` (Unique), `password` (bcrypt), `role` (`admin` | `teacher` | `student`), `createdAt`.
+- **`subjects`**: Mata pelajaran sekolah.
+  - Kolom: `id` (PK UUID), `name`, `code` (Unique), `description`, `createdAt`.
+- **`classes`**: Rombongan belajar / kelas siswa.
+  - Kolom: `id` (PK UUID), `name`, `grade` (10 | 11 | 12), `academicYear`, `teacherId` (FK users), `createdAt`.
+- **`class_students`**: Penempatan siswa di dalam kelas (Aturan integritas: 1 siswa terdaftar di 1 kelas aktif).
+  - Kolom: `id` (PK UUID), `classId` (FK classes), `studentId` (FK users), `enrolledAt`.
 
-### Manajemen Mata Pelajaran & Kelas
+---
 
-#### `subjects`
-Mata pelajaran yang diajarkan di sekolah.
+### 2. Bank Soal (`question_banks`, `bank_questions`)
+- **`question_banks`**: Koleksi soal berdasarkan mata pelajaran dan kurikulum.
+  - Kolom: `id` (PK UUID), `subjectId` (FK subjects), `name`, `description`, `createdBy` (FK users), `createdAt`, `updatedAt`.
+- **`bank_questions`**: Butir soal terperinci dengan 6 tipe soal standar nasional:
+  - Tipe Soal: `mc` (Pilihan Ganda A-E), `complex_mc` (PG Kompleks), `matching` (Menjodohkan), `short` (Isian Singkat), `essay` (Uraian/Esai), `true_false` (Benar/Salah).
+  - Kolom: `id` (PK UUID), `bankId` (FK question_banks), `type`, `content` (JSON), `answerKey` (JSON), `explanation` (JSON/HTML), `difficulty` (`easy` | `medium` | `hard`), `defaultPoints`, `createdBy`, `createdAt`.
 
-| Kolom | Tipe | Deskripsi |
-| :--- | :--- | :--- |
-| `id` | TEXT | Primary Key (UUID) |
-| `name` | TEXT | Nama mata pelajaran |
-| `code` | TEXT | Kode unik mata pelajaran (misal: "MAT") |
-| `description` | TEXT | Deskripsi opsional |
-| `created_at` | INTEGER | Timestamp |
+---
 
-#### `classes`
-Kelas atau tingkat kelas.
+### 3. Template & Sesi Ujian (`exam_templates`, `exam_sessions`, `question_pools`)
+- **`exam_templates`**: Cetak biru (blueprint) ujian yang dapat digunakan berulang kali.
+  - Kolom: `id` (PK UUID), `title`, `description`, `subjectId` (FK), `durationMinutes`, `passingScore`, `scoringRules` (JSON), `randomizeQuestions` (Boolean), `randomizeOptions` (Boolean), `enableLockdown` (Boolean), `createdBy`, `createdAt`.
+- **`exam_sessions`**: Jadwal pelaksanaan ujian real-time untuk kelas-kelas target.
+  - Kolom: `id` (PK UUID), `templateId` (FK exam_templates), `sessionName`, `startTime` (Timestamp), `endTime` (Timestamp), `targetClasses` (JSON Array class ID), `status` (`scheduled` | `active` | `completed` | `cancelled`), `allowReview` (Boolean), `createdBy`, `createdAt`.
+- **`question_pools`**: Alokasi paket soal unik per siswa yang diacak secara deterministik (*seeded shuffle*).
+  - Kolom: `id` (PK UUID), `sessionId` (FK), `studentId` (FK), `questionIds` (JSON Array), `optionsOrder` (JSON Map), `createdAt`.
 
-| Kolom | Tipe | Deskripsi |
-| :--- | :--- | :--- |
-| `id` | TEXT | Primary Key (UUID) |
-| `name` | TEXT | Nama kelas (misal: "X-1") |
-| `grade` | INTEGER | Tingkat kelas (10, 11, 12) |
-| `academic_year` | TEXT | Tahun ajaran (misal: "2025/2026") |
-| `teacher_id` | TEXT | Foreign Key -> `users.id` (Wali kelas) |
-| `created_at` | INTEGER | Timestamp |
+---
 
-#### `class_students`
-Relasi many-to-many antara kelas dan siswa.
+### 4. Pelaksanaan & Penilaian Ujian (`submissions`, `answers`)
+- **`submissions`**: Lembar pengumpulan hasil ujian per siswa.
+  - Kolom: `id` (PK UUID), `sessionId` (FK), `studentId` (FK), `startTime` (Timestamp), `submittedAt` (Timestamp), `score` (Float/Decimal), `gradingStatus` (`auto` | `pending_manual` | `manual` | `completed` | `published`), `violationsCount` (Integer), `violationLogs` (JSON), `status` (`in_progress` | `submitted` | `terminated` | `graded`), `createdAt`.
+- **`answers`**: Jawaban per butir soal yang diisi oleh siswa.
+  - Kolom: `id` (PK UUID), `submissionId` (FK), `questionId` (FK bank_questions), `studentAnswer` (JSON/Text), `scoreEarned` (Float), `isCorrect` (Boolean), `teacherFeedback` (Text), `createdAt`.
 
-| Kolom | Tipe | Deskripsi |
-| :--- | :--- | :--- |
-| `id` | TEXT | Primary Key (UUID) |
-| `class_id` | TEXT | Foreign Key -> `classes.id` |
-| `student_id` | TEXT | Foreign Key -> `users.id` |
-| `enrolled_at` | INTEGER | Timestamp |
+---
 
-### Manajemen Bank Soal
-
-#### `question_banks`
-Kumpulan soal untuk mata pelajaran tertentu.
-
-| Kolom | Tipe | Deskripsi |
-| :--- | :--- | :--- |
-| `id` | TEXT | Primary Key (UUID) |
-| `subject_id` | TEXT | Foreign Key -> `subjects.id` |
-| `name` | TEXT | Nama bank soal |
-| `description` | TEXT | Deskripsi opsional |
-| `created_by` | TEXT | Foreign Key -> `users.id` |
-| `created_at` | INTEGER | Timestamp |
-| `updated_at` | INTEGER | Timestamp |
-
-#### `bank_questions`
-Butir soal individu dalam bank soal.
-
-| Kolom | Tipe | Deskripsi |
-| :--- | :--- | :--- |
-| `id` | TEXT | Primary Key (UUID) |
-| `bank_id` | TEXT | Foreign Key -> `question_banks.id` |
-| `type` | TEXT | Enum: `mc` (PG), `complex_mc` (PG Kompleks), `matching` (Menjodohkan), `short` (Isian Singkat), `essay` (Esai), `true_false` (Benar/Salah) |
-| `content` | JSON | Konten soal dan opsi jawaban |
-| `answer_key` | JSON | Data kunci jawaban |
-| `tags` | JSON | Array tag |
-| `difficulty` | TEXT | Enum: `easy` (Mudah), `medium` (Sedang), `hard` (Sulit) |
-| `default_points` | INTEGER | Poin default untuk soal ini |
-| `created_by` | TEXT | Foreign Key -> `users.id` |
-| `created_at` | INTEGER | Timestamp |
-
-### Template Penilaian
-
-#### `scoring_templates`
-Aturan penilaian yang dapat digunakan kembali.
-
-| Kolom | Tipe | Deskripsi |
-| :--- | :--- | :--- |
-| `id` | TEXT | Primary Key (UUID) |
-| `name` | TEXT | Nama template |
-| `default_weights` | JSON | Bobot untuk setiap tipe soal |
-| `allow_partial_credit` | BOOLEAN | Apakah mengizinkan nilai parsial |
-| `partial_credit_rules` | JSON | Aturan perhitungan nilai parsial |
-
-### Template & Sesi Ujian
-
-#### `exam_templates`
-Cetak biru (blueprint) untuk ujian, mendefinisikan aturan, waktu, dan pemilihan soal.
-
-| Kolom | Tipe | Deskripsi |
-| :--- | :--- | :--- |
-| `id` | TEXT | Primary Key (UUID) |
-| `name` | TEXT | Nama template |
-| `subject_id` | TEXT | Foreign Key -> `subjects.id` |
-| `bank_ids` | JSON | Array ID bank soal sumber |
-| `duration_minutes` | INTEGER | Durasi ujian |
-| `randomize_questions` | BOOLEAN | Acak urutan soal |
-| `randomize_answers` | BOOLEAN | Acak urutan jawaban |
-| `enable_lockdown` | BOOLEAN | Aktifkan lockdown browser |
-| `violation_settings` | JSON | Detail pengaturan pelanggaran (detectTabSwitch, cooldown, dll) |
-| `created_by` | TEXT | Foreign Key -> `users.id` |
-
-#### `exam_sessions`
-Sesi terjadwal dari template ujian.
-
-| Kolom | Tipe | Deskripsi |
-| :--- | :--- | :--- |
-| `id` | TEXT | Primary Key (UUID) |
-| `template_id` | TEXT | Foreign Key -> `exam_templates.id` |
-| `session_name` | TEXT | Nama sesi |
-| `start_time` | INTEGER | Waktu mulai terjadwal |
-| `end_time` | INTEGER | Waktu selesai terjadwal |
-| `status` | TEXT | Enum: `scheduled`, `active`, `completed`, `cancelled` |
-| `target_type` | TEXT | Enum: `class`, `individual` |
-| `target_ids` | JSON | ID kelas atau siswa yang ditugaskan |
-| `access_token` | TEXT | Token akses statis untuk sesi jika diaktifkan |
-
-#### `question_pools`
-Menyimpan set soal spesifik yang dihasilkan untuk siswa dalam sesi (jika menggunakan pengacakan).
-
-| Kolom | Tipe | Deskripsi |
-| :--- | :--- | :--- |
-| `id` | TEXT | Primary Key (UUID) |
-| `session_id` | TEXT | Foreign Key -> `exam_sessions.id` |
-| `student_id` | TEXT | Foreign Key -> `users.id` |
-| `selected_questions` | JSON | Array dari `bank_questions.id` |
-| `question_order` | JSON | Urutan soal |
-
-### Eksekusi Ujian (Legacy/Aktif)
-
-#### `exams`
-(Legacy/Integrasi) Merepresentasikan instansi ujian.
-
-| Kolom | Tipe | Deskripsi |
-| :--- | :--- | :--- |
-| `id` | TEXT | Primary Key (UUID) |
-| `title` | TEXT | Judul ujian |
-| `session_id` | TEXT | Foreign Key -> `exam_sessions.id` |
-| `duration_minutes` | INTEGER | Durasi |
-
-#### `questions`
-Soal yang diinstansiasi untuk ujian tertentu.
-
-| Kolom | Tipe | Deskripsi |
-| :--- | :--- | :--- |
-| `id` | TEXT | Primary Key (UUID) |
-| `exam_id` | TEXT | Foreign Key -> `exams.id` |
-| `bank_question_id` | TEXT | Foreign Key -> `bank_questions.id` |
-| `type` | TEXT | Tipe soal |
-| `content` | JSON | Konten |
-| `answer_key` | JSON | Kunci jawaban |
-
-#### `submissions`
-Pengumpulan jawaban siswa untuk ujian.
-
-| Kolom | Tipe | Deskripsi |
-| :--- | :--- | :--- |
-| `id` | TEXT | Primary Key (UUID) |
-| `exam_id` | TEXT | Foreign Key -> `exams.id` |
-| `user_id` | TEXT | Foreign Key -> `users.id` |
-| `session_id` | TEXT | Foreign Key -> `exam_sessions.id` |
-| `score` | INTEGER | Total nilai |
-| `status` | TEXT | Enum: `in_progress`, `completed`, `terminated` |
-| `violation_count` | INTEGER | Jumlah pelanggaran terdeteksi |
-| `bonus_time_minutes` | INTEGER | Waktu tambahan yang diberikan guru (menit) |
-
-#### `answers`
-Jawaban individu dalam pengumpulan.
-
-| Kolom | Tipe | Deskripsi |
-| :--- | :--- | :--- |
-| `id` | TEXT | Primary Key (UUID) |
-| `submission_id` | TEXT | Foreign Key -> `submissions.id` |
-| `question_id` | TEXT | Foreign Key -> `questions.id` |
-| `student_answer` | JSON | Jawaban siswa |
-| `is_correct` | BOOLEAN | Status kebenaran |
-| `score` | INTEGER | Nilai untuk jawaban ini |
-
-#### `exam_tokens`
-Token dinamis untuk akses ujian.
-
-| Kolom | Tipe | Deskripsi |
-| :--- | :--- | :--- |
-| `id` | TEXT | Primary Key (UUID) |
-| `exam_id` | TEXT | Foreign Key -> `exams.id` |
-| `token` | TEXT | String token |
-| `valid_until` | INTEGER | Waktu kedaluwarsa |
+### 5. Audit & Operasional Sistem (`activity_logs`, `settings`, `exam_tokens`)
+- **`activity_logs`**: Rekam jejak audit keamanan seluruh aksi penting di aplikasi.
+  - Kolom: `id` (PK UUID), `userId` (FK), `action` (`created` | `updated` | `deleted` | `started` | `completed`), `entityType` (`exam_session` | `question_bank` | `subject` | `class` | `user` | `system`), `entityId`, `details` (JSON), `createdAt`.
+- **`settings`**: Konfigurasi global sekolah dan portal ujian.
+  - Kolom: `id`, `schoolName`, `schoolLogo`, `academicYear`, `semester`, `lockdownStrictness`, `aiGradingApiKey`, `updatedAt`.
+- **`exam_tokens`**: Token akses dinamis ujian real-time untuk mencegah kebocoran sesi.
+  - Kolom: `id`, `sessionId` (FK), `token` (String 6 digit), `expiresAt`, `createdAt`.

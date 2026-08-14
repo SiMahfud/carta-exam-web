@@ -1,160 +1,94 @@
-# Panduan Pengguna CartaExam untuk Guru
+# 📚 Panduan Lengkap Guru & Operator — CartaExam
 
-Selamat datang di Panduan Guru CartaExam. Dokumen ini menjelaskan cara menggunakan aplikasi untuk mengelola kelas, membuat ujian, dan menilai hasil ujian siswa.
-
-## Daftar Isi
-1. [Ringkasan Dasbor](#ringkasan-dasbor)
-2. [Mengelola Mata Pelajaran & Kelas](#mengelola-mata-pelajaran--kelas)
-3. [Manajemen Bank Soal](#manajemen-bank-soal)
-4. [Membuat & Menjadwalkan Ujian](#membuat--menjadwalkan-ujian)
-5. [Memantau Ujian](#memantau-ujian)
-6. [Penilaian & Hasil](#penilaian--hasil)
+Selamat datang di Panduan Pengguna **CartaExam** (SMAN 1 Campurdarat). Panduan ini disusun untuk membantu Bapak/Ibu Guru dan Operator Sekolah dalam mengelola bank soal, menyelenggarakan ujian digital aman, memantau ujian secara live, dan melakukan koreksi nilai dengan bantuan AI.
 
 ---
 
-## Ringkasan Dasbor
-Setelah login, Anda akan melihat Dasbor Admin. Ini memberikan gambaran cepat tentang:
-- **Statistik Real-time**: Jumlah siswa, ujian selesai, dan sesi aktif.
-- **Log Aktivitas**: Riwayat tindakan terbaru dalam sistem.
-- **Pengumpulan Terbaru**: Daftar siswa yang baru saja menyelesaikan ujian.
-- **Log Aktivitas**: Riwayat tindakan terbaru dalam sistem.
-- **Pengumpulan Terbaru**: Daftar siswa yang baru saja menyelesaikan ujian.
-- Tautan cepat untuk mengelola Kelas, Ujian, dan Bank Soal.
+## 📑 Daftar Isi
+1. [Dasbor & Analitik Performa](#1-dasbor--analitik-performa)
+2. [Manajemen Mata Pelajaran, Kelas & Siswa](#2-manajemen-mata-pelajaran-kelas--siswa)
+3. [Manajemen Bank Soal & Pembuatan Soal AI](#3-manajemen-bank-soal--pembuatan-soal-ai)
+4. [Template Ujian, Cetak Naskah & LJK Kertas](#4-template-ujian-cetak-naskah--ljk-kertas)
+5. [Pelaksanaan & Pengawasan Ujian Real-Time (Live Proctoring)](#5-pelaksanaan--pengawasan-ujian-real-time-live-proctoring)
+6. [Penilaian Esai Otomatis dengan AI (Google Gemini)](#6-penilaian-esai-otomatis-dengan-ai-google-gemini)
+7. [Cadangan Data (Backup/Restore) & Log Aktivitas](#7-cadangan-data-backuprestore--log-aktivitas)
 
-### Pintasan Keyboard (Shortcuts)
-Untuk navigasi yang lebih cepat, Anda dapat menggunakan tombol keyboard:
-- Tekan **`?`** (Shift + /) untuk melihat daftar lengkap pintasan.
-- **`Ctrl + K`**: Membuka pencarian global (Cari siswa, soal, ujian, dll).
-- **`g`** lalu **`d`**: Pergi ke Dasbor.
-- **`g`** lalu **`q`**: Pergi ke Bank Soal.
-- **`g`** lalu **`g`**: Pergi ke Penilaian.
+---
 
-## Mengelola Mata Pelajaran & Kelas
+## 1. Dasbor & Analitik Performa
+Setelah login ke panel Guru/Admin (`/admin`), Anda akan disajikan dasbor interaktif:
+- **Metrik Cepat**: Total siswa aktif, bank soal terdaftar, dan sesi ujian yang sedang berlangsung.
+- **Visualisasi Analitik**:
+  - *Distribusi Kelulusan*: Menampilkan persentase siswa tuntas vs belum tuntas.
+  - *Rata-rata Nilai per Mapel*: Grafik perbandingan capaian antar mata pelajaran.
+  - *Komposisi Bank Soal*: Diagram proporsi tingkat kesulitan soal (Mudah, Sedang, Sulit).
+- **Lonceng Notifikasi (Header)**: Memberitahukan sesi ujian yang sedang aktif dan lembar jawaban siswa yang siap diperiksa/dikoreksi.
 
-### Membuat Mata Pelajaran
-1. Navigasi ke **Mata Pelajaran** (Subjects) di sidebar.
-2. Klik **Tambah Mata Pelajaran** (Add Subject).
-3. Masukkan **Nama** (misal: Matematika) dan **Kode** (misal: MAT).
-4. Klik **Simpan** (Save).
+---
 
-### Membuat Kelas
-1. Navigasi ke **Kelas** (Classes) di sidebar.
-2. Klik **Tambah Kelas** (Add Class).
-3. Masukkan **Nama Kelas** (misal: X-1), **Tingkat Kelas**, dan **Tahun Ajaran**.
-4. Tetapkan **Wali Kelas** (opsional).
-5. Klik **Simpan** (Save).
+## 2. Manajemen Mata Pelajaran, Kelas & Siswa
+- **Mata Pelajaran (`/admin/subjects`)**: Tambah atau edit mapel beserta kode resminya (contoh: `MAT-10`).
+- **Kelas & Rombel (`/admin/classes`)**: Kelola kelas per tingkat (10, 11, 12) dan tahun ajaran aktif.
+- **Bulk Import Data Siswa & Guru (`/admin/users`)**:
+  1. Klik tombol **"Import / Export Excel"**.
+  2. Klik **"Unduh Template"** untuk mendapatkan format Excel resmi `.xlsx`.
+  3. Isi data siswa dan upload kembali file tersebut. Sistem akan otomatis memvalidasi duplikasi sebelum disimpan.
 
-### Menambahkan Siswa ke Kelas
-1. Buka **Kelas** tertentu dari daftar.
-2. Pergi ke tab **Siswa** (Students).
-3. Klik **Tambah Siswa** (Add Students).
-4. Pilih siswa dari daftar untuk mendaftarkan mereka ke dalam kelas.
+---
 
-## Manajemen Bank Soal
-Bank Soal memungkinkan Anda membuat dan menggunakan kembali soal untuk berbagai ujian.
+## 3. Manajemen Bank Soal & Pembuatan Soal AI
+CartaExam mendukung 6 tipe butir soal standar kurikulum merdeka:
+1. **Pilihan Ganda (PG)**: 5 opsi (A-E) dengan formula matematika KaTeX/LaTeX.
+2. **Pilihan Ganda Kompleks**: Lebih dari satu jawaban benar.
+3. **Menjodohkan (Matching)**: Pasangan pernyataan kiri dan kanan.
+4. **Isian Singkat**: Jawaban singkat dengan pencocokan otomatis (*case-insensitive*).
+5. **Esai / Uraian**: Jawaban panjang dengan panduan rubrik penilaian.
+6. **Benar / Salah**: Pernyataan benar atau salah.
 
-### Membuat Bank Soal
-1. Navigasi ke **Bank Soal** (Question Banks).
-2. Klik **Buat Bank** (Create Bank).
-3. Pilih **Mata Pelajaran** dan beri **Nama** bank (misal: "UTS Biologi 2025").
-4. Klik **Buat** (Create).
+### 🤖 Generator Soal AI (Google Gemini)
+- Klik tombol **"AI Generator"** (ikon ✨) pada bank soal.
+- Masukkan materi pembelajaran atau rangkuman teks.
+- Pilih tipe dan jumlah soal yang diinginkan, lalu klik **"Generate Soal"**. Soal beserta kunci jawaban dan pembahasannya akan otomatis dibuat.
 
-### Menambahkan Soal
-1. Buka Bank Soal yang telah Anda buat.
-2. Klik **Tambah Soal** (Add Question).
-3. Pilih **Tipe Soal**:
-   - **Pilihan Ganda**: Opsi standar A-E.
-   - **Pilihan Ganda Kompleks**: Lebih dari satu jawaban benar.
-   - **Menjodohkan**: Mencocokkan pasangan item.
-   - **Isian Singkat**: Input teks dengan kata kunci penilaian otomatis.
-   - **Esai**: Input teks panjang yang memerlukan penilaian manual.
-   - **Benar/Salah**: Soal dengan pilihan jawaban Benar atau Salah.
-4. Isi konten soal, opsi, dan jawaban benar.
-5. Atur **Tingkat Kesulitan** dan **Tag** (opsional).
-6. Klik **Simpan Soal** (Save Question).
+---
 
-### Menggunakan AI Generator (Baru)
-Fitur ini menggunakan kecerdasan buatan (Google Gemini) untuk membuat soal secara otomatis dari materi yang Anda berikan.
+## 4. Template Ujian, Cetak Naskah & LJK Kertas
+- **Template Ujian (`/admin/exam-templates`)**: Tentukan durasi (menit), batas kelulusan (KKM), opsi pengacakan butir soal, pengacakan opsi jawaban, serta mode keamanan *Lockdown Anti-Curang*.
+- **🖨️ Cetak Naskah & LJK Kertas (`/admin/exam-templates/[id]/print`)**:
+  - Jika terjadi kendala jaringan/listrik di sekolah, klik ikon **Print** pada template ujian.
+  - Anda dapat langsung mencetak:
+    - **Naskah Ujian**: Lengkap dengan kop sekolah resmi dan nomor soal rapi.
+    - **Lembar Jawaban Komputer (LJK) A4**: Grid bubble A-E standar untuk pensil 2B.
+    - **Lembar Kunci Jawaban Guru**: Panduan kunci dan pembobotan nilai untuk koreksi cepat.
 
-1. Di halaman Bank Soal, klik tombol **"AI Generator"** (ikon ✨).
-2. **Input Materi**:
-   - **Topik/Teks**: Ketik topik (misal: "Perang Diponegoro") atau paste materi pelajaran.
-   - **Upload File**: Anda bisa mengupload gambar atau PDF berisi materi pelajaran.
-3. **Konfigurasi Soal**:
-   - **Tipe Soal**: Pilih tipe spesifik (MC, Essay, dll) atau **Custom Mix (Advanced)**.
-   - **Custom Mix**: Jika dipilih, Anda bisa menentukan jumlah soal untuk setiap tipe secara spesifik (misal: 5 MC, 3 Essay, 2 Matching).
-   - **Kesulitan**: Mudah, Sedang, atau Sulit.
-4. Klik **Generate Questions**. Tunggu beberapa saat hingga AI selesai memproses.
-5. **Preview & Edit**: Hasil generate akan muncul di sebelah kanan. Anda bisa mengedit, menghapus, atau memperbaiki soal sebelum disimpan.
-6. Klik **Save Questions** untuk menyimpan semua soal yang valid ke dalam Bank Soal.
+---
 
-## Membuat & Menjadwalkan Ujian
+## 5. Pelaksanaan & Pengawasan Ujian Real-Time (Live Proctoring)
+Saat sesi ujian berlangsung, buka halaman detail sesi ujian (`/admin/exam-sessions/[id]`):
+- **Live Feed (5 Detik)**: Aktifkan toggle **"Live (5s)"** di header monitoring. Data progress siswa dan status pengerjaan akan otomatis diperbarui secara berkala.
+- **Kontrol Pengawas Terhadap Pelanggaran Siswa**:
+  - *Reset Pelanggaran*: Mengembalikan hitungan pelanggaran menjadi 0 jika siswa mengalami kendala perangkat tidak sengaja.
+  - *Buka Kunci Ujian*: Membuka kembali sesi siswa yang terblokir (*locked out*) akibat berpindah tab.
+  - *Paksa Selesai*: Mengumpulkan lembar jawaban siswa dari meja pengawas jika waktu habis.
 
-### Langkah 1: Buat Template Ujian
-Template Ujian mendefinisikan aturan dan struktur ujian.
-1. Navigasi ke **Template Ujian** (Exam Templates).
-2. Klik **Buat Template** (Create Template).
-3. **Info Umum**: Nama, Mata Pelajaran, Durasi.
-4. **Soal**: Pilih **Bank Soal** mana yang akan diambil. Anda dapat memilih untuk:
-   - Menggunakan semua soal dari bank.
-   - Memilih sejumlah soal secara acak.
-   - Memfilter berdasarkan tag atau kesulitan.
-5. **Pengaturan Keamanan**:
-   - **Lockdown Browser**: Aktifkan untuk mencegah kecurangan.
-   - **Mode Pelanggaran**:
-     - *Ketat*: Ujian otomatis berhenti jika melanggar.
-     - *Toleran*: Hanya mencatat, ujian tetap lanjut.
-     - *Nonaktif*: Tidak ada deteksi.
-   - **Jenis Deteksi**: Pilih apa yang dideteksi (Pindah Tab, Copy-Paste, Klik Kanan, Screenshot, DevTools).
-   - **Token Ujian**: Wajibkan siswa memasukkan token untuk memulai.
-   - **Pengaturan Lain**: Acak soal/jawaban, durasi.
-6. Klik **Simpan Template** (Save Template).
+---
 
-### Langkah 2: Jadwalkan Sesi Ujian
-Sesi adalah pelaksanaan ujian untuk kelompok siswa tertentu.
-1. Navigasi ke **Sesi Ujian** (Exam Sessions).
-2. Klik **Jadwalkan Sesi** (Schedule Session).
-3. Pilih **Template Ujian** yang Anda buat.
-4. Atur **Waktu Mulai** dan **Waktu Selesai**.
-5. **Tugaskan Ke**: Pilih **Kelas** atau **Siswa** tertentu.
-6. Klik **Jadwalkan** (Schedule).
+## 6. Penilaian Esai Otomatis dengan AI (Google Gemini)
+Untuk memeriksa lembar jawaban esai siswa pada menu **Penilaian (`/admin/grading`)**:
+1. Buka pengumpulan ujian siswa.
+2. Klik tombol **"Evaluasi dengan AI"** (ikon ✨) pada butir soal esai.
+3. Google Gemini AI akan membandingkan jawaban siswa terhadap kunci & rubrik guru, lalu memberikan:
+   - **Rekomendasi Skor Otomatis** (misal: 8.5 / 10).
+   - **Analisis Kekuatan & Kelemahan Jawaban**.
+   - **Umpan Balik / Catatan Konstruktif** untuk siswa.
+4. Guru dapat menyetujui rekomendasi nilai AI atau menyesuaikannya secara manual sebelum dipublikasikan.
 
-## Memantau Ujian
-Selama sesi aktif, Anda dapat memantau kemajuan siswa.
-1. Pergi ke **Sesi Ujian** dan klik pada sesi **Aktif**.
-2. Anda akan melihat dasbor langsung yang menampilkan:
-   - Siapa yang sudah mulai.
-   - Kemajuan saat ini (soal terjawab).
-   - **Token Ujian**: Lihat dan generate token akses untuk siswa.
-   - **Token Ujian**: Lihat dan generate token akses untuk siswa.
-   - **Pelanggaran**: Peringatan real-time untuk perilaku mencurigakan.
-   - **Cetak Cadangan**: Tekan `Ctrl+P` untuk mencetak lembar soal sebagai cadangan fisik jika terjadi masalah teknis.
-3. Anda dapat melakukan aksi terhadap siswa:
-   - **Reset Waktu**: Mengatur ulang sisa waktu siswa.
-   - **Reset Pelanggaran**: Menghapus jumlah pelanggaran siswa (jika terkena blokir).
-   - **Paksa Selesai**: Menghentikan ujian siswa secara paksa.
-   - **Ujian Ulang**: Mengizinkan siswa untuk memulai ulang ujian dari awal.
+---
 
-## Penilaian & Hasil
-
-### Penilaian Otomatis
-- Soal Pilihan Ganda, Benar/Salah, Menjodohkan, dan Isian Singkat dinilai secara otomatis setelah pengumpulan.
-
-### Penilaian Manual (Esai)
-1. Navigasi ke **Penilaian** (Grading).
-2. Anda akan melihat daftar pengumpulan dengan fitur:
-   - **Filter & Pencarian**: Cari berdasarkan nama siswa atau filter berdasarkan kelas.
-   - **Pengurutan**: Urutkan berdasarkan tanggal, nama, atau sesi.
-   - **Status**: Lihat status "Menunggu Penilaian Manual".
-3. Klik pada pengumpulan untuk membuka antarmuka penilaian.
-4. Tinjau jawaban esai siswa.
-5. Berikan nilai dan tambahkan komentar umpan balik.
-6. Klik **Simpan Nilai** (Save Grades).
-
-### Melihat Hasil
-1. Pergi ke detail **Sesi Ujian**.
-2. Klik pada tab **Hasil** (Results).
-3. Anda dapat melihat nilai akhir untuk semua siswa.
-3. Anda dapat melihat nilai akhir untuk semua siswa.
-4. **Ekspor Excel**: Klik tombol "Export Excel" untuk mengunduh rekap nilai lengkap.
-5. **Cetak Laporan**: Tekan `Ctrl+P` atau klik tombol Print di browser untuk mencetak laporan hasil yang rapi (tanpa menu navigasi).
+## 7. Cadangan Data (Backup/Restore) & Log Aktivitas
+- **Backup & Restore Database (`/admin/settings`)**:
+  - Klik **"Unduh Cadangan Database"** untuk menyimpan seluruh snapshot data sekolah (bank soal, pengguna, kelas, mapel) ke file aman `.carta-backup.json`.
+  - Gunakan tombol **"Pulihkan dari File"** jika ingin mengembalikan data ke server baru.
+- **Log Aktivitas Sistem (`/admin/activity-logs`)**:
+  - Telusuri audit keamanan: siapa yang mengubah nilai, kapan ujian dimulai, dan aktivitas penting lainnya.
+  - Dapat difilter berdasarkan sesi ujian, bank soal, kelas, maupun nama pengguna.

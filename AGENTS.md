@@ -1,7 +1,7 @@
 # 🤖 AGENTS.md - AI Agent Development Guide
 
-> **Version**: 1.0.0  
-> **Last Updated**: December 2, 2025  
+> **Version**: 2.0.0 (Production Hardened)  
+> **Last Updated**: August 14, 2026  
 > **Purpose**: This document provides comprehensive context for AI coding agents (like GitHub Copilot, Cursor, Codeium, or Claude) to effectively contribute to the CartaExam project.
 
 ---

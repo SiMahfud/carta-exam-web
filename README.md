@@ -1,169 +1,93 @@
 # CartaExam
 
-**Platform Ujian Modern untuk SMAN 1 Campurdarat**
+**Platform Ujian Digital & Computer Based Test (CBT) Modern untuk SMAN 1 Campurdarat**
 
-CartaExam adalah aplikasi ujian berbasis web yang dirancang untuk memberikan pengalaman ujian yang aman, efisien, dan mudah digunakan bagi siswa dan guru.
-
-## Fitur Utama
-
-- **Keamanan Ujian (Lockdown)**: Mencegah kecurangan dengan fitur deteksi pindah tab, pencegahan copy-paste, mode layar penuh, dan token dinamis.
-- **Bank Soal Fleksibel**: Mendukung berbagai tipe soal:
-  - Pilihan Ganda (Multiple Choice)
-  - Pilihan Ganda Kompleks (Complex Multiple Choice)
-  - Menjodohkan (Matching)
-  - Isian Singkat (Short Answer)
-  - Esai (Essay)
-  - Benar/Salah (True/False)
-  - **Rich Text Support**: Dukungan gambar dan format teks pada soal dan jawaban.
-- **Manajemen Ujian**: Penjadwalan sesi ujian, **pengacakan soal dengan 4 mode** (semua, per jenis, kecuali jenis, nomor tertentu), pengacakan jawaban, serta pengaturan durasi.
-- **Monitoring Real-time**: Guru dapat memantau status pengerjaan siswa, pelanggaran, dan melakukan aksi (Reset Waktu, Paksa Selesai, Ujian Ulang) secara langsung.
-- **Dashboard Admin Canggih**: Statistik real-time, log aktivitas sistem, dan pemantauan kesehatan server.
-- **Sistem Penilaian Efisien**:
-  - Penilaian otomatis untuk soal objektif.
-  - Dashboard penilaian dengan filter, pencarian, dan pengurutan canggih.
-  - Tampilan detail jawaban siswa (termasuk visualisasi untuk soal Menjodohkan).
-
-## Teknologi
-
-Aplikasi ini dibangun menggunakan teknologi modern:
-- **Framework**: [Next.js](https://nextjs.org/) (App Router)
-- **Database**: SQLite (default), MySQL, atau PostgreSQL
-- **ORM**: [Drizzle ORM](https://orm.drizzle.team/)
-- **Styling**: [Tailwind CSS](https://tailwindcss.com/)
-- **UI Components**: [Shadcn/UI](https://ui.shadcn.com/)
-
-## Konfigurasi Database
-
-Aplikasi ini mendukung beberapa provider database:
-- **SQLite** (Default)
-- **MySQL** / **MariaDB**
-- **PostgreSQL**
-
-Anda dapat mengatur provider database melalui environment variable `DATABASE_PROVIDER` dan `DATABASE_URL` di file `.env`. Lihat `.env.example` untuk contoh konfigurasi.
-
-## Memulai (Getting Started)
-
-1.  **Clone repository**
-2.  **Install dependencies**:
-    ```bash
-    npm install
-    ```
-3.  **Setup Environment** (Opsional):
-    - Salin `.env.example` menjadi `.env`
-    - Sesuaikan `DATABASE_PROVIDER` dan `DATABASE_URL` jika perlu
-    - Default: SQLite dengan file `local.db`
-4.  **Jalankan server development**:
-    ```bash
-    npm run dev
-    ```
-    > **Note**: Database akan diinisialisasi secara otomatis pada startup pertama:
-    > - Membuat semua tabel yang diperlukan
-    > - Menyediakan user default: `admin`/`password123` dan `siswa`/`password123`
-5.  Buka [http://localhost:3333](http://localhost:3333) di browser.
-
-### Testing
-
-```bash
-# Unit tests (93 tests)
-npm run test:run
-
-# E2E tests (11 tests dengan Playwright)
-npm run test:e2e
-
-# Coverage report
-npm run test:coverage
-```
-
-## Dokumentasi
-
-Dokumentasi lengkap tersedia untuk membantu Anda memahami dan berkontribusi pada proyek ini:
-
-### 📖 Dokumentasi Pengguna
-- [Dokumentasi API](docs/api_documentation.md) - Referensi lengkap API endpoints
-- [Panduan Pengguna untuk Guru](docs/user_guide_teachers.md) - Cara menggunakan aplikasi
-- [Skema Database](docs/database_schema.md) - Struktur database lengkap
-
-### 🎯 Recent Improvements (December 7, 2025)
-
-**DOCX Import (NEW)**:
-- ✅ **Import Soal dari DOCX**: Upload file Word untuk import soal secara massal
-- ✅ **Mode Replace All**: Opsi untuk menghapus semua soal lama dan menggantinya dengan hasil import
-- ✅ **Preview dengan KaTeX**: Tampilan preview soal dengan rendering math formula ($...$ dan $$...$$)
-- ✅ **Image Processing**: Ekstraksi gambar Base64 ke file sistem secara otomatis
-
-**Advanced Randomization**:
-- ✅ **4 Modes Pengacakan Soal**: Acak semua, per jenis soal, kecuali jenis tertentu, atau nomor tertentu
-- ✅ **Pengacakan Pilihan Jawaban**: Toggle untuk mengacak urutan A, B, C, D pada MC, Complex MC, True/False, dan Matching
-
-**Performance & Code Quality**:
-- ✅ **Code Splitting**: Refactored large components (`ExamTemplateWizard`, `TakeExamPage`) into smaller, maintainable pieces
-- ✅ **API Standardization**: Centralized error handling and response formats across all API endpoints
-- ✅ **Database Optimization**: Added indexes to 13 tables for improved query performance
-- ✅ **Exam Security Enhancements**:
-  - **Granular Violation Settings**: Configurable detection (tab switch, copy-paste, etc.) and violation modes (Strict/Lenient).
-  - **Token System**: Complete token management flow (Generate, View, Validate) for secure exam access.
-  - **Violation Management**: "Reset Violations" action for admins to unblock students.
-
-**Admin Productivity (Quick Wins)**:
-- ✅ **Excel Export**: Download hasil nilai ujian lengkap dalam format .xlsx
-- ✅ **Keyboard Shortcuts**: Navigasi cepat dengan shortcut (tekan `?` untuk bantuan)
-- ✅ **Print Styles**: Tampilan cetak yang rapi untuk ujian dan hasil nilai
-- ✅ **Better UX**: Toast notifications, Breadcrumbs, dan pesan error yang informatif
-
-**UI/UX Enhancements (NEW)**:
-- ✅ **Dark Mode**: Tema gelap dengan toggle di semua halaman (Landing, Admin, Student)
-- ✅ **Mobile Optimization**: Responsive design untuk semua halaman dengan mobile drawer navigation
-- ✅ **Visual Polish**:
-  - **Skeleton Loaders**: Loading state yang halus dan konsisten di seluruh aplikasi
-  - **Empty States**: Tampilan informatif saat tidak ada data dengan instruksi jelas
-  - **Smooth Animations**: Transisi halaman dan interaksi mikro yang mulus
-
-**AI Power (NEW)**:
-- ✅ **Gemini Integration**: Integrasi Google Gemini 2.5 Flash untuk generate soal otomatis
-- ✅ **Multimodal Input**: Generate soal dari Teks, Topik, atau Upload Gambar/PDF
-- ✅ **Custom Mix Mode**: Generate kombinasi soal (MC, Essay, Matching, dll) dengan jumlah spesifik dalam sekali proses
-
-### 🗺️ Pengembangan & Roadmap
-- [ROADMAP.md](ROADMAP.md) - **Roadmap pengembangan lengkap** dengan checklist fitur, spesifikasi teknis, dan prioritas
-- [FEATURES.md](FEATURES.md) - **Status fitur saat ini** - Lihat apa yang sudah, sedang, dan akan dikembangkan
-
-### 🤝 Kontribusi
-- [CONTRIBUTING.md](CONTRIBUTING.md) - **Panduan kontribusi** untuk pengembang dan kontributor
-- [AGENTS.md](AGENTS.md) - **Panduan khusus untuk AI Agents** - Context lengkap untuk AI coding assistants
-
-## 🤝 Berkontribusi
-
-Kami sangat terbuka untuk kontribusi! Lihat [CONTRIBUTING.md](CONTRIBUTING.md) untuk panduan lengkap cara berkontribusi.
-
-**Untuk AI Agents**: Lihat [AGENTS.md](AGENTS.md) untuk context teknis dan panduan pengembangan.
-
-### Area yang Membutuhkan Bantuan
-- 📊 Advanced analytics & reporting
-- 🔔 Real-time notifications
-- 🤖 AI-powered features
-
-Lihat [ROADMAP.md](ROADMAP.md) untuk daftar lengkap fitur yang direncanakan.
-
-## Future Roadmap
-
-Lihat [ROADMAP.md](ROADMAP.md) dan [FEATURES.md](FEATURES.md) untuk roadmap lengkap. Berikut highlight fitur utama:
-
-- [ ] **AI-Powered Question Generation**: Membuat soal otomatis menggunakan AI berdasarkan materi pelajaran.
-- [ ] **Analitik Lanjutan**: Laporan mendalam tentang performa siswa dan analisis butir soal.
-- [ ] **Aplikasi Mobile**: Aplikasi native untuk siswa (Android/iOS) untuk pengalaman ujian yang lebih baik.
-- [ ] **Integrasi LMS**: Sinkronisasi nilai dan data siswa dengan Google Classroom atau Moodle.
-- [ ] **Notifikasi Real-time**: Pemberitahuan instan untuk guru saat ada pelanggaran atau ujian selesai.
-
-## 📄 License
-
-[Specify your license here]
-
-## 🙏 Acknowledgments
-
-Dikembangkan untuk SMAN 1 Campurdarat dengan tujuan meningkatkan kualitas dan efisiensi pelaksanaan ujian.
+CartaExam adalah sistem ujian berbasis web berkinerja tinggi yang dirancang khusus untuk menyelenggarakan asesmen dan evaluasi pembelajaran yang aman, tahan gangguan jaringan (*offline resilient*), efisien, dan dilengkapi asisten AI.
 
 ---
 
-**Status Proyek**: 🟢 Production Ready  
-**Versi**: 0.2.0  
-**Last Updated**: December 8, 2025
+## 🌟 Fitur Utama
+
+### 🛡️ 1. Keamanan Ujian & Anti-Kecurangan (Lockdown Mode)
+- **Deteksi Pelanggaran Real-time**: Mendeteksi otomatis aksi berpindah tab (*tab switch*), keluar mode layar penuh (*fullscreen exit*), dan upaya pintasan keyboard/screenshot.
+- **Signed Session & Auth Guard**: Mengamankan identitas siswa dan hak akses API menggunakan HMAC-SHA256 token verification.
+- **Seeded Deterministic Randomization**: Pengacakan butir soal dan opsi pilihan ganda unik per siswa yang konsisten dan anti-bocor.
+- **Live Proctoring Feed**: Dashboard pengawas dengan auto-refresh 5 detik untuk memantau pengerjaan dan tombol aksi (*Reset Pelanggaran*, *Buka Kunci Ujian*, *Paksa Selesai*).
+
+### 📶 2. PWA & Offline Resilience (Ketahanan Jaringan Sekolah)
+- **Offline Queue**: Jawaban siswa otomatis tersimpan di memori perangkat lokal saat Wi-Fi sekolah terputus mendadak.
+- **Background Auto-Sync**: Jawaban otomatis disinkronkan ke server secara hening saat koneksi kembali terhubung tanpa refresh halaman.
+- **Web App Manifest**: Mendukung instalasi PWA di laptop, tablet, dan smartphone siswa.
+
+### 🤖 3. AI-Assisted Essay Grading (Google Gemini)
+- **Koreksi Esai Otomatis**: Analisis cerdas jawaban uraian siswa terhadap kunci dan rubrik penilaian guru menggunakan Google Gemini AI.
+- **Feedback Konstruktif**: Rekomendasi skor instan beserta catatan kekuatan dan hal yang perlu ditingkatkan oleh siswa.
+
+### 📊 4. Dashboard Analytics & Review Hasil Siswa
+- **Visual Analytics**: Grafik distribusi nilai kelulusan, perbandingan rata-rata capaian antar mata pelajaran, dan komposisi bank soal.
+- **Review Mode Siswa**: Siswa dapat meninjau skor, kunci jawaban, dan pembahasan setelah ujian dipublikasikan.
+
+### 🖨️ 5. Alat Operasional & Cetak Naskah
+- **Cetak Naskah Soal & LJK Kertas**: Generator cetak standar ujian nasional A4, Lembar Jawaban Komputer (LJK), dan kunci jawaban guru untuk antisipasi mati listrik.
+- **Backup & Restore**: Ekspor dan pemulihan snapshot database lengkap sekolah dalam 1 klik.
+- **Bulk User Import**: Template Excel `.xlsx` resmi untuk import ratusan siswa dan guru sekaligus.
+- **Audit Activity Logs**: Rekam jejak audit keamanan seluruh aktivitas di sistem.
+
+---
+
+## 🛠️ Teknologi & Arsitektur
+
+- **Frontend**: Next.js 14 (App Router), React 18, TypeScript, Tailwind CSS, shadcn/ui
+- **Backend**: Next.js API Routes (Serverless & Stateful)
+- **Database Support**: Multi-Provider (SQLite / MySQL / PostgreSQL) via Drizzle ORM
+- **Math Formula**: KaTeX & LaTeX Rendering
+- **Artificial Intelligence**: Google GenAI SDK (Gemini 2.5 Flash)
+- **Testing**: Vitest, React Testing Library, Playwright
+
+---
+
+## 🚀 Memulai (Getting Started)
+
+### 1. Instalasi Dependensi
+```bash
+npm install
+```
+
+### 2. Konfigurasi Environment
+Salin file `.env.example` ke `.env` dan sesuaikan konfigurasi (default: SQLite `local.db`):
+```bash
+cp .env.example .env
+```
+
+### 3. Menjalankan Server Development
+```bash
+npm run dev
+```
+Akses aplikasi di browser pada alamat [http://localhost:3333](http://localhost:3333).
+
+---
+
+## 🧪 Pengujian (Testing & QA)
+
+CartaExam dilengkapi dengan rangkaian test komprehensif:
+
+```bash
+# Menjalankan seluruh Unit & Component Test Suite (32 files, 178 tests)
+npm run test:run
+
+# Menjalankan ESLint verification (0 errors, 0 warnings)
+npm run lint
+
+# Menjalankan E2E testing dengan Playwright
+npm run test:e2e
+```
+
+---
+
+## 📚 Dokumentasi Terkait
+
+- [Dokumentasi API](docs/api_documentation.md) - Rincian lengkap seluruh endpoint backend
+- [Skema Database](docs/database_schema.md) - Diagram ERD dan struktur tabel multi-provider
+- [Panduan Pengguna untuk Guru](docs/user_guide_teachers.md) - Panduan praktis operasional guru & operator
+- [Roadmap Pengembangan](ROADMAP.md) - Rencana dan riwayat implementasi fitur
+- [Fitur Lengkap](FEATURES.md) - Matriks kapabilitas aplikasi CartaExam

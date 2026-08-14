@@ -1,135 +1,119 @@
-# Dokumentasi API CartaExam
+# 📖 Dokumentasi API CartaExam
 
-Dokumen ini menguraikan endpoint API yang tersedia di aplikasi CartaExam. Semua rute API terletak di bawah `/api`.
+Dokumentasi resmi seluruh endpoint backend CartaExam (Next.js App Router). Seluruh rute API terletak di bawah `/api` dan dilindungi oleh layer otentikasi role-based (`requireAuth`, `requireStudent`, `requireTeacher`).
 
-## URL Dasar
-`/api`
+---
 
-## Endpoint
+## 🌐 URL Dasar & Standar Respons
+- **Base URL**: `/api`
+- **Format Payload**: `application/json`
+- **Autentikasi**: Cookie sesi bertanda tangan HMAC-SHA256 (`user_session`)
 
-### Kelas (Classes)
-Mengelola kelas dan pendaftaran siswa.
+---
 
-- **GET** `/api/classes`
-  - Mengambil daftar semua kelas.
-- **POST** `/api/classes`
-  - Membuat kelas baru.
-- **GET** `/api/classes/[id]`
-  - Mengambil detail kelas tertentu.
-- **PUT** `/api/classes/[id]`
-  - Memperbarui kelas tertentu.
-- **DELETE** `/api/classes/[id]`
-  - Menghapus kelas tertentu.
-- **POST** `/api/classes/[id]/students`
-  - Menambahkan siswa ke kelas.
-  - Validasi: Siswa tidak boleh terdaftar di kelas lain (aturan 1 siswa = 1 kelas).
+## 📑 Daftar Endpoint
 
-### Mata Pelajaran (Subjects)
-Mengelola mata pelajaran.
+### 📊 1. Analitik & Dashboard (Admin & Teacher)
+- **GET** `/api/admin/analytics`
+  - Mengambil statistik komprehensif: distribusi skor kelulusan, performa rata-rata per mata pelajaran, komposisi bank soal, dan ringkasan nilai sistem.
+- **GET** `/api/admin/stats`
+  - Statistik cepat dashboard (total siswa, guru, sesi aktif, dan submission).
+- **GET** `/api/admin/activities`
+  - Mengambil rekam jejak audit log aktivitas sistem.
+  - Query Params: `limit` (default: 50), `entityType` (`exam_session`, `question_bank`, `subject`, `class`, `user`).
 
-- **GET** `/api/subjects`
-  - Mengambil daftar semua mata pelajaran.
-- **POST** `/api/subjects`
-  - Membuat mata pelajaran baru.
-- **GET** `/api/subjects/[id]`
-  - Mengambil detail mata pelajaran tertentu.
-- **PUT** `/api/subjects/[id]`
-  - Memperbarui mata pelajaran tertentu.
-- **DELETE** `/api/subjects/[id]`
-  - Menghapus mata pelajaran tertentu.
+---
 
-### Bank Soal (Question Banks)
-Mengelola bank soal dan butir soal.
+### 🤖 2. Penilaian & AI-Assisted Grading
+- **GET** `/api/grading/submissions`
+  - Menampilkan daftar pengerjaan siswa yang perlu diperiksa atau dinilai.
+- **GET** `/api/grading/submissions/[id]`
+  - Mengambil detail lembar jawaban siswa lengkap dengan panduan & rubrik guru.
+- **POST** `/api/grading/submissions/[id]`
+  - Menyimpan koreksi nilai manual dan catatan guru.
+- **POST** `/api/grading/ai-assist`
+  - Menganalisis jawaban esai siswa menggunakan Google Gemini AI.
+  - Body: `{ questionText: string, studentAnswer: string, maxPoints: number, guidelines?: string, rubric?: Array }`
+  - Response: `{ suggestedScore: number, feedback: string, strengths: string[], improvements: string[] }`
 
-- **GET** `/api/question-banks`
-  - Menampilkan daftar semua bank soal.
-- **POST** `/api/question-banks`
-  - Membuat bank soal baru.
-- **GET** `/api/question-banks/[id]`
-  - Mendapatkan detail bank soal (termasuk soal di dalamnya).
-- **PUT** `/api/question-banks/[id]`
-  - Memperbarui bank soal.
-- **DELETE** `/api/question-banks/[id]`
-  - Menghapus bank soal.
+---
 
-### Template Ujian (Exam Templates)
-Mengelola template ujian (cetak biru).
-
-- **GET** `/api/exam-templates`
-  - Menampilkan daftar semua template ujian.
-- **POST** `/api/exam-templates`
-  - Membuat template ujian baru.
-- **GET** `/api/exam-templates/[id]`
-  - Mendapatkan detail template ujian.
-- **PUT** `/api/exam-templates/[id]`
-  - Memperbarui template ujian.
-- **DELETE** `/api/exam-templates/[id]`
-  - Menghapus template ujian.
-
-### Sesi Ujian (Exam Sessions)
-Mengelola sesi ujian terjadwal.
-
+### 📡 3. Sesi Ujian & Live Proctoring
 - **GET** `/api/exam-sessions`
-  - Menampilkan daftar semua sesi ujian.
+  - Mengambil daftar semua sesi ujian terjadwal.
 - **POST** `/api/exam-sessions`
-  - Menjadwalkan sesi ujian baru.
+  - Membuat sesi ujian baru.
 - **GET** `/api/exam-sessions/[id]`
-  - Mendapatkan detail sesi ujian.
-- **PUT** `/api/exam-sessions/[id]`
-  - Memperbarui sesi ujian (misal: ubah status, waktu).
+  - Mengambil detail konfigurasi sesi ujian.
+- **PATCH** `/api/exam-sessions/[id]`
+  - Memperbarui jadwal, status, atau target kelas sesi ujian.
 - **DELETE** `/api/exam-sessions/[id]`
-  - Membatalkan/Menghapus sesi ujian.
-- **GET** `/api/exam-sessions/[id]/token`
-  - Mendapatkan token akses aktif (jika ada).
-- **POST** `/api/exam-sessions/[id]/token`
-  - Bankitkan (generate) token akses baru.
-- **DELETE** `/api/exam-sessions/[id]/token`
-  - Hapus token akses aktif.
+  - Menghapus sesi ujian dan membersihkan alokasi pool soal.
+- **GET** `/api/exam-sessions/[id]/monitor`
+  - Mengambil status pengerjaan seluruh peserta (live progress, pelanggaran, waktu mulai).
+- **POST** `/api/exam-sessions/[id]/monitor/action`
+  - Aksi pengawas real-time: `reset_violations`, `unlock_session`, `force_submit`.
+  - Body: `{ studentId: string, action: string }`
+- **GET/POST/DELETE** `/api/exam-sessions/[id]/token`
+  - Mengambil, membangkitkan (generate), atau menghapus token akses dinamis ujian.
+- **GET** `/api/exam-sessions/[id]/results`
+  - Mengambil rekapitulasi nilai dan ekspor hasil ujian.
 
-### Penilaian (Grading)
-Mengelola penilaian hasil ujian.
+---
 
-- **GET** `/api/grading`
-  - Menampilkan daftar pengumpulan yang perlu dinilai.
-- **GET** `/api/grading/[submissionId]`
-  - Mendapatkan pengumpulan spesifik untuk dinilai.
-- **POST** `/api/grading/[submissionId]`
-  - Menyimpan nilai untuk pengumpulan.
-
-### Template Penilaian (Scoring Templates)
-Mengelola aturan penilaian yang dapat digunakan kembali.
-
-- **GET** `/api/scoring-templates`
-  - Menampilkan daftar template penilaian.
-- **POST** `/api/scoring-templates`
-  - Membuat template penilaian.
-
-### Pengguna (Users)
-Mengelola pengguna (siswa, guru, admin).
-
-- **GET** `/api/users`
-  - Menampilkan daftar pengguna.
-  - Query Params:
-    - `role`: Filter berdasarkan role (`admin`, `teacher`, `student`).
-    - `unassigned`: Jika `true`, hanya menampilkan siswa yang belum terdaftar di kelas manapun.
-- **POST** `/api/users`
-  - Membuat pengguna baru.
-- **GET** `/api/users/[id]`
-  - Mengambil detail pengguna tertentu.
-- **PUT** `/api/users/[id]`
-  - Memperbarui data pengguna.
-- **DELETE** `/api/users/[id]`
-  - Menghapus pengguna.
-
-### Siswa (Student)
-Endpoint untuk pelaksanaan ujian siswa.
-
+### 🎓 4. Portal Siswa (Student Exam Runtime)
 - **GET** `/api/student/exams`
-  - Menampilkan daftar ujian yang ditugaskan untuk siswa saat ini.
+  - Mengambil daftar ujian yang ditugaskan ke siswa yang sedang login.
 - **POST** `/api/student/exams/[sessionId]/start`
-  - Memulai sesi ujian.
-  - Body: `{ studentId: string, token?: string }`
-- **POST** `/api/student/exam/[examId]/submit`
-  - Mengumpulkan ujian.
-- **POST** `/api/student/exam/[examId]/answer`
-  - Menyimpan jawaban.
+  - Memulai pengerjaan ujian siswa (verifikasi token & generate urutan soal teracak).
+- **GET** `/api/student/exams/[sessionId]/questions`
+  - Mengambil daftar soal dan status jawaban siswa.
+- **POST** `/api/student/exams/[sessionId]/answer`
+  - Menyimpan jawaban siswa untuk butir soal tertentu.
+- **POST** `/api/student/exams/[sessionId]/violation`
+  - Mencatat log pelanggaran lockdown (pindah tab, screenshot attempt, dll).
+- **POST** `/api/student/exams/[sessionId]/submit`
+  - Menyelesaikan dan mengumpulkan lembar ujian secara final.
+- **GET** `/api/student/exams/[sessionId]/review`
+  - Menampilkan hasil nilai, kunci jawaban, pembahasan, dan catatan guru setelah ujian selesai.
+
+---
+
+### 🔔 5. Notifikasi Sistem
+- **GET** `/api/notifications`
+  - Mengambil daftar notifikasi personal (jadwal ujian aktif, nilai siap direview, lembar siap dikoreksi).
+
+---
+
+### 💾 6. Backup, Restore & Data Tools (Admin Only)
+- **GET** `/api/admin/backup`
+  - Mengunduh snapshot database lengkap sekolah dalam format `.carta-backup.json`.
+- **POST** `/api/admin/restore`
+  - Memulihkan data dari file snapshot `.carta-backup.json`.
+- **GET** `/api/users/bulk-export`
+  - Mengunduh template resmi Excel (`type=template`) atau mengekspor data pengguna (`type=all|students|teachers`).
+- **POST** `/api/users/bulk-import`
+  - Memvalidasi dan memasukkan data siswa & guru secara massal dari file Excel/CSV.
+
+---
+
+### 📚 7. Bank Soal & Template Ujian
+- **GET/POST** `/api/question-banks`
+- **GET/PUT/DELETE** `/api/question-banks/[id]`
+- **GET/POST** `/api/question-banks/[id]/questions`
+- **GET/PUT/DELETE** `/api/question-banks/[id]/questions/[questionId]`
+- **GET/POST** `/api/exam-templates`
+- **GET/PUT/DELETE** `/api/exam-templates/[id]`
+- **GET** `/api/exam-templates/[id]/preview`
+  - Mengambil pratinjau soal template ujian untuk cetak naskah & LJK.
+
+---
+
+### 👥 8. Kelas & Pengguna
+- **GET/POST** `/api/classes`
+- **GET/PUT/DELETE** `/api/classes/[id]`
+- **POST** `/api/classes/[id]/students`
+- **GET/POST** `/api/users`
+- **GET/PUT/DELETE** `/api/users/[id]`
+- **POST** `/api/upload`
+  - Upload file multimedia soal (gambar/audio) dengan whitelist MIME dan batas 5MB.
