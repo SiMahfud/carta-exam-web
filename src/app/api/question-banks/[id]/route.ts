@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { questionBanks, bankQuestions } from "@/lib/schema";
 import { eq, sql } from "drizzle-orm";
+import { requireAuth } from "@/lib/auth-guard";
 
 // GET /api/question-banks/[id] - Get question bank with statistics
 export async function GET(
@@ -9,6 +10,7 @@ export async function GET(
     { params }: { params: { id: string } }
 ) {
     try {
+        await requireAuth(["admin", "teacher"]);
         const bank = await db.select()
             .from(questionBanks)
             .where(eq(questionBanks.id, params.id))
@@ -55,6 +57,7 @@ export async function PUT(
     { params }: { params: { id: string } }
 ) {
     try {
+        await requireAuth(["admin", "teacher"]);
         const body = await request.json();
         const { name, description } = body;
 
@@ -76,11 +79,11 @@ export async function PUT(
         }
 
         return NextResponse.json(updated[0]);
-    } catch (error) {
+    } catch (error: any) {
         console.error("Error updating question bank:", error);
         return NextResponse.json(
-            { error: "Failed to update question bank" },
-            { status: 500 }
+            { error: error.message || "Failed to update question bank" },
+            { status: error.status || 500 }
         );
     }
 }
@@ -91,6 +94,7 @@ export async function DELETE(
     { params }: { params: { id: string } }
 ) {
     try {
+        await requireAuth(["admin", "teacher"]);
         const deleted = await db.select().from(questionBanks).where(eq(questionBanks.id, params.id)).limit(1);
 
         if (deleted.length === 0) {
@@ -103,11 +107,12 @@ export async function DELETE(
         await db.delete(questionBanks).where(eq(questionBanks.id, params.id));
 
         return NextResponse.json({ message: "Question bank deleted successfully" });
-    } catch (error) {
+    } catch (error: any) {
         console.error("Error deleting question bank:", error);
         return NextResponse.json(
-            { error: "Failed to delete question bank" },
-            { status: 500 }
+            { error: error.message || "Failed to delete question bank" },
+            { status: error.status || 500 }
         );
     }
 }
+

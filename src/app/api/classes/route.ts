@@ -4,9 +4,11 @@ import { classes, users } from "@/lib/schema";
 import { eq, sql } from "drizzle-orm";
 import { ActivityLogger } from "@/lib/activity-logger";
 import { apiHandler, ApiError } from "@/lib/api-handler";
+import { requireAuth } from "@/lib/auth-guard";
 
 // GET /api/classes - List all classes
 export const GET = () => apiHandler(async () => {
+    await requireAuth(["admin", "teacher"]);
     const allClasses = await db.select({
         id: classes.id,
         name: classes.name,
@@ -26,6 +28,7 @@ export const GET = () => apiHandler(async () => {
 
 // POST /api/classes - Create new class
 export const POST = (req: Request) => apiHandler(async () => {
+    const user = await requireAuth(["admin", "teacher"]);
     const body = await req.json();
     const { name, grade, academicYear, teacherId } = body;
 
@@ -52,17 +55,9 @@ export const POST = (req: Request) => apiHandler(async () => {
 
     await db.insert(classes).values(newClassValues);
 
-    // Log activity (using first admin if no teacher specified, or the teacher themselves)
-    // For simplicity, we'll try to log with the teacher ID if available, otherwise admin
-    let loggerUserId = validTeacherId;
-    if (!loggerUserId) {
-        const admin = await db.select({ id: users.id }).from(users).where(eq(users.role, "admin")).limit(1);
-        if (admin.length > 0) loggerUserId = admin[0].id;
-    }
-
-    if (loggerUserId) {
-        await ActivityLogger.class.created(loggerUserId, id, name);
-    }
+    // Log activity
+    await ActivityLogger.class.created(user.id, id, name);
 
     return newClassValues;
 });
+

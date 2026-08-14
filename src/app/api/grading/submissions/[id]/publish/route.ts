@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { submissions } from "@/lib/schema";
 import { eq } from "drizzle-orm";
+import { requireAuth } from "@/lib/auth-guard";
 
 // POST /api/grading/submissions/[id]/publish - Publish results to student
 export async function POST(
@@ -9,6 +10,7 @@ export async function POST(
     { params }: { params: { id: string } }
 ) {
     try {
+        await requireAuth(["admin", "teacher"]);
         // Check if submission exists
         const submissionData = await db.select()
             .from(submissions)

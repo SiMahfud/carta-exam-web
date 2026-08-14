@@ -7,6 +7,7 @@ import { cookies, headers } from "next/headers"
 import { redirect } from "next/navigation"
 import bcrypt from "bcryptjs"
 import { z } from "zod"
+import { signSession } from "@/lib/session"
 
 // Login Schema for validation
 const LoginSchema = z.object({
@@ -82,13 +83,15 @@ export async function login(formData: FormData): Promise<LoginResult> {
         }
     }
 
-    // Set session cookie
-    const cookieStore = await cookies()
-    cookieStore.set("user_session", JSON.stringify({
+    // Set signed session cookie
+    const token = await signSession({
         id: user.id,
         role: user.role,
         name: user.name
-    }), {
+    })
+
+    const cookieStore = await cookies()
+    cookieStore.set("user_session", token, {
         httpOnly: true,
         secure: process.env.NODE_ENV === "production",
         sameSite: "lax",
@@ -112,18 +115,5 @@ export async function logout() {
     redirect("/login")
 }
 
-export async function getCurrentUser() {
-    const cookieStore = await cookies()
-    const sessionCookie = cookieStore.get("user_session")
+export { getCurrentUser } from "@/lib/session"
 
-    if (!sessionCookie) {
-        return null
-    }
-
-    try {
-        const session = JSON.parse(sessionCookie.value)
-        return session // { id, role, name }
-    } catch {
-        return null
-    }
-}

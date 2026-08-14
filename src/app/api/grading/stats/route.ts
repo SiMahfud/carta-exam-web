@@ -2,10 +2,12 @@ import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { submissions } from "@/lib/schema";
 import { sql } from "drizzle-orm";
+import { requireAuth } from "@/lib/auth-guard";
 
 // GET /api/grading/stats - Get grading statistics
 export async function GET() {
     try {
+        await requireAuth(["admin", "teacher"]);
         // Get counts for each grading status
         const stats = await db.select({
             status: submissions.gradingStatus,

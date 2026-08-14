@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { submissions, examSessions, examTemplates } from "@/lib/schema";
 import { eq, and } from "drizzle-orm";
+import { requireAuth } from "@/lib/auth-guard";
 
 // POST /api/student/exams/[sessionId]/violation - Log a violation
 export async function POST(
@@ -9,10 +10,13 @@ export async function POST(
     { params }: { params: Promise<{ sessionId: string }> }
 ) {
     try {
+        const user = await requireAuth(["student", "admin", "teacher"]);
         const { sessionId } = await params;
         const body = await request.json();
-        const { studentId, type, details } = body;
-        // type: 'tab_switch', 'copy_paste', 'right_click', 'screenshot', etc.
+        const { type, details } = body;
+
+        // For student role, always use authenticated user ID
+        const studentId = user.role === "student" ? user.id : (body.studentId || user.id);
 
         if (!studentId || !type) {
             return NextResponse.json(

@@ -1,10 +1,10 @@
-
 interface RateLimitContext {
     count: number;
     lastReset: number;
 }
 
 const rateLimitMap = new Map<string, RateLimitContext>();
+let lastGlobalCleanup = Date.now();
 
 interface RateLimitOptions {
     interval: number; // in milliseconds
@@ -17,11 +17,17 @@ export class RateLimiter {
     constructor(options: RateLimitOptions) {
         this.check = async (limit: number, token: string) => {
             const now = Date.now();
-            const { interval } = options;
+            const { interval, uniqueTokenPerInterval } = options;
 
-            // Clean up old entries periodically (simple garbage collection)
-            // Ideally this would be done on a separate interval, but for simplicity we do it lazily or just rely on Map size management if needed.
-            // For this implementation, we will reset the specific token if the interval has passed.
+            // Prune expired entries periodically every interval or if map gets too large
+            if (now - lastGlobalCleanup > interval || rateLimitMap.size > uniqueTokenPerInterval) {
+                lastGlobalCleanup = now;
+                for (const [key, ctx] of rateLimitMap.entries()) {
+                    if (now - ctx.lastReset > interval) {
+                        rateLimitMap.delete(key);
+                    }
+                }
+            }
 
             let context = rateLimitMap.get(token);
 

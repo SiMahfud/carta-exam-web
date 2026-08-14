@@ -2,10 +2,12 @@ import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { submissions, users, examSessions, examTemplates, classStudents } from "@/lib/schema";
 import { eq, desc, asc, and, sql } from "drizzle-orm";
+import { requireAuth } from "@/lib/auth-guard";
 
 // GET /api/grading/submissions - List submissions needing grading
 export async function GET(request: Request) {
     try {
+        await requireAuth(["admin", "teacher"]);
         const { searchParams } = new URL(request.url);
         const page = parseInt(searchParams.get("page") || "1");
         const limit = parseInt(searchParams.get("limit") || "20");

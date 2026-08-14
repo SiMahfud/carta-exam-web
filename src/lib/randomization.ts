@@ -21,7 +21,7 @@ export interface Question {
 }
 
 /**
- * Fisher-Yates shuffle algorithm for arrays
+ * Fisher-Yates shuffle algorithm for arrays (unseeded / random)
  */
 export function shuffleArray<T>(array: T[]): T[] {
     const result = [...array];
@@ -30,6 +30,64 @@ export function shuffleArray<T>(array: T[]): T[] {
         [result[i], result[j]] = [result[j], result[i]];
     }
     return result;
+}
+
+/**
+ * Fast 32-bit string hash to generate a seed number from a string
+ */
+export function hashString(str: string): number {
+    let hash = 0;
+    for (let i = 0; i < str.length; i++) {
+        const char = str.charCodeAt(i);
+        hash = (hash << 5) - hash + char;
+        hash |= 0; // Convert to 32bit integer
+    }
+    return Math.abs(hash);
+}
+
+/**
+ * Mulberry32 PRNG (deterministic pseudo-random number generator)
+ */
+export function createSeededRandom(seed: number) {
+    let s = seed >>> 0;
+    return function () {
+        s |= 0;
+        s = (s + 0x6d2b79f5) | 0;
+        let t = Math.imul(s ^ (s >>> 15), 1 | s);
+        t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+        return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
+}
+
+/**
+ * Seeded Fisher-Yates shuffle that produces deterministic results
+ * and returns mapping from shuffled index to original index
+ */
+export function seededShuffle<T>(
+    array: T[],
+    seedStr: string
+): { shuffled: T[]; mapping: number[] } {
+    if (!array || array.length <= 1) {
+        return {
+            shuffled: [...(array || [])],
+            mapping: (array || []).map((_, i) => i)
+        };
+    }
+
+    const seed = hashString(seedStr);
+    const random = createSeededRandom(seed);
+
+    // Initial indices [0, 1, 2, ...]
+    const mapping = array.map((_, i) => i);
+    const shuffled = [...array];
+
+    for (let i = shuffled.length - 1; i > 0; i--) {
+        const j = Math.floor(random() * (i + 1));
+        [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+        [mapping[i], mapping[j]] = [mapping[j], mapping[i]];
+    }
+
+    return { shuffled, mapping };
 }
 
 /**

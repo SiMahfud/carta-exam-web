@@ -1,21 +1,22 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { scoringTemplates } from "@/lib/schema";
-// eq is imported but unused in this file - removed
+import { requireAuth } from "@/lib/auth-guard";
 
 // GET /api/scoring-templates - List all scoring templates
 export async function GET() {
     try {
+        await requireAuth(["admin", "teacher"]);
         const templates = await db.select()
             .from(scoringTemplates)
             .orderBy(scoringTemplates.createdAt);
 
         return NextResponse.json(templates);
-    } catch (error) {
+    } catch (error: any) {
         console.error("Error fetching scoring templates:", error);
         return NextResponse.json(
-            { error: "Failed to fetch scoring templates" },
-            { status: 500 }
+            { error: error.message || "Failed to fetch scoring templates" },
+            { status: error.status || 500 }
         );
     }
 }
@@ -23,6 +24,7 @@ export async function GET() {
 // POST /api/scoring-templates - Create new scoring template
 export async function POST(request: Request) {
     try {
+        await requireAuth(["admin", "teacher"]);
         const body = await request.json();
         const { name, description, defaultWeights, allowPartialCredit, partialCreditRules } = body;
 
@@ -46,14 +48,11 @@ export async function POST(request: Request) {
         await db.insert(scoringTemplates).values(newTemplateValues);
 
         return NextResponse.json(newTemplateValues, { status: 201 });
-    } catch (error) {
+    } catch (error: any) {
         console.error("Error creating scoring template:", error);
         return NextResponse.json(
-            { error: "Failed to create scoring template" },
-            { status: 500 }
+            { error: error.message || "Failed to create scoring template" },
+            { status: error.status || 500 }
         );
     }
 }
-
-// PUT /api/scoring-templates/[id] - Update template (inline for simplicity)
-// DELETE /api/scoring-templates/[id] - Delete template

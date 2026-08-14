@@ -2,10 +2,12 @@ import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { submissions } from "@/lib/schema";
 import { eq } from "drizzle-orm";
+import { requireAuth } from "@/lib/auth-guard";
 
 // POST /api/grading/batch-publish - Batch publish multiple submissions
 export async function POST(request: Request) {
     try {
+        await requireAuth(["admin", "teacher"]);
         const body = await request.json();
         const { submissionIds } = body;
 

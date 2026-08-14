@@ -3,6 +3,7 @@ import { db } from "@/lib/db";
 import { users } from "@/lib/schema";
 import { eq } from "drizzle-orm";
 import bcrypt from "bcryptjs";
+import { requireAuth } from "@/lib/auth-guard";
 
 // GET /api/users/[id] - Get single user
 export async function GET(
@@ -10,6 +11,7 @@ export async function GET(
     { params }: { params: { id: string } }
 ) {
     try {
+        await requireAuth(["admin", "teacher"]);
         const user = await db
             .select({
                 id: users.id,
@@ -45,6 +47,7 @@ export async function PUT(
     { params }: { params: { id: string } }
 ) {
     try {
+        await requireAuth(["admin"]);
         const body = await request.json();
         const { name, username, password, role } = body;
 
@@ -117,8 +120,8 @@ export async function PUT(
     } catch (error) {
         console.error("Error updating user:", error);
         return NextResponse.json(
-            { error: "Gagal mengupdate user" },
-            { status: 500 }
+            { error: (error as any)?.message || "Gagal mengupdate user" },
+            { status: (error as any)?.status || 500 }
         );
     }
 }
@@ -129,6 +132,7 @@ export async function DELETE(
     { params }: { params: { id: string } }
 ) {
     try {
+        await requireAuth(["admin"]);
         // Check if user exists
         const existingUser = await db
             .select({ id: users.id })

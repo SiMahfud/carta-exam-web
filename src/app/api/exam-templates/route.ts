@@ -4,9 +4,11 @@ import { examTemplates, subjects, users } from "@/lib/schema";
 import { eq, desc, asc, like, and, sql } from "drizzle-orm";
 import { ActivityLogger } from "@/lib/activity-logger";
 import { apiHandler, ApiError } from "@/lib/api-handler";
+import { requireAuth } from "@/lib/auth-guard";
 
 // GET /api/exam-templates - List all templates with pagination, filtering, and sorting
 export const GET = (req: Request) => apiHandler(async () => {
+    await requireAuth(["admin", "teacher"]);
     const { searchParams } = new URL(req.url);
     const page = parseInt(searchParams.get("page") || "1");
     const limit = parseInt(searchParams.get("limit") || "10");
@@ -83,6 +85,7 @@ export const GET = (req: Request) => apiHandler(async () => {
 
 // POST /api/exam-templates - Create new template
 export const POST = (req: Request) => apiHandler(async () => {
+    const user = await requireAuth(["admin", "teacher"]);
     const body = await req.json();
     const {
         name,
@@ -113,7 +116,6 @@ export const POST = (req: Request) => apiHandler(async () => {
         randomizationRules,
         targetType,
         targetIds,
-        createdBy, // In a real app, this would come from session/auth
     } = body;
 
     // Basic validation
@@ -121,31 +123,8 @@ export const POST = (req: Request) => apiHandler(async () => {
         throw new ApiError("Missing required fields", 400);
     }
 
-    // TODO: Get actual user ID from session
-    // For now, we'll use the provided createdBy or fetch the first admin user
-    let validCreatedBy = createdBy;
+    const validCreatedBy = user.id;
 
-    if (!validCreatedBy) {
-        // Fallback: Get the first admin user
-        const adminUser = await db.select().from(users).where(eq(users.username, "admin")).limit(1);
-        if (adminUser.length > 0) {
-            validCreatedBy = adminUser[0].id;
-        } else {
-            throw new ApiError("User ID is required and no default admin found", 400);
-        }
-    } else {
-        // Verify user exists
-        const userExists = await db.select().from(users).where(eq(users.id, validCreatedBy)).limit(1);
-        if (userExists.length === 0) {
-            // If provided ID doesn't exist, try fallback to admin
-            const adminUser = await db.select().from(users).where(eq(users.username, "admin")).limit(1);
-            if (adminUser.length > 0) {
-                validCreatedBy = adminUser[0].id;
-            } else {
-                throw new ApiError("Invalid User ID and no default admin found", 400);
-            }
-        }
-    }
 
     const id = crypto.randomUUID();
     const newTemplateValues = {

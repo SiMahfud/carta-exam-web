@@ -1,13 +1,15 @@
 
 import { db } from "@/lib/db";
-import { examSessions, examTemplates, users } from "@/lib/schema";
+import { examSessions, examTemplates } from "@/lib/schema";
 import { eq, desc, and, sql } from "drizzle-orm";
 import { fromDateTimeLocalString } from "@/lib/date-utils";
 import { ActivityLogger } from "@/lib/activity-logger";
 import { apiHandler, ApiError } from "@/lib/api-handler";
+import { requireAuth } from "@/lib/auth-guard";
 
 // GET /api/exam-sessions - List all sessions
 export const GET = (req: Request) => apiHandler(async () => {
+    await requireAuth(["admin", "teacher"]);
     const { searchParams } = new URL(req.url);
     const page = parseInt(searchParams.get("page") || "1");
     const limit = parseInt(searchParams.get("limit") || "10");
@@ -98,6 +100,7 @@ export const GET = (req: Request) => apiHandler(async () => {
 
 // POST /api/exam-sessions - Create new session
 export const POST = (req: Request) => apiHandler(async () => {
+    const user = await requireAuth(["admin", "teacher"]);
     const body = await req.json();
     const {
         templateId,
@@ -106,7 +109,6 @@ export const POST = (req: Request) => apiHandler(async () => {
         endTime,
         targetType,
         targetIds,
-        createdBy // Should come from auth session
     } = body;
 
     // Validation
@@ -133,20 +135,8 @@ export const POST = (req: Request) => apiHandler(async () => {
         status = "completed";
     }
 
-    // Get a valid user ID if not provided
-    let userId = createdBy;
-    if (!userId) {
-        // Fetch the first admin user as fallback
-        const adminUsers = await db.select({ id: users.id })
-            .from(users)
-            .where(eq(users.role, "admin"))
-            .limit(1);
+    const userId = user.id;
 
-        if (adminUsers.length === 0) {
-            throw new ApiError("No admin user found. Please ensure at least one admin user exists.", 500);
-        }
-        userId = adminUsers[0].id;
-    }
 
     // Sanitize targetIds: Ensure it's not a double-encoded string
     let finalTargetIds = targetIds;

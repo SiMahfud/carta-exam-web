@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { classes, classStudents, users } from "@/lib/schema";
 import { eq } from "drizzle-orm";
+import { requireAuth } from "@/lib/auth-guard";
 
 // GET /api/classes/[id] - Get class with students
 export async function GET(
@@ -9,6 +10,7 @@ export async function GET(
     { params }: { params: { id: string } }
 ) {
     try {
+        await requireAuth(["admin", "teacher"]);
         const classData = await db.select()
             .from(classes)
             .where(eq(classes.id, params.id))
@@ -36,11 +38,11 @@ export async function GET(
             ...classData[0],
             students,
         });
-    } catch (error) {
+    } catch (error: any) {
         console.error("Error fetching class:", error);
         return NextResponse.json(
-            { error: "Failed to fetch class" },
-            { status: 500 }
+            { error: error.message || "Failed to fetch class" },
+            { status: error.status || 500 }
         );
     }
 }
@@ -51,6 +53,7 @@ export async function PUT(
     { params }: { params: { id: string } }
 ) {
     try {
+        await requireAuth(["admin", "teacher"]);
         const body = await request.json();
         const { name, grade, academicYear, teacherId } = body;
 
@@ -68,11 +71,11 @@ export async function PUT(
         }
 
         return NextResponse.json(updated[0]);
-    } catch (error) {
+    } catch (error: any) {
         console.error("Error updating class:", error);
         return NextResponse.json(
-            { error: "Failed to update class" },
-            { status: 500 }
+            { error: error.message || "Failed to update class" },
+            { status: error.status || 500 }
         );
     }
 }
@@ -83,6 +86,7 @@ export async function DELETE(
     { params }: { params: { id: string } }
 ) {
     try {
+        await requireAuth(["admin", "teacher"]);
         const deleted = await db.select().from(classes).where(eq(classes.id, params.id)).limit(1);
 
         if (deleted.length === 0) {
@@ -94,19 +98,12 @@ export async function DELETE(
 
         await db.delete(classes).where(eq(classes.id, params.id));
 
-        if (deleted.length === 0) {
-            return NextResponse.json(
-                { error: "Class not found" },
-                { status: 404 }
-            );
-        }
-
         return NextResponse.json({ message: "Class deleted successfully" });
-    } catch (error) {
+    } catch (error: any) {
         console.error("Error deleting class:", error);
         return NextResponse.json(
-            { error: "Failed to delete class" },
-            { status: 500 }
+            { error: error.message || "Failed to delete class" },
+            { status: error.status || 500 }
         );
     }
 }

@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { submissions, bankQuestions, examTemplates, examSessions, answers } from "@/lib/schema";
 import { eq, inArray, and } from "drizzle-orm";
+import { requireAuth } from "@/lib/auth-guard";
+import { seededShuffle } from "@/lib/randomization";
 
 // GET /api/student/exams/[sessionId]/questions - Get questions for submission
 export async function GET(
@@ -9,8 +11,12 @@ export async function GET(
     { params }: { params: { sessionId: string } }
 ) {
     try {
+        const user = await requireAuth(["student", "admin", "teacher"]);
         const { searchParams } = new URL(request.url);
-        const studentId = searchParams.get("studentId"); // TODO: Get from auth
+
+        // For student role, always use their authenticated ID.
+        // For admin/teacher, allow previewing another student's submission.
+        const studentId = user.role === "student" ? user.id : (searchParams.get("studentId") || user.id);
 
         if (!studentId) {
             return NextResponse.json(
@@ -176,10 +182,12 @@ export async function GET(
                 content = question.content || {};
             }
 
-            // Randomize options if enabled (for MC and Complex MC)
+            // Randomize options deterministically if enabled (for MC, Complex MC, and True/False)
             let options = content.options || [];
             if (shuffleAnswers && (question.type === 'mc' || question.type === 'complex_mc' || question.type === 'true_false')) {
-                options = [...options].sort(() => Math.random() - 0.5);
+                const seed = `${submission.id}-${question.id}-options`;
+                const { shuffled } = seededShuffle(options, seed);
+                options = shuffled;
             }
 
             // Transform options to expected format {label, text}
@@ -188,11 +196,14 @@ export async function GET(
                 text: opt
             }));
 
-            // Handle matching question items
+            // Handle matching question items deterministically
             let rightItems = content.rightItems || [];
             if (shuffleAnswers && question.type === 'matching') {
-                rightItems = [...rightItems].sort(() => Math.random() - 0.5);
+                const seed = `${submission.id}-${question.id}-matching`;
+                const { shuffled } = seededShuffle(rightItems, seed);
+                rightItems = shuffled;
             }
+
 
             return {
                 id: question.id,

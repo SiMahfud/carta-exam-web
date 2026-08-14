@@ -1,22 +1,21 @@
 // NextResponse not used - using apiHandler instead
 import { db } from "@/lib/db";
-import { subjects, users } from "@/lib/schema";
+import { subjects } from "@/lib/schema";
 import { eq } from "drizzle-orm";
 import { ActivityLogger } from "@/lib/activity-logger";
 import { apiHandler, ApiError } from "@/lib/api-handler";
+import { requireAuth } from "@/lib/auth-guard";
 
 // GET /api/subjects - List all subjects
 export const GET = () => apiHandler(async () => {
+    await requireAuth(["admin", "teacher"]);
     const allSubjects = await db.select().from(subjects).orderBy(subjects.name);
     return allSubjects;
-}, {
-    headers: {
-        'Cache-Control': 'public, s-maxage=60, stale-while-revalidate=300'
-    }
 });
 
 // POST /api/subjects - Create new subject
 export const POST = (req: Request) => apiHandler(async () => {
+    const user = await requireAuth(["admin", "teacher"]);
     const body = await req.json();
     const { name, code, description } = body;
 
@@ -39,11 +38,9 @@ export const POST = (req: Request) => apiHandler(async () => {
 
     const newSubject = await db.select().from(subjects).where(eq(subjects.code, code.toUpperCase())).limit(1);
 
-    // Log activity (get first admin for now)
-    const admin = await db.select({ id: users.id }).from(users).where(eq(users.role, "admin")).limit(1);
-    if (admin.length > 0) {
-        await ActivityLogger.subject.created(admin[0].id, newSubject[0].id, name);
-    }
+    // Log activity
+    await ActivityLogger.subject.created(user.id, newSubject[0].id, name);
 
     return newSubject[0];
 });
+

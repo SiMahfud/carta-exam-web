@@ -7,6 +7,7 @@ import { BankQuestionSchema } from "@/lib/validations/questions";
 import { z } from "zod";
 import fs from 'fs';
 import path from 'path';
+import { requireAuth } from "@/lib/auth-guard";
 
 // Helper to delete images associated with a question
 const deleteQuestionImages = (content: any) => {
@@ -49,6 +50,7 @@ export async function GET(
     { params }: { params: { id: string } }
 ) {
     try {
+        await requireAuth(["admin", "teacher"]);
         const { searchParams } = new URL(request.url);
         const type = searchParams.get("type");
         const difficulty = searchParams.get("difficulty");
@@ -141,6 +143,7 @@ export async function POST(
     { params }: { params: { id: string } }
 ) {
     try {
+        await requireAuth(["admin", "teacher"]);
         const { searchParams } = new URL(request.url);
         const mode = searchParams.get("mode");
         const body = await request.json();

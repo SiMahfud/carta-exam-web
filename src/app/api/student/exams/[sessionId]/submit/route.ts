@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { submissions, answers, bankQuestions } from "@/lib/schema";
 import { eq, and, inArray } from "drizzle-orm";
+import { requireAuth } from "@/lib/auth-guard";
 
 // POST /api/student/exams/[sessionId]/submit - Submit exam
 export async function POST(
@@ -9,8 +10,11 @@ export async function POST(
     { params }: { params: { sessionId: string } }
 ) {
     try {
+        const user = await requireAuth(["student", "admin", "teacher"]);
         const body = await request.json();
-        const { studentId } = body;
+
+        // For student role, always use authenticated user ID
+        const studentId = user.role === "student" ? user.id : (body.studentId || user.id);
 
         if (!studentId) {
             return NextResponse.json(

@@ -6,16 +6,7 @@ export const config = {
 }
 
 import { apiRateLimiter } from "@/lib/rate-limit";
-
-// Initial set of rate limited IPs (simple in-memory cache for middleware is tricky on serverless)
-// Note: Middleware in Next.js Edge Runtime has limited simple state sharing.
-// For a robust solution in Vercel/Edge, we'd need KV or Upstash. 
-// However, assuming Node.js runtime or single instance for now as per plan.
-// But wait, Middleware runs on Edge. Global variables might reset.
-// Let's implement a lighter check or basic headers.
-// Actually, `rate-limit.ts` uses Map which works if middleware is not strictly edge or if it's stateful enough.
-// PROVISO: If deployed to Vercel, this Map will be per-request/per-isolate and thus ineffective.
-// But for local/VPS (Node) it works.
+import { verifySession } from "@/lib/session";
 
 export async function middleware(request: NextRequest) {
     const path = request.nextUrl.pathname;
@@ -41,12 +32,9 @@ export async function middleware(request: NextRequest) {
     let userSession = null
 
     if (sessionCookie) {
-        try {
-            userSession = JSON.parse(sessionCookie.value)
-        } catch {
-            // Invalid cookie value
-        }
+        userSession = await verifySession(sessionCookie.value)
     }
+
 
     const isInternalApi = path.startsWith('/api/') || path.startsWith('/_next/') || path.includes('/static/') || path.includes('/favicon.ico')
     if (isInternalApi) {

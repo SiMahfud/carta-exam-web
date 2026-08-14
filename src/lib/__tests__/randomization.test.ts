@@ -4,6 +4,7 @@ import {
     applyQuestionRandomization,
     shuffleByCondition,
     shouldShuffleAnswers,
+    seededShuffle,
     type RandomizationRules,
     type Question
 } from '../randomization'
@@ -186,4 +187,39 @@ describe('randomization', () => {
             expect(shouldShuffleAnswers('short_answer', true)).toBe(false)
         })
     })
+
+    describe('seededShuffle', () => {
+        it('should be 100% deterministic with same seed', () => {
+            const input = ['A', 'B', 'C', 'D', 'E']
+            const seed = 'submission-123-question-456'
+
+            const run1 = seededShuffle(input, seed)
+            const run2 = seededShuffle(input, seed)
+
+            expect(run1.shuffled).toEqual(run2.shuffled)
+            expect(run1.mapping).toEqual(run2.mapping)
+        })
+
+        it('should produce different order with different seeds', () => {
+            const input = ['A', 'B', 'C', 'D', 'E']
+            const run1 = seededShuffle(input, 'seed-alpha')
+            const run2 = seededShuffle(input, 'seed-beta')
+
+            expect(run1.shuffled.join('')).not.toEqual(run2.shuffled.join(''))
+        })
+
+        it('should accurately map shuffled elements back to original indices', () => {
+            const input = ['Opt1', 'Opt2', 'Opt3', 'Opt4']
+            const seed = 'test-seed-xyz'
+
+            const { shuffled, mapping } = seededShuffle(input, seed)
+
+            // For each element at shuffled index i, input[mapping[i]] must equal shuffled[i]
+            shuffled.forEach((val, shuffledIndex) => {
+                const origIndex = mapping[shuffledIndex]
+                expect(input[origIndex]).toBe(val)
+            })
+        })
+    })
 })
+

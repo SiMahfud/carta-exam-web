@@ -4,6 +4,7 @@ import { examSessions, examTemplates, questionPools, submissions, exams } from "
 import { eq, sql } from "drizzle-orm";
 import { fromDateTimeLocalString } from "@/lib/date-utils";
 import { ActivityLogger } from "@/lib/activity-logger";
+import { requireAuth } from "@/lib/auth-guard";
 
 // GET /api/exam-sessions/[id] - Get session details
 export async function GET(
@@ -11,6 +12,7 @@ export async function GET(
     { params }: { params: { id: string } }
 ) {
     try {
+        await requireAuth(["admin", "teacher"]);
         const session = await db.select({
             id: examSessions.id,
             sessionName: examSessions.sessionName,
@@ -39,7 +41,6 @@ export async function GET(
         }
 
         const sessionData = session[0];
-        // Safe parsing for targetIds for GET /id endpoint as well
         let targetIds = sessionData.targetIds;
         if (typeof targetIds === 'string') {
             try {
@@ -60,11 +61,11 @@ export async function GET(
         }
 
         return NextResponse.json({ ...sessionData, targetIds: Array.isArray(targetIds) ? targetIds : [] });
-    } catch (error) {
+    } catch (error: any) {
         console.error("Error fetching session:", error);
         return NextResponse.json(
-            { error: "Failed to fetch session" },
-            { status: 500 }
+            { error: error.message || "Failed to fetch session" },
+            { status: error.status || 500 }
         );
     }
 }
@@ -75,22 +76,19 @@ export async function PATCH(
     { params }: { params: { id: string } }
 ) {
     try {
+        const user = await requireAuth(["admin", "teacher"]);
         const body = await request.json();
         const { sessionName, startTime, endTime, status, targetIds, targetType } = body;
 
-        // Use a Record to avoid 'any', but ensure keys match schema
         const updateData: Record<string, unknown> = {};
 
-        // Use 'in' operator to check if field exists in body, allowing empty strings/null
         if ('sessionName' in body && sessionName !== undefined) {
             updateData.sessionName = sessionName;
         }
         if ('startTime' in body && startTime !== undefined && startTime !== '') {
-            // Convert datetime-local string to Date with UTC+7 handling
             updateData.startTime = fromDateTimeLocalString(startTime);
         }
         if ('endTime' in body && endTime !== undefined && endTime !== '') {
-            // Convert datetime-local string to Date with UTC+7 handling
             updateData.endTime = fromDateTimeLocalString(endTime);
         }
         if ('status' in body && status !== undefined) {
@@ -129,17 +127,17 @@ export async function PATCH(
 
         // Log activity
         await ActivityLogger.examSession.updated(
-            updatedSession[0].createdBy,
+            user.id,
             updatedSession[0].id,
             updatedSession[0].sessionName
         );
 
         return NextResponse.json(updatedSession[0]);
-    } catch (error) {
+    } catch (error: any) {
         console.error("Error updating session:", error);
         return NextResponse.json(
-            { error: "Failed to update session" },
-            { status: 500 }
+            { error: error.message || "Failed to update session" },
+            { status: error.status || 500 }
         );
     }
 }
@@ -150,7 +148,7 @@ export async function DELETE(
     { params }: { params: { id: string } }
 ) {
     try {
-        // Get session info before deleting for logging
+        const user = await requireAuth(["admin", "teacher"]);
         const sessionToDelete = await db.select()
             .from(examSessions)
             .where(eq(examSessions.id, params.id))
@@ -183,18 +181,17 @@ export async function DELETE(
 
         // Log activity
         await ActivityLogger.examSession.deleted(
-            sessionToDelete[0].createdBy,
+            user.id,
             sessionToDelete[0].id,
             sessionToDelete[0].sessionName
         );
 
         return NextResponse.json({ message: "Session deleted successfully" });
-    } catch (error) {
-        const errorMessage = error instanceof Error ? error.message : "Failed to delete session";
+    } catch (error: any) {
         console.error("Error deleting session:", error);
         return NextResponse.json(
-            { error: errorMessage },
-            { status: 500 }
+            { error: error.message || "Failed to delete session" },
+            { status: error.status || 500 }
         );
     }
 }

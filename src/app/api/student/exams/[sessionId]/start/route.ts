@@ -3,6 +3,7 @@ import { db } from "@/lib/db";
 import { examSessions, examTemplates, submissions, bankQuestions } from "@/lib/schema";
 import { eq, inArray, and } from "drizzle-orm";
 import { applyQuestionRandomization, RandomizationRules } from "@/lib/randomization";
+import { requireAuth } from "@/lib/auth-guard";
 
 // POST /api/student/exams/[sessionId]/start - Start taking an exam
 export async function POST(
@@ -10,8 +11,12 @@ export async function POST(
     { params }: { params: { sessionId: string } }
 ) {
     try {
+        const user = await requireAuth(["student", "admin", "teacher"]);
         const body = await request.json();
-        const { studentId, token } = body; // TODO: Get studentId from auth session
+        const { token } = body;
+
+        // For student role, always use authenticated user ID
+        const studentId = user.role === "student" ? user.id : (body.studentId || user.id);
 
         if (!studentId) {
             return NextResponse.json(

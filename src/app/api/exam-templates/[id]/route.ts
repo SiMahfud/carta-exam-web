@@ -3,6 +3,7 @@ import { db } from "@/lib/db";
 import { examTemplates, subjects } from "../../../../lib/schema";
 import { eq } from "drizzle-orm";
 import { ActivityLogger } from "@/lib/activity-logger";
+import { requireAuth } from "@/lib/auth-guard";
 
 // GET /api/exam-templates/[id] - Get template details
 export async function GET(
@@ -10,6 +11,7 @@ export async function GET(
     { params }: { params: { id: string } }
 ) {
     try {
+        await requireAuth(["admin", "teacher"]);
         const template = await db.select({
             id: examTemplates.id,
             name: examTemplates.name,
@@ -58,11 +60,11 @@ export async function GET(
         }
 
         return NextResponse.json(template[0]);
-    } catch (error) {
+    } catch (error: any) {
         console.error("Error fetching exam template:", error);
         return NextResponse.json(
-            { error: "Failed to fetch exam template" },
-            { status: 500 }
+            { error: error.message || "Failed to fetch exam template" },
+            { status: error.status || 500 }
         );
     }
 }
@@ -73,8 +75,8 @@ export async function PUT(
     { params }: { params: { id: string } }
 ) {
     try {
+        const user = await requireAuth(["admin", "teacher"]);
         const body = await request.json();
-        // Destructure all possible fields to ensure we only update what's allowed
         const {
             name,
             description,
@@ -149,16 +151,14 @@ export async function PUT(
         }
 
         // Log activity
-        if (updated[0].createdBy) {
-            await ActivityLogger.examTemplate.updated(updated[0].createdBy, params.id, updated[0].name);
-        }
+        await ActivityLogger.examTemplate.updated(user.id, params.id, updated[0].name);
 
         return NextResponse.json(updated[0]);
-    } catch (error) {
+    } catch (error: any) {
         console.error("Error updating exam template:", error);
         return NextResponse.json(
-            { error: "Failed to update exam template" },
-            { status: 500 }
+            { error: error.message || "Failed to update exam template" },
+            { status: error.status || 500 }
         );
     }
 }
@@ -169,6 +169,7 @@ export async function DELETE(
     { params }: { params: { id: string } }
 ) {
     try {
+        const user = await requireAuth(["admin", "teacher"]);
         const deleted = await db.select().from(examTemplates).where(eq(examTemplates.id, params.id)).limit(1);
 
         if (deleted.length === 0) {
@@ -180,24 +181,15 @@ export async function DELETE(
 
         await db.delete(examTemplates).where(eq(examTemplates.id, params.id));
 
-        if (deleted.length === 0) {
-            return NextResponse.json(
-                { error: "Template not found" },
-                { status: 404 }
-            );
-        }
-
-        // Log activity (using createdBy from deleted record if available)
-        if (deleted[0].createdBy) {
-            await ActivityLogger.examTemplate.deleted(deleted[0].createdBy, params.id, deleted[0].name);
-        }
+        // Log activity
+        await ActivityLogger.examTemplate.deleted(user.id, params.id, deleted[0].name);
 
         return NextResponse.json({ message: "Template deleted successfully" });
-    } catch (error) {
+    } catch (error: any) {
         console.error("Error deleting exam template:", error);
         return NextResponse.json(
-            { error: "Failed to delete exam template" },
-            { status: 500 }
+            { error: error.message || "Failed to delete exam template" },
+            { status: error.status || 500 }
         );
     }
 }

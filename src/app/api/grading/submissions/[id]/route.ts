@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { submissions, answers, bankQuestions, users, examSessions } from "@/lib/schema";
 import { eq, inArray } from "drizzle-orm";
+import { requireAuth } from "@/lib/auth-guard";
 
 // GET /api/grading/submissions/[id] - Get submission details for grading
 export async function GET(
@@ -9,6 +10,7 @@ export async function GET(
     { params }: { params: { id: string } }
 ) {
     try {
+        await requireAuth(["admin", "teacher"]);
         // Get submission
         const submissionData = await db.select({
             id: submissions.id,
@@ -148,6 +150,7 @@ export async function PATCH(
     { params }: { params: { id: string } }
 ) {
     try {
+        await requireAuth(["admin", "teacher"]);
         const body = await request.json();
         const { answerUpdates } = body;
         // answerUpdates: [{ answerId, score, gradingNotes }]

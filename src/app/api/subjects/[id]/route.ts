@@ -1,8 +1,9 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { subjects, users } from "@/lib/schema";
+import { subjects } from "@/lib/schema";
 import { eq } from "drizzle-orm";
 import { ActivityLogger } from "@/lib/activity-logger";
+import { requireAuth } from "@/lib/auth-guard";
 
 // GET /api/subjects/[id] - Get single subject
 export async function GET(
@@ -10,6 +11,7 @@ export async function GET(
     { params }: { params: { id: string } }
 ) {
     try {
+        await requireAuth(["admin", "teacher"]);
         const subject = await db.select()
             .from(subjects)
             .where(eq(subjects.id, params.id))
@@ -23,11 +25,11 @@ export async function GET(
         }
 
         return NextResponse.json(subject[0]);
-    } catch (error) {
+    } catch (error: any) {
         console.error("Error fetching subject:", error);
         return NextResponse.json(
-            { error: "Failed to fetch subject" },
-            { status: 500 }
+            { error: error.message || "Failed to fetch subject" },
+            { status: error.status || 500 }
         );
     }
 }
@@ -38,6 +40,7 @@ export async function PUT(
     { params }: { params: { id: string } }
 ) {
     try {
+        const user = await requireAuth(["admin", "teacher"]);
         const body = await request.json();
         const { name, code, description } = body;
 
@@ -59,10 +62,7 @@ export async function PUT(
         }
 
         // Log activity
-        const admin = await db.select({ id: users.id }).from(users).where(eq(users.role, "admin")).limit(1);
-        if (admin.length > 0) {
-            await ActivityLogger.subject.updated(admin[0].id, updated[0].id, updated[0].name);
-        }
+        await ActivityLogger.subject.updated(user.id, updated[0].id, updated[0].name);
 
         return NextResponse.json(updated[0]);
     } catch (error: unknown) {
@@ -74,8 +74,8 @@ export async function PUT(
             );
         }
         return NextResponse.json(
-            { error: "Failed to update subject" },
-            { status: 500 }
+            { error: (error as any)?.message || "Failed to update subject" },
+            { status: (error as any)?.status || 500 }
         );
     }
 }
@@ -86,6 +86,7 @@ export async function DELETE(
     { params }: { params: { id: string } }
 ) {
     try {
+        const user = await requireAuth(["admin", "teacher"]);
         const deleted = await db.select().from(subjects).where(eq(subjects.id, params.id)).limit(1);
 
         if (deleted.length === 0) {
@@ -98,17 +99,14 @@ export async function DELETE(
         await db.delete(subjects).where(eq(subjects.id, params.id));
 
         // Log activity
-        const admin = await db.select({ id: users.id }).from(users).where(eq(users.role, "admin")).limit(1);
-        if (admin.length > 0) {
-            await ActivityLogger.subject.deleted(admin[0].id, deleted[0].id, deleted[0].name);
-        }
+        await ActivityLogger.subject.deleted(user.id, deleted[0].id, deleted[0].name);
 
         return NextResponse.json({ message: "Subject deleted successfully" });
-    } catch (error) {
+    } catch (error: any) {
         console.error("Error deleting subject:", error);
         return NextResponse.json(
-            { error: "Failed to delete subject" },
-            { status: 500 }
+            { error: error.message || "Failed to delete subject" },
+            { status: error.status || 500 }
         );
     }
 }

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { bankQuestions } from "@/lib/schema";
 import { eq } from "drizzle-orm";
+import { requireAuth } from "@/lib/auth-guard";
 
 // GET /api/question-banks/[bankId]/questions/[questionId]
 export async function GET(
@@ -9,6 +10,7 @@ export async function GET(
     context: { params: Promise<{ id: string; questionId: string }> }
 ) {
     try {
+        await requireAuth(["admin", "teacher"]);
         const params = await context.params;
         const question = await db.select()
             .from(bankQuestions)
@@ -23,11 +25,11 @@ export async function GET(
         }
 
         return NextResponse.json(question[0]);
-    } catch (error) {
+    } catch (error: any) {
         console.error("Error fetching question:", error);
         return NextResponse.json(
-            { error: "Failed to fetch question" },
-            { status: 500 }
+            { error: error.message || "Failed to fetch question" },
+            { status: error.status || 500 }
         );
     }
 }
@@ -38,6 +40,7 @@ export async function PUT(
     context: { params: Promise<{ id: string; questionId: string }> }
 ) {
     try {
+        await requireAuth(["admin", "teacher"]);
         const params = await context.params;
         const body = await request.json();
         const {
@@ -73,11 +76,11 @@ export async function PUT(
         }
 
         return NextResponse.json(updated[0]);
-    } catch (error) {
+    } catch (error: any) {
         console.error("Error updating question:", error);
         return NextResponse.json(
-            { error: "Failed to update question" },
-            { status: 500 }
+            { error: error.message || "Failed to update question" },
+            { status: error.status || 500 }
         );
     }
 }
@@ -88,6 +91,7 @@ export async function DELETE(
     context: { params: Promise<{ id: string; questionId: string }> }
 ) {
     try {
+        await requireAuth(["admin", "teacher"]);
         const params = await context.params;
         const deleted = await db.select().from(bankQuestions).where(eq(bankQuestions.id, params.questionId)).limit(1);
 
@@ -100,19 +104,12 @@ export async function DELETE(
 
         await db.delete(bankQuestions).where(eq(bankQuestions.id, params.questionId));
 
-        if (deleted.length === 0) {
-            return NextResponse.json(
-                { error: "Question not found" },
-                { status: 404 }
-            );
-        }
-
         return NextResponse.json({ message: "Question deleted successfully" });
-    } catch (error) {
+    } catch (error: any) {
         console.error("Error deleting question:", error);
         return NextResponse.json(
-            { error: "Failed to delete question" },
-            { status: 500 }
+            { error: error.message || "Failed to delete question" },
+            { status: error.status || 500 }
         );
     }
 }

@@ -3,8 +3,10 @@ import { users, classStudents, classes } from "@/lib/schema";
 import { eq } from "drizzle-orm";
 import bcrypt from "bcryptjs";
 import { apiHandler, ApiError } from "@/lib/api-handler";
+import { requireAuth } from "@/lib/auth-guard";
 
 export const GET = (request: Request) => apiHandler(async () => {
+    await requireAuth(["admin", "teacher"]);
     const { searchParams } = new URL(request.url);
     const role = searchParams.get("role");
     const unassigned = searchParams.get("unassigned") === "true";
@@ -92,6 +94,7 @@ export const GET = (request: Request) => apiHandler(async () => {
 });
 
 export const POST = (request: Request) => apiHandler(async () => {
+    await requireAuth(["admin"]);
     const body = await request.json();
     const { name, username, password, role } = body;
 

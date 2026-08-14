@@ -4,9 +4,11 @@ import { questionBanks, subjects, users } from "@/lib/schema";
 import { eq, and, like, sql } from "drizzle-orm";
 import { ActivityLogger } from "@/lib/activity-logger";
 import { apiHandler, ApiError } from "@/lib/api-handler";
+import { requireAuth } from "@/lib/auth-guard";
 
 // GET /api/question-banks - List all question banks
 export const GET = (req: Request) => apiHandler(async () => {
+    await requireAuth(["admin", "teacher"]);
     const { searchParams } = new URL(req.url);
     const subjectId = searchParams.get("subjectId");
     const search = searchParams.get("search");
@@ -56,19 +58,12 @@ export const GET = (req: Request) => apiHandler(async () => {
 
 // POST /api/question-banks - Create new question bank
 export const POST = (req: Request) => apiHandler(async () => {
+    const user = await requireAuth(["admin", "teacher"]);
     const body = await req.json();
-    const { name, description, subjectId, createdBy } = body;
+    const { name, description, subjectId } = body;
 
     if (!name || !subjectId) {
         throw new ApiError("Name and subject ID are required", 400);
-    }
-
-    let validCreatedBy = createdBy;
-    if (validCreatedBy) {
-        const userExists = await db.select().from(users).where(eq(users.id, validCreatedBy)).limit(1);
-        if (userExists.length === 0) {
-            validCreatedBy = null;
-        }
     }
 
     const id = crypto.randomUUID();
@@ -77,15 +72,14 @@ export const POST = (req: Request) => apiHandler(async () => {
         name,
         description,
         subjectId,
-        createdBy: validCreatedBy || null,
+        createdBy: user.id,
     };
 
     await db.insert(questionBanks).values(newBankValues);
 
-    // Log activity if user is known
-    if (validCreatedBy) {
-        await ActivityLogger.questionBank.created(validCreatedBy, id, name);
-    }
+    // Log activity
+    await ActivityLogger.questionBank.created(user.id, id, name);
 
     return newBankValues;
 });
+
