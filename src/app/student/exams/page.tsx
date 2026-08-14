@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Calendar, Clock, FileText, Play, CheckCircle, XCircle, Timer } from "lucide-react";
+import { Calendar, Clock, FileText, Play, XCircle, Timer, Eye } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 import { id as idLocale } from "date-fns/locale";
@@ -296,9 +296,13 @@ export default function StudentExamsPage() {
                                     </Button>
                                 )}
                                 {exam.examStatus === "completed" && (
-                                    <Button variant="secondary" className="w-full" disabled>
-                                        <CheckCircle className="mr-2 h-4 w-4" />
-                                        Selesai
+                                    <Button
+                                        variant="outline"
+                                        className="w-full text-primary hover:bg-primary/10 border-primary/30"
+                                        onClick={() => router.push(`/student/exams/${exam.id}/review`)}
+                                    >
+                                        <Eye className="mr-2 h-4 w-4" />
+                                        Lihat Hasil & Pembahasan
                                     </Button>
                                 )}
                                 {exam.examStatus === "upcoming" && (

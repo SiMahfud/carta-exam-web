@@ -1,12 +1,15 @@
-import React from "react";
+import React, { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Check, X } from "lucide-react";
+import { Check, X, Sparkles, Loader2, ThumbsUp, AlertCircle } from "lucide-react";
 import { MatchingResultViewer } from "@/components/exam/MatchingResultViewer";
 import { MathHtmlRenderer } from "@/components/ui/math-html-renderer";
 import { safeJsonParse } from "@/lib/json-utils";
+import { evaluateEssayWithAI, AIGradingResult } from "@/actions/ai-grading";
+import { useToast } from "@/hooks/use-toast";
 
 export interface GradingAnswer {
     answerId: string;
@@ -39,6 +42,63 @@ export function GradingItemCard({
     grade,
     onGradeChange,
 }: GradingItemCardProps) {
+    const { toast } = useToast();
+    const [aiLoading, setAiLoading] = useState(false);
+    const [aiResult, setAiResult] = useState<AIGradingResult | null>(null);
+
+    const handleAIEvaluation = async () => {
+        setAiLoading(true);
+        try {
+            const guidelines = (answer.questionContent as any)?.guidelines;
+            const rubric = (answer.questionContent as any)?.rubric;
+            const modelAnswer = (answer.questionContent as any)?.modelAnswer;
+
+            const res = await evaluateEssayWithAI({
+                questionText: answer.questionText,
+                studentAnswer: typeof answer.studentAnswer === 'string' ? answer.studentAnswer : JSON.stringify(answer.studentAnswer || ""),
+                maxPoints: answer.maxPoints || answer.defaultPoints || 10,
+                guidelines,
+                rubric,
+                modelAnswer,
+            });
+
+            if (!res.success) {
+                toast({
+                    title: "Gagal Mengambil Saran AI",
+                    description: res.error || "Terjadi kesalahan saat memproses jawaban siswa dengan AI.",
+                    variant: "destructive",
+                });
+            } else {
+                setAiResult(res);
+                toast({
+                    title: "✨ Saran Nilai AI Tersedia",
+                    description: `Rekomendasi nilai: ${res.suggestedScore} / ${answer.maxPoints}`,
+                });
+            }
+        } catch (err: any) {
+            toast({
+                title: "Error",
+                description: err.message || "Gagal memanggil AI.",
+                variant: "destructive",
+            });
+        } finally {
+            setAiLoading(false);
+        }
+    };
+
+    const applyAISuggestion = () => {
+        if (!aiResult || aiResult.suggestedScore === undefined) return;
+        onGradeChange(
+            answer.answerId,
+            aiResult.suggestedScore,
+            aiResult.feedback || grade.comment
+        );
+        toast({
+            title: "Saran Diterapkan",
+            description: "Nilai dan komentar telah diperbarui dari saran AI.",
+        });
+    };
+
     const renderAnswerContent = () => {
         if (answer.type === "essay") {
             const guidelines = (answer.questionContent as any)?.guidelines;
@@ -78,11 +138,90 @@ export function GradingItemCard({
                         </div>
                     )}
 
+                    {/* AI Grading Suggestion Box */}
+                    {aiResult && (
+                        <div className="p-4 rounded-lg border border-purple-200 bg-purple-50/70 dark:bg-purple-950/20 dark:border-purple-900/50 space-y-3">
+                            <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-2 text-purple-900 dark:text-purple-200 font-semibold text-sm">
+                                    <Sparkles className="h-4 w-4 text-purple-600" />
+                                    <span>Rekomendasi Penilaian AI</span>
+                                    <Badge className="bg-purple-600 font-mono text-xs">
+                                        {aiResult.suggestedScore} / {answer.maxPoints} poin
+                                    </Badge>
+                                </div>
+                                <Button
+                                    size="sm"
+                                    type="button"
+                                    onClick={applyAISuggestion}
+                                    className="bg-purple-600 hover:bg-purple-700 text-xs h-7"
+                                >
+                                    <ThumbsUp className="h-3 w-3 mr-1" />
+                                    Terapkan ke Nilai
+                                </Button>
+                            </div>
+                            {aiResult.feedback && (
+                                <p className="text-xs text-purple-950 dark:text-purple-200/90 leading-relaxed bg-white/60 dark:bg-slate-900/50 p-2.5 rounded border border-purple-100 dark:border-purple-900/30">
+                                    {aiResult.feedback}
+                                </p>
+                            )}
+                            {(aiResult.strengths && aiResult.strengths.length > 0) || (aiResult.improvements && aiResult.improvements.length > 0) ? (
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-xs pt-1">
+                                    {aiResult.strengths && aiResult.strengths.length > 0 && (
+                                        <div className="space-y-1">
+                                            <span className="font-semibold text-emerald-700 dark:text-emerald-400 flex items-center gap-1">
+                                                <Check className="h-3 w-3" /> Kelebihan:
+                                            </span>
+                                            <ul className="list-disc list-inside text-muted-foreground space-y-0.5">
+                                                {aiResult.strengths.map((s, idx) => (
+                                                    <li key={idx}>{s}</li>
+                                                ))}
+                                            </ul>
+                                        </div>
+                                    )}
+                                    {aiResult.improvements && aiResult.improvements.length > 0 && (
+                                        <div className="space-y-1">
+                                            <span className="font-semibold text-amber-700 dark:text-amber-400 flex items-center gap-1">
+                                                <AlertCircle className="h-3 w-3" /> Perlu Ditingkatkan:
+                                            </span>
+                                            <ul className="list-disc list-inside text-muted-foreground space-y-0.5">
+                                                {aiResult.improvements.map((s, idx) => (
+                                                    <li key={idx}>{s}</li>
+                                                ))}
+                                            </ul>
+                                        </div>
+                                    )}
+                                </div>
+                            ) : null}
+                        </div>
+                    )}
+
                     <div className="grid grid-cols-2 gap-4 pt-4 border-t">
                         <div>
-                            <label className="block text-sm font-medium mb-2">
-                                Nilai (Max: {answer.maxPoints})
-                            </label>
+                            <div className="flex items-center justify-between mb-2">
+                                <label className="block text-sm font-medium">
+                                    Nilai (Max: {answer.maxPoints})
+                                </label>
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    type="button"
+                                    onClick={handleAIEvaluation}
+                                    disabled={aiLoading}
+                                    className="text-xs h-7 px-2.5 border-purple-300 text-purple-700 hover:bg-purple-50 dark:border-purple-800 dark:text-purple-300 dark:hover:bg-purple-950/40 flex items-center gap-1.5"
+                                >
+                                    {aiLoading ? (
+                                        <>
+                                            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                                            <span>Menganalisis...</span>
+                                        </>
+                                    ) : (
+                                        <>
+                                            <Sparkles className="h-3.5 w-3.5 text-purple-600" />
+                                            <span>✨ Nilai dengan AI</span>
+                                        </>
+                                    )}
+                                </Button>
+                            </div>
                             <Input
                                 type="number"
                                 min="0"
