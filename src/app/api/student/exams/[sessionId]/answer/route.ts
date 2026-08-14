@@ -4,6 +4,7 @@ import { submissions, answers, bankQuestions, examSessions, examTemplates } from
 import { eq, and } from "drizzle-orm";
 import { requireAuth } from "@/lib/auth-guard";
 import { seededShuffle } from "@/lib/randomization";
+import { safeJsonParse } from "@/lib/json-utils";
 
 // POST /api/student/exams/[sessionId]/answer - Save answer
 export async function POST(
@@ -82,17 +83,9 @@ export async function POST(
             }
         }
 
-        // Parse content
-        let content: any = {};
-        try {
-            content = typeof question.content === 'string' ? JSON.parse(question.content) : (question.content || {});
-        } catch { content = {}; }
-
-        // Parse answerKey
-        let answerKey: any = {};
-        try {
-            answerKey = typeof question.answerKey === 'string' ? JSON.parse(question.answerKey) : (question.answerKey || {});
-        } catch { answerKey = {}; }
+        // Parse content & answerKey
+        const content = safeJsonParse<Record<string, any>>(question.content, {});
+        const answerKey = safeJsonParse<Record<string, any>>(question.answerKey, {});
 
         // Auto-grade based on question type
         let isCorrect = false;

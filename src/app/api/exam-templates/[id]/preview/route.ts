@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { examTemplates, bankQuestions } from "@/lib/schema";
 import { eq, inArray } from "drizzle-orm";
+import { requireAuth } from "@/lib/auth-guard";
+import { safeJsonParse } from "@/lib/json-utils";
 
 // POST /api/exam-templates/[id]/preview - Generate exam preview with actual questions
 export async function POST(
@@ -9,6 +11,7 @@ export async function POST(
     { params }: { params: { id: string } }
 ) {
     try {
+        await requireAuth(["admin", "teacher"]);
         const body = await request.json();
         const seed = body.seed || Date.now().toString();
 
@@ -27,14 +30,8 @@ export async function POST(
 
         const t = template[0];
 
-        // Parse bankIds with recursive strategy
-        let bankIds: string[] = [];
-        try {
-            let parsed = t.bankIds;
-            if (typeof parsed === 'string') { try { parsed = JSON.parse(parsed); } catch { } }
-            if (typeof parsed === 'string') { try { parsed = JSON.parse(parsed); } catch { } }
-            if (Array.isArray(parsed)) bankIds = parsed;
-        } catch { bankIds = []; }
+        // Parse bankIds
+        const bankIds: string[] = safeJsonParse<string[]>(t.bankIds, []);
 
         if (bankIds.length === 0) {
             return NextResponse.json({ questions: [], totalQuestions: 0 });
@@ -45,14 +42,8 @@ export async function POST(
             .from(bankQuestions)
             .where(inArray(bankQuestions.bankId, bankIds));
 
-        // Parse question composition with recursive strategy
-        let composition: Record<string, number> = {};
-        try {
-            let parsed = t.questionComposition;
-            if (typeof parsed === 'string') { try { parsed = JSON.parse(parsed); } catch { } }
-            if (typeof parsed === 'string') { try { parsed = JSON.parse(parsed); } catch { } }
-            if (parsed && typeof parsed === 'object') composition = parsed as Record<string, number>;
-        } catch { composition = {}; }
+        // Parse question composition
+        const composition: Record<string, number> = safeJsonParse<Record<string, number>>(t.questionComposition, {});
 
         // Filter and select questions based on composition
         let selectedQuestions: typeof allQuestions = [];

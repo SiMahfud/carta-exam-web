@@ -12,6 +12,7 @@ import {
 } from "@/lib/schema";
 import { eq, inArray } from "drizzle-orm";
 import * as XLSX from 'xlsx';
+import { safeJsonParse } from "@/lib/json-utils";
 
 // GET /api/exam-sessions/[id]/export - Export exam results to Excel
 export async function GET(
@@ -168,13 +169,7 @@ export async function GET(
         submissionsData.forEach((sub: typeof submissionsData[0]) => {
             const studentAnswers = answersData.filter((a: typeof answersData[0]) => a.submissionId === sub.submissionId && a.questionType === 'essay');
             studentAnswers.forEach((ans: typeof answersData[0], idx: number) => {
-                let content: any;
-                try {
-                    content = ans.questionContent;
-                    if (typeof content === 'string') { try { content = JSON.parse(content); } catch { } }
-                    if (typeof content === 'string') { try { content = JSON.parse(content); } catch { } }
-                    if (!content || typeof content !== 'object') content = {};
-                } catch { content = {}; }
+                const content = safeJsonParse<Record<string, string>>(ans.questionContent, {});
                 const questionText = content?.question || content?.questionText || '';
                 const studentAns = typeof ans.studentAnswer === 'string' ? ans.studentAnswer : (ans.studentAnswer?.text || JSON.stringify(ans.studentAnswer));
 

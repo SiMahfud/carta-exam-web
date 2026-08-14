@@ -1,3 +1,4 @@
+import React from "react";
 import { Button } from "@/components/ui/button";
 import { Clock, Send, Menu } from "lucide-react";
 

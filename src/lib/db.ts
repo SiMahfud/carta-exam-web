@@ -1,25 +1,26 @@
-import { drizzle as drizzleSqlite } from 'drizzle-orm/better-sqlite3';
-import { drizzle as drizzleMysql } from 'drizzle-orm/mysql2';
-import { drizzle as drizzlePg } from 'drizzle-orm/postgres-js';
+import { drizzle as drizzleSqlite, BetterSQLite3Database } from 'drizzle-orm/better-sqlite3';
+import { drizzle as drizzleMysql, MySql2Database } from 'drizzle-orm/mysql2';
+import { drizzle as drizzlePg, PostgresJsDatabase } from 'drizzle-orm/postgres-js';
 import Database from 'better-sqlite3';
 import mysql from 'mysql2/promise';
 import postgres from 'postgres';
 import path from 'path';
 
-// Load schemas (we need to load all of them or dynamically require them)
-// Since we are in ES modules (likely), dynamic require might be tricky without createRequire.
-// However, standard import is static. 
-// For better type safety, we might need a unified schema interface, but Drizzle doesn't support that easily.
-// We will import them as namespaces.
+// Load schemas
 import * as schemaSqlite from './schemas/sqlite';
 import * as schemaMysql from './schemas/mysql';
 import * as schemaPg from './schemas/postgresql';
 
+export type AppDatabase =
+    | BetterSQLite3Database<typeof schemaSqlite>
+    | MySql2Database<typeof schemaMysql>
+    | PostgresJsDatabase<typeof schemaPg>;
+
+export type AppSchema = typeof schemaSqlite | typeof schemaMysql | typeof schemaPg;
 
 const provider = process.env.DB_TYPE || 'sqlite';
 
 // Construct DB URL from parts if not provided directly
-// This allows for DB_HOST, DB_USER, etc.
 let dbUrl = process.env.DATABASE_URL;
 
 if (!dbUrl && process.env.DB_TYPE && process.env.DB_HOST) {
@@ -44,35 +45,32 @@ if (!dbUrl) {
     dbUrl = 'file:local.db';
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-let db: any;
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-let schema: any;
+let dbInstance: AppDatabase;
+let schemaInstance: AppSchema;
 
 if (provider === 'mysql' || process.env.DB_TYPE === 'mysql') {
-    // Ensure dateStrings is true for Drizzle compatibility with datetime columns
     let connectionUri = dbUrl;
     try {
         const url = new URL(dbUrl);
         url.searchParams.set('dateStrings', 'true');
         connectionUri = url.toString();
     } catch {
-        // Fallback for non-standard URIs (though unlikely for valid mysql connection strings)
         connectionUri = dbUrl.includes('?') ? `${dbUrl}&dateStrings=true` : `${dbUrl}?dateStrings=true`;
     }
     const connection = mysql.createPool(connectionUri);
-    schema = schemaMysql;
-    db = drizzleMysql(connection, { schema, mode: 'default' });
+    schemaInstance = schemaMysql;
+    dbInstance = drizzleMysql(connection, { schema: schemaMysql, mode: 'default' });
 } else if (provider === 'postgres' || process.env.DB_TYPE === 'postgres') {
     const client = postgres(dbUrl);
-    schema = schemaPg;
-    db = drizzlePg(client, { schema });
+    schemaInstance = schemaPg;
+    dbInstance = drizzlePg(client, { schema: schemaPg });
 } else {
     // Default to SQLite
     const dbPath = dbUrl.startsWith('file:') ? dbUrl.slice(5) : 'local.db';
     const sqlite = new Database(path.resolve(process.cwd(), dbPath));
-    schema = schemaSqlite;
-    db = drizzleSqlite(sqlite, { schema });
+    schemaInstance = schemaSqlite;
+    dbInstance = drizzleSqlite(sqlite, { schema: schemaSqlite });
 }
 
-export { db, schema };
+export const db = dbInstance;
+export const schema = schemaInstance;

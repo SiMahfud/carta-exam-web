@@ -1,3 +1,4 @@
+import React from "react";
 import {
     AlertDialog,
     AlertDialogAction,
@@ -39,28 +40,32 @@ export function SubmitDialog({
             <AlertDialogContent>
                 <AlertDialogHeader>
                     <AlertDialogTitle>Kumpulkan Ujian?</AlertDialogTitle>
-                    <AlertDialogDescription>
-                        Anda telah menjawab {answeredCount} dari {totalQuestions} soal.
-                        {answeredCount < totalQuestions && (
-                            <div className="mt-4 p-3 bg-yellow-50 text-yellow-800 rounded-md flex items-start gap-2">
-                                <AlertCircle className="h-5 w-5 shrink-0 mt-0.5" />
-                                <span>
-                                    Masih ada <strong>{totalQuestions - answeredCount}</strong> soal yang belum dijawab. Yakin ingin mengumpulkan?
-                                </span>
+                    <AlertDialogDescription asChild>
+                        <div className="space-y-4 text-sm text-muted-foreground">
+                            <div>
+                                Anda telah menjawab {answeredCount} dari {totalQuestions} soal.
                             </div>
-                        )}
-                        {!canSubmit && minSubmitMinutes > 0 && (
-                            <div className="mt-4 p-3 bg-blue-50 text-blue-800 rounded-md flex items-start gap-2">
-                                <Clock className="h-5 w-5 shrink-0 mt-0.5" />
-                                <span>
-                                    Anda baru bisa mengumpulkan ujian setelah <strong>{remainingMinutes} menit</strong> lagi.
-                                    Waktu minimum pengumpulan: {minSubmitMinutes} menit.
-                                </span>
-                            </div>
-                        )}
-                        <p className="mt-4 text-sm text-muted-foreground">
-                            Pastikan Anda telah memeriksa kembali jawaban Anda. Setelah dikumpulkan, Anda tidak dapat mengubah jawaban.
-                        </p>
+                            {answeredCount < totalQuestions && (
+                                <div className="p-3 bg-yellow-50 text-yellow-800 rounded-md flex items-start gap-2">
+                                    <AlertCircle className="h-5 w-5 shrink-0 mt-0.5" />
+                                    <span>
+                                        Masih ada <strong>{totalQuestions - answeredCount}</strong> soal yang belum dijawab. Yakin ingin mengumpulkan?
+                                    </span>
+                                </div>
+                            )}
+                            {!canSubmit && minSubmitMinutes > 0 && (
+                                <div className="p-3 bg-blue-50 text-blue-800 rounded-md flex items-start gap-2">
+                                    <Clock className="h-5 w-5 shrink-0 mt-0.5" />
+                                    <span>
+                                        Anda baru bisa mengumpulkan ujian setelah <strong>{remainingMinutes} menit</strong> lagi.
+                                        Waktu minimum pengumpulan: {minSubmitMinutes} menit.
+                                    </span>
+                                </div>
+                            )}
+                            <p className="text-xs text-muted-foreground">
+                                Pastikan Anda telah memeriksa kembali jawaban Anda. Setelah dikumpulkan, Anda tidak dapat mengubah jawaban.
+                            </p>
+                        </div>
                     </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>

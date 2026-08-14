@@ -3,6 +3,7 @@ import { db } from "@/lib/db";
 import { submissions, answers, bankQuestions, users, examSessions } from "@/lib/schema";
 import { eq, inArray } from "drizzle-orm";
 import { requireAuth } from "@/lib/auth-guard";
+import { safeJsonParse } from "@/lib/json-utils";
 
 // GET /api/grading/submissions/[id] - Get submission details for grading
 export async function GET(
@@ -44,13 +45,7 @@ export async function GET(
         const submission = submissionData[0];
 
         // 1. Get ordered question IDs
-        let questionIds: string[] = [];
-        try {
-            let parsed = submission.questionOrder;
-            if (typeof parsed === 'string') { try { parsed = JSON.parse(parsed); } catch { } }
-            if (typeof parsed === 'string') { try { parsed = JSON.parse(parsed); } catch { } }
-            if (Array.isArray(parsed)) questionIds = parsed;
-        } catch { }
+        const questionIds: string[] = safeJsonParse<string[]>(submission.questionOrder, []);
 
         // 2. Fetch ALL questions in the order
         let assignedQuestions: any[] = [];
@@ -73,32 +68,14 @@ export async function GET(
             if (!question) return null; // Should not happen if integrity is maintained
 
             // Parse question content & key
-            let parsedContent: any = {};
-            try {
-                parsedContent = question.content;
-                if (typeof parsedContent === 'string') { try { parsedContent = JSON.parse(parsedContent); } catch { } }
-                if (typeof parsedContent === 'string') { try { parsedContent = JSON.parse(parsedContent); } catch { } }
-            } catch { }
-
-            let parsedAnswerKey: any = {};
-            try {
-                parsedAnswerKey = question.answerKey;
-                if (typeof parsedAnswerKey === 'string') { try { parsedAnswerKey = JSON.parse(parsedAnswerKey); } catch { } }
-                if (typeof parsedAnswerKey === 'string') { try { parsedAnswerKey = JSON.parse(parsedAnswerKey); } catch { } }
-            } catch { }
+            const parsedContent = safeJsonParse<Record<string, unknown>>(question.content, {});
+            const parsedAnswerKey = safeJsonParse<Record<string, unknown>>(question.answerKey, {});
 
             // Parse student answer
-            let parsedStudentAnswer: any = null;
-            if (answer && answer.studentAnswer) {
-                try {
-                    parsedStudentAnswer = answer.studentAnswer;
-                    if (typeof parsedStudentAnswer === 'string') { try { parsedStudentAnswer = JSON.parse(parsedStudentAnswer); } catch { } }
-                    if (typeof parsedStudentAnswer === 'string') { try { parsedStudentAnswer = JSON.parse(parsedStudentAnswer); } catch { } }
-                } catch { }
-            }
+            const parsedStudentAnswer = answer?.studentAnswer ? safeJsonParse<unknown>(answer.studentAnswer, answer.studentAnswer) : null;
 
             // Improve correct answer format for frontend
-            let correctAnswer = parsedAnswerKey;
+            let correctAnswer: any = parsedAnswerKey;
             if (correctAnswer && typeof correctAnswer === 'object' && 'correct' in correctAnswer) {
                 correctAnswer = correctAnswer.correct;
             }
@@ -190,13 +167,7 @@ export async function PATCH(
             .limit(1);
 
         const submission = submissionData[0];
-        let questionIds: string[] = [];
-        try {
-            let parsed = submission?.questionOrder;
-            if (typeof parsed === 'string') { try { parsed = JSON.parse(parsed); } catch { } }
-            if (typeof parsed === 'string') { try { parsed = JSON.parse(parsed); } catch { } }
-            if (Array.isArray(parsed)) questionIds = parsed;
-        } catch { }
+        const questionIds: string[] = safeJsonParse<string[]>(submission?.questionOrder, []);
 
         // 2. Calculate Total Max Points from ALL assigned questions
         let totalMax = 0;

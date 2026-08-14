@@ -2,6 +2,7 @@ import { NextResponse, NextRequest } from "next/server";
 import { db } from "@/lib/db";
 import { users, classes, subjects, bankQuestions, examTemplates, examSessions, questionBanks } from "@/lib/schema";
 import { like, or } from "drizzle-orm";
+import { safeJsonParse } from "@/lib/json-utils";
 
 interface SearchResult {
     questions: Array<{ id: string; text: string; type: string; subjectName: string }>;
@@ -44,18 +45,9 @@ export async function GET(request: NextRequest) {
 
         // Filter questions by content match
         const filteredQuestions = questionResults.filter((q: typeof questionResults[0]) => {
-            try {
-                let content: any = q.content;
-                try {
-                    if (typeof content === 'string') { try { content = JSON.parse(content); } catch { } }
-                    if (typeof content === 'string') { try { content = JSON.parse(content); } catch { } }
-                    if (!content || typeof content !== 'object') content = {};
-                } catch { content = {}; }
-                const questionText = content?.question || content?.text || '';
-                return questionText.toLowerCase().includes(query.toLowerCase());
-            } catch {
-                return false;
-            }
+            const content = safeJsonParse<{ question?: string; text?: string }>(q.content, {});
+            const questionText = content?.question || content?.text || '';
+            return questionText.toLowerCase().includes(query.toLowerCase());
         }).slice(0, limit);
 
         // Get bank -> subject mapping
@@ -135,12 +127,7 @@ export async function GET(request: NextRequest) {
 
         const result: SearchResult = {
             questions: filteredQuestions.map((q: typeof filteredQuestions[0]) => {
-                let content: any = q.content;
-                try {
-                    if (typeof content === 'string') { try { content = JSON.parse(content); } catch { } }
-                    if (typeof content === 'string') { try { content = JSON.parse(content); } catch { } }
-                    if (!content || typeof content !== 'object') content = {};
-                } catch { content = {}; }
+                const content = safeJsonParse<{ question?: string; text?: string }>(q.content, {});
                 const questionText = content?.question || content?.text || '';
                 return {
                     id: q.id,

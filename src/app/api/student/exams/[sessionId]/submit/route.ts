@@ -3,6 +3,7 @@ import { db } from "@/lib/db";
 import { submissions, answers, bankQuestions } from "@/lib/schema";
 import { eq, and, inArray } from "drizzle-orm";
 import { requireAuth } from "@/lib/auth-guard";
+import { safeJsonParse } from "@/lib/json-utils";
 
 // POST /api/student/exams/[sessionId]/submit - Submit exam
 export async function POST(
@@ -42,13 +43,7 @@ export async function POST(
         const submission = submissionData[0];
 
         // 1. Get ordered question IDs to determine TOTAL questions
-        let questionIds: string[] = [];
-        try {
-            let parsed = submission.questionOrder;
-            if (typeof parsed === 'string') { try { parsed = JSON.parse(parsed); } catch { } }
-            if (typeof parsed === 'string') { try { parsed = JSON.parse(parsed); } catch { } }
-            if (Array.isArray(parsed)) questionIds = parsed;
-        } catch { }
+        const questionIds: string[] = safeJsonParse<string[]>(submission.questionOrder, []);
 
         // 2. Calculate Total Max Points from ALL assigned questions
         let totalMax = 0;

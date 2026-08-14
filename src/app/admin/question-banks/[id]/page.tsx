@@ -23,10 +23,7 @@ import {
     Plus,
     Filter,
     FileQuestion,
-    Trash2,
-    Pencil,
     ArrowLeft,
-    Tag,
 } from "lucide-react";
 import {
     Dialog,
@@ -49,25 +46,10 @@ import {
 } from "@/components/ui/alert-dialog";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
-import { MultipleChoiceEditor } from "@/components/question-editor/MultipleChoiceEditor";
-import { ComplexMCEditor } from "@/components/question-editor/ComplexMCEditor";
-import { ShortAnswerEditor } from "@/components/question-editor/ShortAnswerEditor";
-import { MatchingEditor } from "@/components/question-editor/MatchingEditor";
-import { EssayEditor } from "@/components/question-editor/EssayEditor";
-import { TrueFalseEditor } from "@/components/question-editor/TrueFalseEditor";
+import { QuestionEditorHost } from "@/components/question-editor/QuestionEditorHost";
+import { BankQuestionCard, BankQuestion } from "@/components/question-editor/BankQuestionCard";
 import { ImportQuestionsDialog } from "@/components/question-editor/ImportQuestionsDialog";
 import { GenerateQuestionsDialog } from "@/components/question-editor/GenerateQuestionsDialog";
-import { MathHtmlRenderer } from "@/components/ui/math-html-renderer";
-
-interface BankQuestion {
-    id: string;
-    type: string;
-    content: any;
-    tags: string[];
-    difficulty: string;
-    defaultPoints: number;
-    createdAt: Date;
-}
 
 export default function QuestionBankDetailPage() {
     const params = useParams();
@@ -210,27 +192,6 @@ export default function QuestionBankDetailPage() {
     const handleEdit = (question: BankQuestion) => {
         setEditingQuestion(question);
         setSelectedType(question.type);
-    };
-
-    const getTypeLabel = (type: string) => {
-        const labels: Record<string, string> = {
-            mc: "Pilihan Ganda",
-            complex_mc: "PG Kompleks",
-            matching: "Menjodohkan",
-            short: "Isian Singkat",
-            essay: "Uraian",
-            true_false: "Benar/Salah",
-        };
-        return labels[type] || type;
-    };
-
-    const getDifficultyColor = (difficulty: string) => {
-        const colors: Record<string, string> = {
-            easy: "bg-green-100 text-green-800",
-            medium: "bg-yellow-100 text-yellow-800",
-            hard: "bg-red-100 text-red-800",
-        };
-        return colors[difficulty] || "";
     };
 
     if (!bank) {
@@ -514,59 +475,13 @@ export default function QuestionBankDetailPage() {
             ) : (
                 <div className="space-y-4">
                     {questions.map((question, index) => (
-                        <Card key={question.id}>
-                            <CardHeader>
-                                <div className="flex justify-between items-start">
-                                    <div className="flex-1">
-                                        <div className="flex items-center gap-2 mb-2">
-                                            <Badge variant="secondary">
-                                                #{(page - 1) * 20 + index + 1}
-                                            </Badge>
-                                            <Badge>{getTypeLabel(question.type)}</Badge>
-                                            <Badge
-                                                className={getDifficultyColor(
-                                                    question.difficulty
-                                                )}
-                                            >
-                                                {question.difficulty}
-                                            </Badge>
-                                            <Badge variant="outline">
-                                                {question.defaultPoints} poin
-                                            </Badge>
-                                        </div>
-                                        <CardTitle className="text-base">
-                                            <MathHtmlRenderer html={question.content?.question || "No question text"} />
-                                        </CardTitle>
-                                        {question.tags && question.tags.length > 0 && (
-                                            <div className="flex gap-1 mt-2">
-                                                {question.tags.map((tag) => (
-                                                    <Badge key={tag} variant="outline" className="text-xs">
-                                                        <Tag className="h-3 w-3 mr-1" />
-                                                        {tag}
-                                                    </Badge>
-                                                ))}
-                                            </div>
-                                        )}
-                                    </div>
-                                    <div className="flex gap-2">
-                                        <Button
-                                            variant="ghost"
-                                            size="icon"
-                                            onClick={() => handleEdit(question)}
-                                        >
-                                            <Pencil className="h-4 w-4" />
-                                        </Button>
-                                        <Button
-                                            variant="ghost"
-                                            size="icon"
-                                            onClick={() => handleDeleteClick(question.id)}
-                                        >
-                                            <Trash2 className="h-4 w-4 text-destructive" />
-                                        </Button>
-                                    </div>
-                                </div>
-                            </CardHeader>
-                        </Card>
+                        <BankQuestionCard
+                            key={question.id}
+                            question={question}
+                            indexNumber={(page - 1) * 20 + index + 1}
+                            onEdit={handleEdit}
+                            onDelete={handleDeleteClick}
+                        />
                     ))}
                 </div>
             )}
@@ -594,14 +509,12 @@ export default function QuestionBankDetailPage() {
                 </div>
             )}
 
-            {/* All Question Editors */}
-            <MultipleChoiceEditor
-                open={selectedType === "mc"}
-                onOpenChange={(open) => {
-                    if (!open) {
-                        setSelectedType("");
-                        setEditingQuestion(null);
-                    }
+            {/* Question Editors Host */}
+            <QuestionEditorHost
+                selectedType={selectedType}
+                onClose={() => {
+                    setSelectedType("");
+                    setEditingQuestion(null);
                 }}
                 bankId={bankId}
                 onSuccess={() => {
@@ -609,87 +522,7 @@ export default function QuestionBankDetailPage() {
                     fetchTags();
                 }}
                 availableTags={availableTags}
-                questionToEdit={editingQuestion || undefined}
-            />
-            <ComplexMCEditor
-                open={selectedType === "complex_mc"}
-                onOpenChange={(open) => {
-                    if (!open) {
-                        setSelectedType("");
-                        setEditingQuestion(null);
-                    }
-                }}
-                bankId={bankId}
-                onSuccess={() => {
-                    fetchQuestions();
-                    fetchTags();
-                }}
-                availableTags={availableTags}
-                questionToEdit={editingQuestion || undefined}
-            />
-            <ShortAnswerEditor
-                open={selectedType === "short"}
-                onOpenChange={(open) => {
-                    if (!open) {
-                        setSelectedType("");
-                        setEditingQuestion(null);
-                    }
-                }}
-                bankId={bankId}
-                onSuccess={() => {
-                    fetchQuestions();
-                    fetchTags();
-                }}
-                availableTags={availableTags}
-                questionToEdit={editingQuestion || undefined}
-            />
-            <MatchingEditor
-                open={selectedType === "matching"}
-                onOpenChange={(open) => {
-                    if (!open) {
-                        setSelectedType("");
-                        setEditingQuestion(null);
-                    }
-                }}
-                bankId={bankId}
-                onSuccess={() => {
-                    fetchQuestions();
-                    fetchTags();
-                }}
-                availableTags={availableTags}
-                questionToEdit={editingQuestion || undefined}
-            />
-            <EssayEditor
-                open={selectedType === "essay"}
-                onOpenChange={(open) => {
-                    if (!open) {
-                        setSelectedType("");
-                        setEditingQuestion(null);
-                    }
-                }}
-                bankId={bankId}
-                onSuccess={() => {
-                    fetchQuestions();
-                    fetchTags();
-                }}
-                availableTags={availableTags}
-                questionToEdit={editingQuestion || undefined}
-            />
-            <TrueFalseEditor
-                open={selectedType === "true_false"}
-                onOpenChange={(open) => {
-                    if (!open) {
-                        setSelectedType("");
-                        setEditingQuestion(null);
-                    }
-                }}
-                bankId={bankId}
-                onSuccess={() => {
-                    fetchQuestions();
-                    fetchTags();
-                }}
-                availableTags={availableTags}
-                questionToEdit={editingQuestion || undefined}
+                editingQuestion={editingQuestion || undefined}
             />
 
             {/* Delete Confirmation Dialog */}

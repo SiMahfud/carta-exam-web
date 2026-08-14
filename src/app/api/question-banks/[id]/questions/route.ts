@@ -8,6 +8,7 @@ import { z } from "zod";
 import fs from 'fs';
 import path from 'path';
 import { requireAuth } from "@/lib/auth-guard";
+import { safeJsonParse } from "@/lib/json-utils";
 
 // Helper to delete images associated with a question
 const deleteQuestionImages = (content: any) => {
@@ -78,28 +79,11 @@ export async function GET(
 
         const questions = await query;
 
-        // Parse JSON fields if they are returned as strings (handling potential DB driver inconsistencies)
+        // Parse JSON fields safely
         const parsedQuestions = questions.map((q: { tags: any; content: any; answerKey: any;[key: string]: any }) => {
-            let tags = q.tags;
-            try {
-                if (typeof tags === 'string') { try { tags = JSON.parse(tags); } catch { } }
-                if (typeof tags === 'string') { try { tags = JSON.parse(tags); } catch { } }
-                if (!Array.isArray(tags)) tags = [];
-            } catch { tags = []; }
-
-            let content = q.content;
-            try {
-                if (typeof content === 'string') { try { content = JSON.parse(content); } catch { } }
-                if (typeof content === 'string') { try { content = JSON.parse(content); } catch { } }
-                if (!content || typeof content !== 'object') content = {};
-            } catch { content = {}; }
-
-            let answerKey = q.answerKey;
-            try {
-                if (typeof answerKey === 'string') { try { answerKey = JSON.parse(answerKey); } catch { } }
-                if (typeof answerKey === 'string') { try { answerKey = JSON.parse(answerKey); } catch { } }
-                if (!answerKey || typeof answerKey !== 'object') answerKey = {};
-            } catch { answerKey = {}; }
+            const tags = safeJsonParse<string[]>(q.tags, []);
+            const content = safeJsonParse<Record<string, unknown>>(q.content, {});
+            const answerKey = safeJsonParse<Record<string, unknown>>(q.answerKey, {});
 
             return { ...q, tags, content, answerKey };
         });

@@ -2,23 +2,19 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { useFullscreen } from "@/hooks/use-fullscreen";
 import { useExamSecurity } from "@/hooks/use-exam-security";
-import { Flag, ChevronLeft, ChevronRight, Maximize, Minimize } from "lucide-react";
 
 // Components
 import { ExamHeader } from "@/components/exam/take-exam/ExamHeader";
 import { ExamSidebar } from "@/components/exam/take-exam/ExamSidebar";
-import { QuestionRenderer } from "@/components/exam/take-exam/QuestionRenderer";
 import { SubmitDialog } from "@/components/exam/take-exam/SubmitDialog";
 import { FullscreenPrompt } from "@/components/exam/take-exam/FullscreenPrompt";
 import { SecurityWarningBanner } from "@/components/exam/take-exam/SecurityWarningBanner";
 import { TokenInputDialog } from "@/components/exam/take-exam/TokenInputDialog";
-import { MathHtmlRenderer } from "@/components/ui/math-html-renderer";
+import { TerminatedExamView } from "@/components/exam/take-exam/TerminatedExamView";
+import { QuestionCard } from "@/components/exam/take-exam/QuestionCard";
 
 // Types
 import { Question, Answer } from "@/components/exam/take-exam/types";
@@ -570,30 +566,10 @@ export default function TakeExamPage() {
     // Show terminated page if exam was stopped due to violations
     if (isTerminated) {
         return (
-            <div className="flex items-center justify-center min-h-screen bg-background">
-                <Card className="max-w-md mx-4 p-8 text-center">
-                    <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-red-100 flex items-center justify-center">
-                        <svg className="w-8 h-8 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                        </svg>
-                    </div>
-                    <h2 className="text-2xl font-bold text-red-600 mb-2">Ujian Dihentikan</h2>
-                    <p className="text-muted-foreground mb-4">
-                        Ujian Anda telah dihentikan karena melebihi batas pelanggaran yang diizinkan.
-                    </p>
-                    <div className="bg-red-50 rounded-lg p-4 mb-6">
-                        <p className="text-sm text-red-700">
-                            <strong>Total pelanggaran:</strong> {violationCount}
-                        </p>
-                        <p className="text-sm text-red-700 mt-2">
-                            Hubungi pengawas ujian jika Anda ingin melanjutkan ujian ini.
-                        </p>
-                    </div>
-                    <Button onClick={() => router.push("/student/exams")} className="w-full">
-                        Kembali ke Daftar Ujian
-                    </Button>
-                </Card>
-            </div>
+            <TerminatedExamView
+                violationCount={violationCount}
+                onReturn={() => router.push("/student/exams")}
+            />
         );
     }
 
@@ -668,95 +644,20 @@ export default function TakeExamPage() {
 
                         {/* Main Content */}
                         <main className="flex-1 min-w-0">
-                            <Card className="h-full flex flex-col shadow-sm border-none lg:border">
-                                <div className="p-6 border-b flex justify-between items-start gap-4 bg-muted/10">
-                                    <div className="space-y-1">
-                                        <Badge variant="outline" className="bg-background">
-                                            {currentQuestion.type === "mc" ? "Pilihan Ganda" :
-                                                currentQuestion.type === "complex_mc" ? "Pilihan Ganda Kompleks" :
-                                                    currentQuestion.type === "matching" ? "Menjodohkan" :
-                                                        currentQuestion.type === "short" ? "Jawaban Singkat" :
-                                                            currentQuestion.type === "true_false" ? "Benar/Salah" :
-                                                                "Essay"}
-                                        </Badge>
-                                        <div className="text-sm text-muted-foreground">
-                                            Bobot: <span className="font-medium text-foreground">{currentQuestion.points} poin</span>
-                                        </div>
-                                    </div>
-                                    <div className="flex items-center gap-2">
-                                        {/* Fullscreen toggle button */}
-                                        {fullscreenSupported && (
-                                            <Button
-                                                variant="outline"
-                                                size="sm"
-                                                onClick={() => isFullscreen ? exitFullscreen() : enterFullscreen()}
-                                                className="hidden"
-                                                disabled={examStarted} // Disabled during exam
-                                            >
-                                                {isFullscreen ? (
-                                                    <Minimize className="h-4 w-4" />
-                                                ) : (
-                                                    <Maximize className="h-4 w-4" />
-                                                )}
-                                            </Button>
-                                        )}
-                                        <Button
-                                            variant={currentAnswer?.isFlagged ? "default" : "outline"}
-                                            size="sm"
-                                            onClick={toggleFlag}
-                                            className={currentAnswer?.isFlagged ? "bg-yellow-500 hover:bg-yellow-600 text-white border-none" : "hover:bg-yellow-50 hover:text-yellow-600 hover:border-yellow-200"}
-                                        >
-                                            <Flag className={`mr-2 h-4 w-4 ${currentAnswer?.isFlagged ? "fill-current" : ""}`} />
-                                            {currentAnswer?.isFlagged ? "Ditandai" : "Tandai"}
-                                        </Button>
-                                    </div>
-                                </div>
-
-                                <div className="flex-1 p-6 md:p-8 overflow-y-auto">
-                                    <div className="prose max-w-none mb-8">
-                                        <div className="text-lg md:text-xl leading-relaxed text-foreground font-medium">
-                                            <MathHtmlRenderer html={currentQuestion.questionText} />
-                                        </div>
-                                    </div>
-
-                                    <QuestionRenderer
-                                        question={currentQuestion}
-                                        answer={currentAnswer?.answer}
-                                        onChange={(answer) => handleAnswerChange(currentQuestion.id, answer)}
-                                    />
-                                </div>
-
-                                <div className="p-4 border-t bg-muted/10 flex justify-between items-center gap-4">
-                                    <Button
-                                        variant="outline"
-                                        onClick={() => navigateToQuestion(Math.max(0, currentQuestionIndex - 1))}
-                                        disabled={currentQuestionIndex === 0}
-                                        className="w-32"
-                                    >
-                                        <ChevronLeft className="mr-2 h-4 w-4" />
-                                        Sebelumnya
-                                    </Button>
-
-                                    {/* Progress Dots (Mobile) */}
-                                    <div className="flex gap-1 lg:hidden">
-                                        {questions.map((_, i) => (
-                                            <div
-                                                key={i}
-                                                className={`h-1.5 w-1.5 rounded-full ${i === currentQuestionIndex ? "bg-primary" : "bg-muted"}`}
-                                            />
-                                        )).slice(Math.max(0, currentQuestionIndex - 2), Math.min(questions.length, currentQuestionIndex + 3))}
-                                    </div>
-
-                                    <Button
-                                        onClick={() => navigateToQuestion(Math.min(questions.length - 1, currentQuestionIndex + 1))}
-                                        disabled={currentQuestionIndex === questions.length - 1}
-                                        className="w-32 shadow-lg shadow-primary/10"
-                                    >
-                                        Selanjutnya
-                                        <ChevronRight className="ml-2 h-4 w-4" />
-                                    </Button>
-                                </div>
-                            </Card>
+                            <QuestionCard
+                                currentQuestion={currentQuestion}
+                                currentAnswer={currentAnswer}
+                                currentQuestionIndex={currentQuestionIndex}
+                                totalQuestions={questions.length}
+                                examStarted={examStarted}
+                                isFullscreen={isFullscreen}
+                                fullscreenSupported={fullscreenSupported}
+                                enterFullscreen={enterFullscreen}
+                                exitFullscreen={exitFullscreen}
+                                onToggleFlag={toggleFlag}
+                                onAnswerChange={handleAnswerChange}
+                                onNavigate={navigateToQuestion}
+                            />
                         </main>
                     </div>
 

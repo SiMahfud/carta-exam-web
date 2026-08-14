@@ -5,6 +5,7 @@ import { eq, sql } from "drizzle-orm";
 import { fromDateTimeLocalString } from "@/lib/date-utils";
 import { ActivityLogger } from "@/lib/activity-logger";
 import { requireAuth } from "@/lib/auth-guard";
+import { safeJsonParse } from "@/lib/json-utils";
 
 // GET /api/exam-sessions/[id] - Get session details
 export async function GET(
@@ -41,24 +42,7 @@ export async function GET(
         }
 
         const sessionData = session[0];
-        let targetIds = sessionData.targetIds;
-        if (typeof targetIds === 'string') {
-            try {
-                const parsed = JSON.parse(targetIds as string);
-                if (Array.isArray(parsed)) {
-                    targetIds = parsed;
-                } else if (typeof parsed === 'string') {
-                    try {
-                        const parsed2 = JSON.parse(parsed);
-                        if (Array.isArray(parsed2)) {
-                            targetIds = parsed2;
-                        }
-                    } catch { }
-                }
-            } catch {
-                targetIds = [];
-            }
-        }
+        const targetIds = safeJsonParse<string[]>(sessionData.targetIds, []);
 
         return NextResponse.json({ ...sessionData, targetIds: Array.isArray(targetIds) ? targetIds : [] });
     } catch (error: any) {
@@ -98,18 +82,7 @@ export async function PATCH(
             updateData.targetType = targetType;
         }
         if ('targetIds' in body && targetIds !== undefined) {
-            let finalTargetIds = targetIds;
-            if (typeof finalTargetIds === 'string') {
-                try {
-                    const parsed = JSON.parse(finalTargetIds);
-                    if (Array.isArray(parsed)) {
-                        finalTargetIds = parsed;
-                    }
-                } catch {
-                    finalTargetIds = [];
-                }
-            }
-            updateData.targetIds = finalTargetIds;
+            updateData.targetIds = safeJsonParse<string[]>(targetIds, Array.isArray(targetIds) ? targetIds : []);
         }
 
         await db.update(examSessions)
