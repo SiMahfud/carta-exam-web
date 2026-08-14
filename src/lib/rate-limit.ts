@@ -22,7 +22,7 @@ export class RateLimiter {
             // Prune expired entries periodically every interval or if map gets too large
             if (now - lastGlobalCleanup > interval || rateLimitMap.size > uniqueTokenPerInterval) {
                 lastGlobalCleanup = now;
-                for (const [key, ctx] of rateLimitMap.entries()) {
+                for (const [key, ctx] of Array.from(rateLimitMap.entries())) {
                     if (now - ctx.lastReset > interval) {
                         rateLimitMap.delete(key);
                     }
