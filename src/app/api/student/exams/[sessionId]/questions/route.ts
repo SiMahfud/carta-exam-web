@@ -4,6 +4,8 @@ import { submissions, bankQuestions, examTemplates, examSessions, answers } from
 import { eq, inArray, and } from "drizzle-orm";
 import { requireAuth } from "@/lib/auth-guard";
 import { seededShuffle } from "@/lib/randomization";
+import { validateBrowserRequirements } from "@/lib/browser-detection";
+import { validateDeviceId } from "@/lib/device";
 
 // GET /api/student/exams/[sessionId]/questions - Get questions for submission
 export async function GET(
@@ -17,6 +19,7 @@ export async function GET(
         // For student role, always use their authenticated ID.
         // For admin/teacher, allow previewing another student's submission.
         const studentId = user.role === "student" ? user.id : (searchParams.get("studentId") || user.id);
+        const deviceId = request.headers.get("X-Device-Id") || searchParams.get("deviceId") || null;
 
         if (!studentId) {
             return NextResponse.json(
@@ -127,6 +130,48 @@ export async function GET(
             .limit(1);
 
         const template = templateData[0];
+
+        // Parse violationSettings
+        let violationSettings: any = {};
+        try {
+            if (typeof template.violationSettings === 'string') {
+                violationSettings = JSON.parse(template.violationSettings);
+            } else if (template.violationSettings && typeof template.violationSettings === 'object') {
+                violationSettings = template.violationSettings;
+            }
+        } catch { violationSettings = {}; }
+
+        // Browser validation (SEB / Exambro)
+        const browserError = validateBrowserRequirements(request.headers, {
+            requireSeb: violationSettings.requireSeb,
+            requireExambro: violationSettings.requireExambro,
+        });
+
+        if (browserError) {
+            return NextResponse.json(
+                { error: browserError, browserBlocked: true },
+                { status: 403 }
+            );
+        }
+
+        // Device binding validation
+        if (violationSettings.deviceBinding && user.role === "student") {
+            if (submission.deviceId) {
+                const deviceValidation = validateDeviceId(submission.deviceId, deviceId);
+                if (!deviceValidation.valid) {
+                    return NextResponse.json(
+                        { error: deviceValidation.reason || "Device mismatch", deviceBlocked: true },
+                        { status: 403 }
+                    );
+                }
+            } else if (deviceId) {
+                // First time connecting from a device, bind it
+                await db.update(submissions)
+                    .set({ deviceId })
+                    .where(eq(submissions.id, submission.id));
+                submission = { ...submission, deviceId };
+            }
+        }
 
         // Token validation on resume
         if (template.requireToken) {

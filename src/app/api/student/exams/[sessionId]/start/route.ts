@@ -4,6 +4,7 @@ import { examSessions, examTemplates, submissions, bankQuestions } from "@/lib/s
 import { eq, inArray, and } from "drizzle-orm";
 import { applyQuestionRandomization, RandomizationRules } from "@/lib/randomization";
 import { requireAuth } from "@/lib/auth-guard";
+import { validateBrowserRequirements } from "@/lib/browser-detection";
 
 // POST /api/student/exams/[sessionId]/start - Start taking an exam
 export async function POST(
@@ -13,7 +14,8 @@ export async function POST(
     try {
         const user = await requireAuth(["student", "admin", "teacher"]);
         const body = await request.json();
-        const { token } = body;
+        const { token, deviceId: bodyDeviceId } = body;
+        const deviceId = bodyDeviceId || request.headers.get("X-Device-Id") || null;
 
         // For student role, always use authenticated user ID
         const studentId = user.role === "student" ? user.id : (body.studentId || user.id);
@@ -85,6 +87,29 @@ export async function POST(
         }
 
         const template = templateData[0];
+
+        // Parse violationSettings
+        let violationSettings: any = {};
+        try {
+            if (typeof template.violationSettings === 'string') {
+                violationSettings = JSON.parse(template.violationSettings);
+            } else if (template.violationSettings && typeof template.violationSettings === 'object') {
+                violationSettings = template.violationSettings;
+            }
+        } catch { violationSettings = {}; }
+
+        // Browser validation (SEB / Exambro)
+        const browserError = validateBrowserRequirements(request.headers, {
+            requireSeb: violationSettings.requireSeb,
+            requireExambro: violationSettings.requireExambro,
+        });
+
+        if (browserError) {
+            return NextResponse.json(
+                { error: browserError, browserBlocked: true },
+                { status: 403 }
+            );
+        }
 
         // Token validation if required
         if (template.requireToken) {
@@ -219,6 +244,7 @@ export async function POST(
             flaggedQuestions: [],
             violationCount: 0,
             violationLog: [],
+            deviceId: deviceId || null,
             gradingStatus: "auto",
         });
 

@@ -5,6 +5,8 @@ import { useParams, useRouter } from "next/navigation";
 import { useToast } from "@/hooks/use-toast";
 import { useFullscreen } from "@/hooks/use-fullscreen";
 import { useExamSecurity } from "@/hooks/use-exam-security";
+import { getDeviceId } from "@/lib/device";
+import { useWatermark } from "@/lib/lockdown";
 
 // Components
 import { ExamHeader } from "@/components/exam/take-exam/ExamHeader";
@@ -36,6 +38,7 @@ export default function TakeExamPage() {
     const [autoSaving, setAutoSaving] = useState(false);
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
     const [studentId, setStudentId] = useState<string | null>(null);
+    const [studentName, setStudentName] = useState<string>("");
     const [showFullscreenPrompt, setShowFullscreenPrompt] = useState(true);
     const [examStarted, setExamStarted] = useState(false);
     const [violationCount, setViolationCount] = useState(0);
@@ -98,6 +101,7 @@ export default function TakeExamPage() {
             if (response.ok) {
                 const data = await response.json();
                 setStudentId(data.user.id);
+                setStudentName(data.user.name || "");
             } else {
                 router.push("/login");
             }
@@ -111,12 +115,16 @@ export default function TakeExamPage() {
         if (!studentId) return;
 
         try {
-            const headers: Record<string, string> = { "Content-Type": "application/json" };
+            const deviceId = getDeviceId();
+            const headers: Record<string, string> = {
+                "Content-Type": "application/json",
+                "X-Device-Id": deviceId,
+            };
             if (token) {
                 headers["X-Exam-Token"] = token;
             }
 
-            const response = await fetch(`/api/student/exams/${sessionId}/questions?studentId=${studentId}`, {
+            const response = await fetch(`/api/student/exams/${sessionId}/questions?studentId=${studentId}&deviceId=${encodeURIComponent(deviceId)}`, {
                 headers
             });
 
@@ -159,6 +167,27 @@ export default function TakeExamPage() {
                 return true;
             } else if (response.status === 403) {
                 const data = await response.json();
+
+                // Check if blocked due to browser or device mismatch
+                if (data.browserBlocked) {
+                    toast({
+                        title: "Browser Ditolak",
+                        description: data.error || "Aplikasi browser tidak memenuhi syarat ujian.",
+                        variant: "destructive",
+                    });
+                    router.push("/student/exams");
+                    return;
+                }
+
+                if (data.deviceBlocked) {
+                    toast({
+                        title: "Perangkat Ditolak",
+                        description: data.error || "Ujian sedang aktif di perangkat lain.",
+                        variant: "destructive",
+                    });
+                    router.push("/student/exams");
+                    return;
+                }
 
                 // Check if token is required (resume flow)
                 if (data.requireToken) {
@@ -266,6 +295,68 @@ export default function TakeExamPage() {
             logSecurityViolation(violation.type, violation.details);
         }
     });
+
+    // Anti-tamper watermark
+    useWatermark(
+        studentName || "Siswa",
+        (violation) => {
+            setViolationCount(prev => prev + 1);
+            setLastViolationType(violation.type);
+            setShowViolationBanner(true);
+            setTimeout(() => setShowViolationBanner(false), 5000);
+            logSecurityViolation(violation.type, violation.details);
+        },
+        examStarted && (violationSettings?.watermarkAntiTamper ?? true)
+    );
+
+    // Heartbeat for server-side time synchronization & clock manipulation check
+    useEffect(() => {
+        if (!examStarted || submitting || isTerminated || !studentId) return;
+
+        const deviceId = getDeviceId();
+
+        const sendHeartbeat = async () => {
+            try {
+                const response = await fetch(`/api/student/exams/${sessionId}/heartbeat`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        studentId,
+                        deviceId,
+                        clientTime: new Date().toISOString(),
+                    }),
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    if (data.status === "terminated") {
+                        setIsTerminated(true);
+                    } else if (data.remainingSeconds !== undefined) {
+                        setTimeRemaining(data.remainingSeconds);
+                    }
+                } else if (response.status === 403) {
+                    const data = await response.json();
+                    if (data.status === "blocked" || data.error === "DEVICE_MISMATCH") {
+                        toast({
+                            title: "Sesi Tidak Valid",
+                            description: data.message || "Ujian dibuka di perangkat lain.",
+                            variant: "destructive",
+                        });
+                        setIsTerminated(true);
+                    }
+                }
+            } catch (e) {
+                console.error("Heartbeat sync error:", e);
+            }
+        };
+
+        // Send initial heartbeat
+        sendHeartbeat();
+
+        // Send heartbeat every 20 seconds
+        const interval = setInterval(sendHeartbeat, 20000);
+        return () => clearInterval(interval);
+    }, [examStarted, submitting, isTerminated, sessionId, studentId, toast]);
 
     // Prevent escape from fullscreen during exam (including Android back button)
     useEffect(() => {
@@ -402,11 +493,12 @@ export default function TakeExamPage() {
         setTokenError(null);
 
         try {
-            // Call start API with token
+            const deviceId = getDeviceId();
+            // Call start API with token and deviceId
             const response = await fetch(`/api/student/exams/${sessionId}/start`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ studentId, token })
+                headers: { 'Content-Type': 'application/json', 'X-Device-Id': deviceId },
+                body: JSON.stringify({ studentId, token, deviceId })
             });
 
             if (response.ok) {

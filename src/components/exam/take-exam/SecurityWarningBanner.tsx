@@ -21,6 +21,8 @@ function getViolationLabel(type: string): string {
         SCREENSHOT: "Mencoba Screenshot",
         FULLSCREEN_EXIT: "Keluar dari Layar Penuh",
         BACK_BUTTON: "Menekan Tombol Kembali",
+        WATERMARK_TAMPERING: "Mencoba Memanipulasi/Menghapus Watermark",
+        DEVICE_MISMATCH: "Perangkat Tidak Cocok / Sesi Ganda",
         // From lockdown.ts
         tab_switch: "Pindah Tab",
         window_blur: "Keluar dari Jendela Ujian",
@@ -29,6 +31,7 @@ function getViolationLabel(type: string): string {
         paste: "Mencoba Paste",
         cut: "Mencoba Cut",
         screenshot_attempt: "Mencoba Screenshot",
+        watermark_tampering: "Mencoba Memanipulasi/Menghapus Watermark",
     };
     return labels[type] || type;
 }

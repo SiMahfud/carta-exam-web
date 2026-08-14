@@ -4,6 +4,7 @@ import { submissions, answers, bankQuestions } from "@/lib/schema";
 import { eq, and, inArray } from "drizzle-orm";
 import { requireAuth } from "@/lib/auth-guard";
 import { safeJsonParse } from "@/lib/json-utils";
+import { publishStudentSubmitEvent } from "@/lib/proctoring-events";
 
 // POST /api/student/exams/[sessionId]/submit - Submit exam
 export async function POST(
@@ -80,6 +81,19 @@ export async function POST(
                 gradingStatus: gradingStatus as any,
             })
             .where(eq(submissions.id, submission.id));
+
+        // Broadcast submit event via SSE
+        try {
+            const finalScore = totalMax > 0 ? Math.round((totalEarned / totalMax) * 100) : 0;
+            publishStudentSubmitEvent(
+                params.sessionId,
+                studentId,
+                user.name || "Siswa",
+                finalScore
+            );
+        } catch (e) {
+            console.error("Error publishing submit event:", e);
+        }
 
         return NextResponse.json({
             success: true,

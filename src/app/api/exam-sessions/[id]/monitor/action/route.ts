@@ -4,6 +4,7 @@ import { submissions, examSessions } from "@/lib/schema";
 import { eq, and } from "drizzle-orm";
 import { requireAuth } from "@/lib/auth-guard";
 import { ActivityLogger } from "@/lib/activity-logger";
+import { publishProctorActionEvent } from "@/lib/proctoring-events";
 
 export async function POST(
     req: NextRequest,
@@ -63,6 +64,12 @@ export async function POST(
                 `Reset pelanggaran siswa ID: ${studentId}`
             );
 
+            try {
+                publishProctorActionEvent(params.id, user.id, "reset_violations", studentId, "Jumlah pelanggaran direset ke 0");
+            } catch (e) {
+                console.error("Error publishing proctor action event:", e);
+            }
+
             return NextResponse.json({
                 success: true,
                 message: "Jumlah pelanggaran berhasil direset ke 0.",
@@ -84,9 +91,39 @@ export async function POST(
                 `Membuka kembali kunci ujian siswa ID: ${studentId}`
             );
 
+            try {
+                publishProctorActionEvent(params.id, user.id, "unlock_session", studentId, "Sesi ujian dibuka kembali");
+            } catch (e) {
+                console.error("Error publishing proctor action event:", e);
+            }
+
             return NextResponse.json({
                 success: true,
                 message: "Sesi ujian siswa berhasil dibuka kembali.",
+            });
+        }
+
+        if (action === "reset_device") {
+            await (db as any)
+                .update(submissions)
+                .set({ deviceId: null })
+                .where(eq(submissions.id, sub.id));
+
+            await ActivityLogger.examSession.updated(
+                user.id,
+                params.id,
+                `Reset penguncian perangkat siswa ID: ${studentId}`
+            );
+
+            try {
+                publishProctorActionEvent(params.id, user.id, "reset_device", studentId, "Penguncian perangkat direset");
+            } catch (e) {
+                console.error("Error publishing proctor action event:", e);
+            }
+
+            return NextResponse.json({
+                success: true,
+                message: "Kunci perangkat berhasil direset. Siswa dapat login dari perangkat baru.",
             });
         }
 
@@ -105,6 +142,12 @@ export async function POST(
                 params.id,
                 `Pengawas mengumpulkan paksa ujian siswa ID: ${studentId}`
             );
+
+            try {
+                publishProctorActionEvent(params.id, user.id, "force_submit", studentId, "Ujian dikumpulkan paksa oleh pengawas");
+            } catch (e) {
+                console.error("Error publishing proctor action event:", e);
+            }
 
             return NextResponse.json({
                 success: true,

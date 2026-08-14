@@ -1,121 +1,121 @@
 <?xml version="1.0" encoding="UTF-8" ?>
-<testsuites name="vitest tests" tests="178" failures="0" errors="0" time="2.4374736">
-    <testsuite name="src/actions/__tests__/ai-grading.test.ts" timestamp="2026-08-14T04:01:00.266Z" hostname="DESKTOP-V0JD0BU" tests="2" failures="0" errors="0" skipped="0" time="0.0063198">
-        <testcase classname="src/actions/__tests__/ai-grading.test.ts" name="evaluateEssayWithAI &gt; should return error if API key is missing" time="0.0030699">
+<testsuites name="vitest tests" tests="195" failures="0" errors="0" time="2.492773">
+    <testsuite name="src/actions/__tests__/ai-grading.test.ts" timestamp="2026-08-14T05:53:42.750Z" hostname="DESKTOP-V0JD0BU" tests="2" failures="0" errors="0" skipped="0" time="0.0086833">
+        <testcase classname="src/actions/__tests__/ai-grading.test.ts" name="evaluateEssayWithAI &gt; should return error if API key is missing" time="0.0043172">
         </testcase>
-        <testcase classname="src/actions/__tests__/ai-grading.test.ts" name="evaluateEssayWithAI &gt; should handle empty student answer with 0 score" time="0.001532">
-        </testcase>
-    </testsuite>
-    <testsuite name="src/components/__tests__/BankQuestionCard.test.tsx" timestamp="2026-08-14T04:01:00.267Z" hostname="DESKTOP-V0JD0BU" tests="2" failures="0" errors="0" skipped="0" time="0.132464">
-        <testcase classname="src/components/__tests__/BankQuestionCard.test.tsx" name="BankQuestionCard &gt; renders question details, tags, and points" time="0.0841059">
-        </testcase>
-        <testcase classname="src/components/__tests__/BankQuestionCard.test.tsx" name="BankQuestionCard &gt; handles edit and delete actions" time="0.0445932">
+        <testcase classname="src/actions/__tests__/ai-grading.test.ts" name="evaluateEssayWithAI &gt; should handle empty student answer with 0 score" time="0.0020649">
         </testcase>
     </testsuite>
-    <testsuite name="src/components/__tests__/DashboardAnalytics.test.tsx" timestamp="2026-08-14T04:01:00.269Z" hostname="DESKTOP-V0JD0BU" tests="1" failures="0" errors="0" skipped="0" time="0.1328361">
-        <testcase classname="src/components/__tests__/DashboardAnalytics.test.tsx" name="DashboardAnalytics Component &gt; renders score distribution and question bank composition" time="0.1298354">
+    <testsuite name="src/components/__tests__/BankQuestionCard.test.tsx" timestamp="2026-08-14T05:53:42.751Z" hostname="DESKTOP-V0JD0BU" tests="2" failures="0" errors="0" skipped="0" time="0.1263109">
+        <testcase classname="src/components/__tests__/BankQuestionCard.test.tsx" name="BankQuestionCard &gt; renders question details, tags, and points" time="0.0754181">
+        </testcase>
+        <testcase classname="src/components/__tests__/BankQuestionCard.test.tsx" name="BankQuestionCard &gt; handles edit and delete actions" time="0.0471963">
         </testcase>
     </testsuite>
-    <testsuite name="src/components/__tests__/ExamHeader.test.tsx" timestamp="2026-08-14T04:01:00.269Z" hostname="DESKTOP-V0JD0BU" tests="7" failures="0" errors="0" skipped="0" time="0.2010088">
-        <testcase classname="src/components/__tests__/ExamHeader.test.tsx" name="ExamHeader &gt; renders question number and total correctly" time="0.088639">
-        </testcase>
-        <testcase classname="src/components/__tests__/ExamHeader.test.tsx" name="ExamHeader &gt; formats time remaining correctly (HH:MM:SS)" time="0.0098695">
-        </testcase>
-        <testcase classname="src/components/__tests__/ExamHeader.test.tsx" name="ExamHeader &gt; displays auto-saving indicator when autoSaving is true" time="0.009962">
-        </testcase>
-        <testcase classname="src/components/__tests__/ExamHeader.test.tsx" name="ExamHeader &gt; does not display auto-saving indicator when autoSaving is false" time="0.0127861">
-        </testcase>
-        <testcase classname="src/components/__tests__/ExamHeader.test.tsx" name="ExamHeader &gt; calls onShowSubmit when submit button clicked" time="0.0601276">
-        </testcase>
-        <testcase classname="src/components/__tests__/ExamHeader.test.tsx" name="ExamHeader &gt; applies destructive styling when time is under 5 minutes" time="0.0109678">
-        </testcase>
-        <testcase classname="src/components/__tests__/ExamHeader.test.tsx" name="ExamHeader &gt; applies primary styling when time is above 5 minutes" time="0.0053133">
+    <testsuite name="src/components/__tests__/DashboardAnalytics.test.tsx" timestamp="2026-08-14T05:53:42.753Z" hostname="DESKTOP-V0JD0BU" tests="1" failures="0" errors="0" skipped="0" time="0.1415642">
+        <testcase classname="src/components/__tests__/DashboardAnalytics.test.tsx" name="DashboardAnalytics Component &gt; renders score distribution and question bank composition" time="0.1382337">
         </testcase>
     </testsuite>
-    <testsuite name="src/components/__tests__/GradingDetailHeader.test.tsx" timestamp="2026-08-14T04:01:00.273Z" hostname="DESKTOP-V0JD0BU" tests="10" failures="0" errors="0" skipped="0" time="0.2938509">
-        <testcase classname="src/components/__tests__/GradingDetailHeader.test.tsx" name="GradingDetailHeader &gt; returns null when submission is null" time="0.0194688">
+    <testsuite name="src/components/__tests__/ExamHeader.test.tsx" timestamp="2026-08-14T05:53:42.754Z" hostname="DESKTOP-V0JD0BU" tests="7" failures="0" errors="0" skipped="0" time="0.2508775">
+        <testcase classname="src/components/__tests__/ExamHeader.test.tsx" name="ExamHeader &gt; renders question number and total correctly" time="0.1602696">
         </testcase>
-        <testcase classname="src/components/__tests__/GradingDetailHeader.test.tsx" name="GradingDetailHeader &gt; renders student name and session name" time="0.071341">
+        <testcase classname="src/components/__tests__/ExamHeader.test.tsx" name="ExamHeader &gt; formats time remaining correctly (HH:MM:SS)" time="0.0113774">
         </testcase>
-        <testcase classname="src/components/__tests__/GradingDetailHeader.test.tsx" name="GradingDetailHeader &gt; shows draft badge when gradingStatus is draft" time="0.0118873">
+        <testcase classname="src/components/__tests__/ExamHeader.test.tsx" name="ExamHeader &gt; displays auto-saving indicator when autoSaving is true" time="0.0152516">
         </testcase>
-        <testcase classname="src/components/__tests__/GradingDetailHeader.test.tsx" name="GradingDetailHeader &gt; shows published badge when gradingStatus is published" time="0.0134715">
+        <testcase classname="src/components/__tests__/ExamHeader.test.tsx" name="ExamHeader &gt; does not display auto-saving indicator when autoSaving is false" time="0.0126895">
         </testcase>
-        <testcase classname="src/components/__tests__/GradingDetailHeader.test.tsx" name="GradingDetailHeader &gt; renders score correctly" time="0.0129826">
+        <testcase classname="src/components/__tests__/ExamHeader.test.tsx" name="ExamHeader &gt; calls onShowSubmit when submit button clicked" time="0.0293697">
         </testcase>
-        <testcase classname="src/components/__tests__/GradingDetailHeader.test.tsx" name="GradingDetailHeader &gt; calls onSave when save button is clicked" time="0.1174984">
+        <testcase classname="src/components/__tests__/ExamHeader.test.tsx" name="ExamHeader &gt; applies destructive styling when time is under 5 minutes" time="0.007792">
         </testcase>
-        <testcase classname="src/components/__tests__/GradingDetailHeader.test.tsx" name="GradingDetailHeader &gt; calls onPublish when publish button is clicked" time="0.0144349">
-        </testcase>
-        <testcase classname="src/components/__tests__/GradingDetailHeader.test.tsx" name="GradingDetailHeader &gt; disables save button when saving is true" time="0.0116448">
-        </testcase>
-        <testcase classname="src/components/__tests__/GradingDetailHeader.test.tsx" name="GradingDetailHeader &gt; navigates between submissions" time="0.0075552">
-        </testcase>
-        <testcase classname="src/components/__tests__/GradingDetailHeader.test.tsx" name="GradingDetailHeader &gt; renders navigation counter text" time="0.0100412">
+        <testcase classname="src/components/__tests__/ExamHeader.test.tsx" name="ExamHeader &gt; applies primary styling when time is above 5 minutes" time="0.0109133">
         </testcase>
     </testsuite>
-    <testsuite name="src/components/__tests__/GradingItemCard.test.tsx" timestamp="2026-08-14T04:01:00.276Z" hostname="DESKTOP-V0JD0BU" tests="2" failures="0" errors="0" skipped="0" time="0.121835">
-        <testcase classname="src/components/__tests__/GradingItemCard.test.tsx" name="GradingItemCard &gt; renders multiple choice question and choices correctly" time="0.0744668">
+    <testsuite name="src/components/__tests__/GradingDetailHeader.test.tsx" timestamp="2026-08-14T05:53:42.756Z" hostname="DESKTOP-V0JD0BU" tests="10" failures="0" errors="0" skipped="0" time="0.2128414">
+        <testcase classname="src/components/__tests__/GradingDetailHeader.test.tsx" name="GradingDetailHeader &gt; returns null when submission is null" time="0.0278322">
         </testcase>
-        <testcase classname="src/components/__tests__/GradingItemCard.test.tsx" name="GradingItemCard &gt; renders essay question with manual score input" time="0.0440995">
+        <testcase classname="src/components/__tests__/GradingDetailHeader.test.tsx" name="GradingDetailHeader &gt; renders student name and session name" time="0.051396">
         </testcase>
-    </testsuite>
-    <testsuite name="src/components/__tests__/OfflineSyncBanner.test.tsx" timestamp="2026-08-14T04:01:00.277Z" hostname="DESKTOP-V0JD0BU" tests="4" failures="0" errors="0" skipped="0" time="0.0988221">
-        <testcase classname="src/components/__tests__/OfflineSyncBanner.test.tsx" name="OfflineSyncBanner Component &gt; renders nothing when online and no pending answers" time="0.0207645">
+        <testcase classname="src/components/__tests__/GradingDetailHeader.test.tsx" name="GradingDetailHeader &gt; shows draft badge when gradingStatus is draft" time="0.0118689">
         </testcase>
-        <testcase classname="src/components/__tests__/OfflineSyncBanner.test.tsx" name="OfflineSyncBanner Component &gt; displays offline warning banner when offline" time="0.0240822">
+        <testcase classname="src/components/__tests__/GradingDetailHeader.test.tsx" name="GradingDetailHeader &gt; shows published badge when gradingStatus is published" time="0.0131521">
         </testcase>
-        <testcase classname="src/components/__tests__/OfflineSyncBanner.test.tsx" name="OfflineSyncBanner Component &gt; displays syncing status when isSyncing is true" time="0.0052253">
+        <testcase classname="src/components/__tests__/GradingDetailHeader.test.tsx" name="GradingDetailHeader &gt; renders score correctly" time="0.011528">
         </testcase>
-        <testcase classname="src/components/__tests__/OfflineSyncBanner.test.tsx" name="OfflineSyncBanner Component &gt; allows manual sync when back online with pending answers" time="0.0453978">
+        <testcase classname="src/components/__tests__/GradingDetailHeader.test.tsx" name="GradingDetailHeader &gt; calls onSave when save button is clicked" time="0.037625">
         </testcase>
-    </testsuite>
-    <testsuite name="src/components/__tests__/SecurityWarningBanner.test.tsx" timestamp="2026-08-14T04:01:00.278Z" hostname="DESKTOP-V0JD0BU" tests="3" failures="0" errors="0" skipped="0" time="0.0918113">
-        <testcase classname="src/components/__tests__/SecurityWarningBanner.test.tsx" name="SecurityWarningBanner &gt; returns null if violationCount is 0" time="0.0208365">
+        <testcase classname="src/components/__tests__/GradingDetailHeader.test.tsx" name="GradingDetailHeader &gt; calls onPublish when publish button is clicked" time="0.0170585">
         </testcase>
-        <testcase classname="src/components/__tests__/SecurityWarningBanner.test.tsx" name="SecurityWarningBanner &gt; renders banner with count and translated violation type" time="0.022327">
+        <testcase classname="src/components/__tests__/GradingDetailHeader.test.tsx" name="GradingDetailHeader &gt; disables save button when saving is true" time="0.0167057">
         </testcase>
-        <testcase classname="src/components/__tests__/SecurityWarningBanner.test.tsx" name="SecurityWarningBanner &gt; handles onDismiss callback" time="0.0453359">
+        <testcase classname="src/components/__tests__/GradingDetailHeader.test.tsx" name="GradingDetailHeader &gt; navigates between submissions" time="0.0141472">
+        </testcase>
+        <testcase classname="src/components/__tests__/GradingDetailHeader.test.tsx" name="GradingDetailHeader &gt; renders navigation counter text" time="0.0074355">
         </testcase>
     </testsuite>
-    <testsuite name="src/components/__tests__/SubmitDialog.test.tsx" timestamp="2026-08-14T04:01:00.279Z" hostname="DESKTOP-V0JD0BU" tests="3" failures="0" errors="0" skipped="0" time="0.2892526">
-        <testcase classname="src/components/__tests__/SubmitDialog.test.tsx" name="SubmitDialog &gt; renders answered status and total questions" time="0.1760979">
+    <testsuite name="src/components/__tests__/GradingItemCard.test.tsx" timestamp="2026-08-14T05:53:42.759Z" hostname="DESKTOP-V0JD0BU" tests="2" failures="0" errors="0" skipped="0" time="0.1286004">
+        <testcase classname="src/components/__tests__/GradingItemCard.test.tsx" name="GradingItemCard &gt; renders multiple choice question and choices correctly" time="0.0693722">
         </testcase>
-        <testcase classname="src/components/__tests__/SubmitDialog.test.tsx" name="SubmitDialog &gt; disables submit button when minimum elapsed time is not met" time="0.0724112">
-        </testcase>
-        <testcase classname="src/components/__tests__/SubmitDialog.test.tsx" name="SubmitDialog &gt; triggers onSubmit callback when submit button clicked and allowed" time="0.037353">
+        <testcase classname="src/components/__tests__/GradingItemCard.test.tsx" name="GradingItemCard &gt; renders essay question with manual score input" time="0.0544341">
         </testcase>
     </testsuite>
-    <testsuite name="src/components/__tests__/TerminatedExamView.test.tsx" timestamp="2026-08-14T04:01:00.279Z" hostname="DESKTOP-V0JD0BU" tests="2" failures="0" errors="0" skipped="0" time="0.0945813">
-        <testcase classname="src/components/__tests__/TerminatedExamView.test.tsx" name="TerminatedExamView &gt; renders termination message and violation count" time="0.0778291">
+    <testsuite name="src/components/__tests__/OfflineSyncBanner.test.tsx" timestamp="2026-08-14T05:53:42.760Z" hostname="DESKTOP-V0JD0BU" tests="4" failures="0" errors="0" skipped="0" time="0.0974937">
+        <testcase classname="src/components/__tests__/OfflineSyncBanner.test.tsx" name="OfflineSyncBanner Component &gt; renders nothing when online and no pending answers" time="0.0205966">
         </testcase>
-        <testcase classname="src/components/__tests__/TerminatedExamView.test.tsx" name="TerminatedExamView &gt; triggers onReturn callback when button clicked" time="0.0126797">
+        <testcase classname="src/components/__tests__/OfflineSyncBanner.test.tsx" name="OfflineSyncBanner Component &gt; displays offline warning banner when offline" time="0.023513">
         </testcase>
-    </testsuite>
-    <testsuite name="src/lib/__tests__/activity-logger.test.ts" timestamp="2026-08-14T04:01:00.280Z" hostname="DESKTOP-V0JD0BU" tests="8" failures="0" errors="0" skipped="0" time="0.0037031">
-        <testcase classname="src/lib/__tests__/activity-logger.test.ts" name="activity-logger &gt; logActivity function &gt; should export logActivity function" time="0.001118">
+        <testcase classname="src/components/__tests__/OfflineSyncBanner.test.tsx" name="OfflineSyncBanner Component &gt; displays syncing status when isSyncing is true" time="0.005054">
         </testcase>
-        <testcase classname="src/lib/__tests__/activity-logger.test.ts" name="activity-logger &gt; ActivityLogger structure &gt; should export ActivityLogger object" time="0.0001491">
-        </testcase>
-        <testcase classname="src/lib/__tests__/activity-logger.test.ts" name="activity-logger &gt; ActivityLogger structure &gt; should have user methods" time="0.0002214">
-        </testcase>
-        <testcase classname="src/lib/__tests__/activity-logger.test.ts" name="activity-logger &gt; ActivityLogger structure &gt; should have subject methods" time="0.0001873">
-        </testcase>
-        <testcase classname="src/lib/__tests__/activity-logger.test.ts" name="activity-logger &gt; ActivityLogger structure &gt; should have class methods" time="0.0001946">
-        </testcase>
-        <testcase classname="src/lib/__tests__/activity-logger.test.ts" name="activity-logger &gt; ActivityLogger structure &gt; should have examSession methods" time="0.0001816">
-        </testcase>
-        <testcase classname="src/lib/__tests__/activity-logger.test.ts" name="activity-logger &gt; ActivityLogger structure &gt; should have examTemplate methods" time="0.0001639">
-        </testcase>
-        <testcase classname="src/lib/__tests__/activity-logger.test.ts" name="activity-logger &gt; ActivityLogger structure &gt; should have questionBank methods" time="0.0001532">
+        <testcase classname="src/components/__tests__/OfflineSyncBanner.test.tsx" name="OfflineSyncBanner Component &gt; allows manual sync when back online with pending answers" time="0.0450966">
         </testcase>
     </testsuite>
-    <testsuite name="src/lib/__tests__/api-handler.test.ts" timestamp="2026-08-14T04:01:00.281Z" hostname="DESKTOP-V0JD0BU" tests="9" failures="0" errors="0" skipped="0" time="0.0286112">
-        <testcase classname="src/lib/__tests__/api-handler.test.ts" name="apiHandler &gt; should wrap handler result in { data } envelope" time="0.0097296">
+    <testsuite name="src/components/__tests__/SecurityWarningBanner.test.tsx" timestamp="2026-08-14T05:53:42.761Z" hostname="DESKTOP-V0JD0BU" tests="3" failures="0" errors="0" skipped="0" time="0.0932408">
+        <testcase classname="src/components/__tests__/SecurityWarningBanner.test.tsx" name="SecurityWarningBanner &gt; returns null if violationCount is 0" time="0.0202582">
         </testcase>
-        <testcase classname="src/lib/__tests__/api-handler.test.ts" name="apiHandler &gt; should preserve { data, metadata } structure when returned by handler" time="0.0011671">
+        <testcase classname="src/components/__tests__/SecurityWarningBanner.test.tsx" name="SecurityWarningBanner &gt; renders banner with count and translated violation type" time="0.0252179">
         </testcase>
-        <testcase classname="src/lib/__tests__/api-handler.test.ts" name="apiHandler &gt; should handle ApiError with custom status" time="0.0076451">
+        <testcase classname="src/components/__tests__/SecurityWarningBanner.test.tsx" name="SecurityWarningBanner &gt; handles onDismiss callback" time="0.0442958">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/components/__tests__/SubmitDialog.test.tsx" timestamp="2026-08-14T05:53:42.761Z" hostname="DESKTOP-V0JD0BU" tests="3" failures="0" errors="0" skipped="0" time="0.2095854">
+        <testcase classname="src/components/__tests__/SubmitDialog.test.tsx" name="SubmitDialog &gt; renders answered status and total questions" time="0.1341385">
+        </testcase>
+        <testcase classname="src/components/__tests__/SubmitDialog.test.tsx" name="SubmitDialog &gt; disables submit button when minimum elapsed time is not met" time="0.0380724">
+        </testcase>
+        <testcase classname="src/components/__tests__/SubmitDialog.test.tsx" name="SubmitDialog &gt; triggers onSubmit callback when submit button clicked and allowed" time="0.0335092">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/components/__tests__/TerminatedExamView.test.tsx" timestamp="2026-08-14T05:53:42.762Z" hostname="DESKTOP-V0JD0BU" tests="2" failures="0" errors="0" skipped="0" time="0.1146631">
+        <testcase classname="src/components/__tests__/TerminatedExamView.test.tsx" name="TerminatedExamView &gt; renders termination message and violation count" time="0.0844758">
+        </testcase>
+        <testcase classname="src/components/__tests__/TerminatedExamView.test.tsx" name="TerminatedExamView &gt; triggers onReturn callback when button clicked" time="0.0252803">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/lib/__tests__/activity-logger.test.ts" timestamp="2026-08-14T05:53:42.763Z" hostname="DESKTOP-V0JD0BU" tests="8" failures="0" errors="0" skipped="0" time="0.0040907">
+        <testcase classname="src/lib/__tests__/activity-logger.test.ts" name="activity-logger &gt; logActivity function &gt; should export logActivity function" time="0.0012378">
+        </testcase>
+        <testcase classname="src/lib/__tests__/activity-logger.test.ts" name="activity-logger &gt; ActivityLogger structure &gt; should export ActivityLogger object" time="0.0001708">
+        </testcase>
+        <testcase classname="src/lib/__tests__/activity-logger.test.ts" name="activity-logger &gt; ActivityLogger structure &gt; should have user methods" time="0.0002516">
+        </testcase>
+        <testcase classname="src/lib/__tests__/activity-logger.test.ts" name="activity-logger &gt; ActivityLogger structure &gt; should have subject methods" time="0.0002603">
+        </testcase>
+        <testcase classname="src/lib/__tests__/activity-logger.test.ts" name="activity-logger &gt; ActivityLogger structure &gt; should have class methods" time="0.0002056">
+        </testcase>
+        <testcase classname="src/lib/__tests__/activity-logger.test.ts" name="activity-logger &gt; ActivityLogger structure &gt; should have examSession methods" time="0.0001879">
+        </testcase>
+        <testcase classname="src/lib/__tests__/activity-logger.test.ts" name="activity-logger &gt; ActivityLogger structure &gt; should have examTemplate methods" time="0.0001827">
+        </testcase>
+        <testcase classname="src/lib/__tests__/activity-logger.test.ts" name="activity-logger &gt; ActivityLogger structure &gt; should have questionBank methods" time="0.0001669">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/lib/__tests__/api-handler.test.ts" timestamp="2026-08-14T05:53:42.764Z" hostname="DESKTOP-V0JD0BU" tests="9" failures="0" errors="0" skipped="0" time="0.0267257">
+        <testcase classname="src/lib/__tests__/api-handler.test.ts" name="apiHandler &gt; should wrap handler result in { data } envelope" time="0.0072426">
+        </testcase>
+        <testcase classname="src/lib/__tests__/api-handler.test.ts" name="apiHandler &gt; should preserve { data, metadata } structure when returned by handler" time="0.0012966">
+        </testcase>
+        <testcase classname="src/lib/__tests__/api-handler.test.ts" name="apiHandler &gt; should handle ApiError with custom status" time="0.0077445">
             <system-err>
 API Error: ApiError: Not found
     at D:/NodeJs/CartaExam/src/lib/__tests__/api-handler.test.ts:34:19
@@ -133,7 +133,7 @@ API Error: ApiError: Not found
 
             </system-err>
         </testcase>
-        <testcase classname="src/lib/__tests__/api-handler.test.ts" name="apiHandler &gt; should handle ApiError with default 500 status" time="0.0019155">
+        <testcase classname="src/lib/__tests__/api-handler.test.ts" name="apiHandler &gt; should handle ApiError with default 500 status" time="0.0020339">
             <system-err>
 API Error: ApiError: Server error
     at D:/NodeJs/CartaExam/src/lib/__tests__/api-handler.test.ts:44:19
@@ -151,7 +151,7 @@ API Error: ApiError: Server error
 
             </system-err>
         </testcase>
-        <testcase classname="src/lib/__tests__/api-handler.test.ts" name="apiHandler &gt; should handle generic errors with 500 status" time="0.0017781">
+        <testcase classname="src/lib/__tests__/api-handler.test.ts" name="apiHandler &gt; should handle generic errors with 500 status" time="0.0019012">
             <system-err>
 API Error: Error: Something went wrong
     at D:/NodeJs/CartaExam/src/lib/__tests__/api-handler.test.ts:54:19
@@ -167,305 +167,345 @@ API Error: Error: Something went wrong
 
             </system-err>
         </testcase>
-        <testcase classname="src/lib/__tests__/api-handler.test.ts" name="apiHandler &gt; should handle array data correctly" time="0.0020396">
+        <testcase classname="src/lib/__tests__/api-handler.test.ts" name="apiHandler &gt; should handle array data correctly" time="0.0021465">
         </testcase>
-        <testcase classname="src/lib/__tests__/api-handler.test.ts" name="apiHandler &gt; should handle null/undefined return" time="0.0008798">
+        <testcase classname="src/lib/__tests__/api-handler.test.ts" name="apiHandler &gt; should handle null/undefined return" time="0.0009383">
         </testcase>
-        <testcase classname="src/lib/__tests__/api-handler.test.ts" name="ApiError &gt; should be an instance of Error" time="0.0005229">
+        <testcase classname="src/lib/__tests__/api-handler.test.ts" name="ApiError &gt; should be an instance of Error" time="0.0004951">
         </testcase>
-        <testcase classname="src/lib/__tests__/api-handler.test.ts" name="ApiError &gt; should default to status 500" time="0.0002337">
-        </testcase>
-    </testsuite>
-    <testsuite name="src/lib/__tests__/auth-guard.test.ts" timestamp="2026-08-14T04:01:00.283Z" hostname="DESKTOP-V0JD0BU" tests="9" failures="0" errors="0" skipped="0" time="0.0159802">
-        <testcase classname="src/lib/__tests__/auth-guard.test.ts" name="requireAuth &gt; should throw 401 when user is not authenticated" time="0.0080664">
-        </testcase>
-        <testcase classname="src/lib/__tests__/auth-guard.test.ts" name="requireAuth &gt; should return user when no roles are specified" time="0.0009239">
-        </testcase>
-        <testcase classname="src/lib/__tests__/auth-guard.test.ts" name="requireAuth &gt; should return user when role matches allowed roles" time="0.0005903">
-        </testcase>
-        <testcase classname="src/lib/__tests__/auth-guard.test.ts" name="requireAuth &gt; should throw 403 when role does not match allowed roles" time="0.0008287">
-        </testcase>
-        <testcase classname="src/lib/__tests__/auth-guard.test.ts" name="requireAuth &gt; should pass with empty allowed roles array" time="0.0006595">
-        </testcase>
-        <testcase classname="src/lib/__tests__/auth-guard.test.ts" name="requireStudent &gt; should allow student role" time="0.00059">
-        </testcase>
-        <testcase classname="src/lib/__tests__/auth-guard.test.ts" name="requireStudent &gt; should allow admin role" time="0.0004179">
-        </testcase>
-        <testcase classname="src/lib/__tests__/auth-guard.test.ts" name="requireStudent &gt; should allow teacher role" time="0.0003699">
-        </testcase>
-        <testcase classname="src/lib/__tests__/auth-guard.test.ts" name="requireStudent &gt; should reject unauthenticated user" time="0.0006412">
+        <testcase classname="src/lib/__tests__/api-handler.test.ts" name="ApiError &gt; should default to status 500" time="0.0002472">
         </testcase>
     </testsuite>
-    <testsuite name="src/lib/__tests__/date-utils.test.ts" timestamp="2026-08-14T04:01:00.285Z" hostname="DESKTOP-V0JD0BU" tests="11" failures="0" errors="0" skipped="0" time="0.0088402">
-        <testcase classname="src/lib/__tests__/date-utils.test.ts" name="date-utils &gt; toDateTimeLocalString &gt; should convert UTC Date to datetime-local format in UTC+7" time="0.0033193">
+    <testsuite name="src/lib/__tests__/auth-guard.test.ts" timestamp="2026-08-14T05:53:42.766Z" hostname="DESKTOP-V0JD0BU" tests="9" failures="0" errors="0" skipped="0" time="0.0176967">
+        <testcase classname="src/lib/__tests__/auth-guard.test.ts" name="requireAuth &gt; should throw 401 when user is not authenticated" time="0.0102148">
         </testcase>
-        <testcase classname="src/lib/__tests__/date-utils.test.ts" name="date-utils &gt; toDateTimeLocalString &gt; should handle string input" time="0.0003663">
+        <testcase classname="src/lib/__tests__/auth-guard.test.ts" name="requireAuth &gt; should return user when no roles are specified" time="0.0010564">
         </testcase>
-        <testcase classname="src/lib/__tests__/date-utils.test.ts" name="date-utils &gt; toDateTimeLocalString &gt; should handle afternoon time correctly" time="0.000262">
+        <testcase classname="src/lib/__tests__/auth-guard.test.ts" name="requireAuth &gt; should return user when role matches allowed roles" time="0.0006395">
         </testcase>
-        <testcase classname="src/lib/__tests__/date-utils.test.ts" name="date-utils &gt; toDateTimeLocalString &gt; should handle day rollover" time="0.0002859">
+        <testcase classname="src/lib/__tests__/auth-guard.test.ts" name="requireAuth &gt; should throw 403 when role does not match allowed roles" time="0.0007452">
         </testcase>
-        <testcase classname="src/lib/__tests__/date-utils.test.ts" name="date-utils &gt; fromDateTimeLocalString &gt; should convert datetime-local string to UTC Date" time="0.0003656">
+        <testcase classname="src/lib/__tests__/auth-guard.test.ts" name="requireAuth &gt; should pass with empty allowed roles array" time="0.0004866">
         </testcase>
-        <testcase classname="src/lib/__tests__/date-utils.test.ts" name="date-utils &gt; fromDateTimeLocalString &gt; should handle afternoon time correctly" time="0.000258">
+        <testcase classname="src/lib/__tests__/auth-guard.test.ts" name="requireStudent &gt; should allow student role" time="0.0005314">
         </testcase>
-        <testcase classname="src/lib/__tests__/date-utils.test.ts" name="date-utils &gt; fromDateTimeLocalString &gt; should handle early morning (day rollback to UTC)" time="0.0001828">
+        <testcase classname="src/lib/__tests__/auth-guard.test.ts" name="requireStudent &gt; should allow admin role" time="0.0003752">
         </testcase>
-        <testcase classname="src/lib/__tests__/date-utils.test.ts" name="date-utils &gt; formatDateJakarta &gt; should format Date for display in UTC+7" time="0.0002719">
+        <testcase classname="src/lib/__tests__/auth-guard.test.ts" name="requireStudent &gt; should allow teacher role" time="0.0003401">
         </testcase>
-        <testcase classname="src/lib/__tests__/date-utils.test.ts" name="date-utils &gt; formatDateJakarta &gt; should handle string input" time="0.0002507">
-        </testcase>
-        <testcase classname="src/lib/__tests__/date-utils.test.ts" name="date-utils &gt; formatDateJakarta &gt; should format afternoon time correctly" time="0.0003117">
-        </testcase>
-        <testcase classname="src/lib/__tests__/date-utils.test.ts" name="date-utils &gt; round-trip conversion &gt; should preserve time through conversion cycle" time="0.0002087">
+        <testcase classname="src/lib/__tests__/auth-guard.test.ts" name="requireStudent &gt; should reject unauthenticated user" time="0.0006258">
         </testcase>
     </testsuite>
-    <testsuite name="src/lib/__tests__/error-messages.test.ts" timestamp="2026-08-14T04:01:00.287Z" hostname="DESKTOP-V0JD0BU" tests="15" failures="0" errors="0" skipped="0" time="0.0099133">
-        <testcase classname="src/lib/__tests__/error-messages.test.ts" name="error-messages &gt; getErrorInfo &gt; should return info for known error code string" time="0.0034361">
+    <testsuite name="src/lib/__tests__/browser-detection.test.ts" timestamp="2026-08-14T05:53:42.768Z" hostname="DESKTOP-V0JD0BU" tests="10" failures="0" errors="0" skipped="0" time="0.0083536">
+        <testcase classname="src/lib/__tests__/browser-detection.test.ts" name="browser-detection &gt; detectBrowser &gt; should identify standard desktop Chrome browser" time="0.0026524">
         </testcase>
-        <testcase classname="src/lib/__tests__/error-messages.test.ts" name="error-messages &gt; getErrorInfo &gt; should extract error code from bracketed message" time="0.0004568">
+        <testcase classname="src/lib/__tests__/browser-detection.test.ts" name="browser-detection &gt; detectBrowser &gt; should detect Safe Exam Browser via User-Agent" time="0.0004995">
         </testcase>
-        <testcase classname="src/lib/__tests__/error-messages.test.ts" name="error-messages &gt; getErrorInfo &gt; should handle Error object with bracketed message" time="0.0003342">
+        <testcase classname="src/lib/__tests__/browser-detection.test.ts" name="browser-detection &gt; detectBrowser &gt; should detect Safe Exam Browser via custom SEB headers" time="0.0003192">
         </testcase>
-        <testcase classname="src/lib/__tests__/error-messages.test.ts" name="error-messages &gt; getErrorInfo &gt; should handle object with code property" time="0.000281">
+        <testcase classname="src/lib/__tests__/browser-detection.test.ts" name="browser-detection &gt; detectBrowser &gt; should detect Exambro Android client via User-Agent" time="0.0003655">
         </testcase>
-        <testcase classname="src/lib/__tests__/error-messages.test.ts" name="error-messages &gt; getErrorInfo &gt; should handle object with error property" time="0.0002626">
+        <testcase classname="src/lib/__tests__/browser-detection.test.ts" name="browser-detection &gt; detectBrowser &gt; should detect Exambro via custom headers" time="0.0003224">
         </testcase>
-        <testcase classname="src/lib/__tests__/error-messages.test.ts" name="error-messages &gt; getErrorInfo &gt; should return UNKNOWN_ERROR for unrecognized strings" time="0.0002084">
+        <testcase classname="src/lib/__tests__/browser-detection.test.ts" name="browser-detection &gt; validateBrowserRequirements &gt; should allow any browser if no restrictions are set" time="0.0004099">
         </testcase>
-        <testcase classname="src/lib/__tests__/error-messages.test.ts" name="error-messages &gt; getErrorInfo &gt; should detect network errors from TypeError" time="0.0002137">
+        <testcase classname="src/lib/__tests__/browser-detection.test.ts" name="browser-detection &gt; validateBrowserRequirements &gt; should block standard browser when SEB is required" time="0.0004154">
         </testcase>
-        <testcase classname="src/lib/__tests__/error-messages.test.ts" name="error-messages &gt; getErrorInfo &gt; should return UNKNOWN_ERROR for null/undefined" time="0.000287">
+        <testcase classname="src/lib/__tests__/browser-detection.test.ts" name="browser-detection &gt; validateBrowserRequirements &gt; should permit SEB when SEB is required" time="0.0002538">
         </testcase>
-        <testcase classname="src/lib/__tests__/error-messages.test.ts" name="error-messages &gt; getErrorInfo &gt; should include action for errors that have it" time="0.0003907">
+        <testcase classname="src/lib/__tests__/browser-detection.test.ts" name="browser-detection &gt; validateBrowserRequirements &gt; should block standard browser when Exambro is required" time="0.000264">
         </testcase>
-        <testcase classname="src/lib/__tests__/error-messages.test.ts" name="error-messages &gt; formatApiError &gt; should format response with known code" time="0.0003469">
-        </testcase>
-        <testcase classname="src/lib/__tests__/error-messages.test.ts" name="error-messages &gt; formatApiError &gt; should format response with known error" time="0.0003087">
-        </testcase>
-        <testcase classname="src/lib/__tests__/error-messages.test.ts" name="error-messages &gt; formatApiError &gt; should use message for unknown errors" time="0.0002606">
-        </testcase>
-        <testcase classname="src/lib/__tests__/error-messages.test.ts" name="error-messages &gt; formatApiError &gt; should use error as fallback description" time="0.0001469">
-        </testcase>
-        <testcase classname="src/lib/__tests__/error-messages.test.ts" name="error-messages &gt; formatApiError &gt; should handle empty response" time="0.0001549">
-        </testcase>
-        <testcase classname="src/lib/__tests__/error-messages.test.ts" name="error-messages &gt; formatApiError &gt; should prioritize code over error" time="0.0001717">
+        <testcase classname="src/lib/__tests__/browser-detection.test.ts" name="browser-detection &gt; validateBrowserRequirements &gt; should permit Exambro when Exambro is required" time="0.0003032">
         </testcase>
     </testsuite>
-    <testsuite name="src/lib/__tests__/excel-export.test.ts" timestamp="2026-08-14T04:01:00.290Z" hostname="DESKTOP-V0JD0BU" tests="2" failures="0" errors="0" skipped="0" time="0.4382023">
-        <testcase classname="src/lib/__tests__/excel-export.test.ts" name="excel-export &gt; module exports &gt; should export exportToExcel function" time="0.432282">
+    <testsuite name="src/lib/__tests__/date-utils.test.ts" timestamp="2026-08-14T05:53:42.770Z" hostname="DESKTOP-V0JD0BU" tests="11" failures="0" errors="0" skipped="0" time="0.0090168">
+        <testcase classname="src/lib/__tests__/date-utils.test.ts" name="date-utils &gt; toDateTimeLocalString &gt; should convert UTC Date to datetime-local format in UTC+7" time="0.0034234">
         </testcase>
-        <testcase classname="src/lib/__tests__/excel-export.test.ts" name="excel-export &gt; exportToExcel function &gt; should be callable with valid data structure" time="0.0024158">
+        <testcase classname="src/lib/__tests__/date-utils.test.ts" name="date-utils &gt; toDateTimeLocalString &gt; should handle string input" time="0.0003559">
         </testcase>
-    </testsuite>
-    <testsuite name="src/lib/__tests__/json-utils.test.ts" timestamp="2026-08-14T04:01:00.291Z" hostname="DESKTOP-V0JD0BU" tests="10" failures="0" errors="0" skipped="0" time="0.0258483">
-        <testcase classname="src/lib/__tests__/json-utils.test.ts" name="safeJsonParse &gt; should return fallback when input is null or undefined" time="0.0028833">
+        <testcase classname="src/lib/__tests__/date-utils.test.ts" name="date-utils &gt; toDateTimeLocalString &gt; should handle afternoon time correctly" time="0.0002789">
         </testcase>
-        <testcase classname="src/lib/__tests__/json-utils.test.ts" name="safeJsonParse &gt; should return object or array directly if already parsed" time="0.0005299">
+        <testcase classname="src/lib/__tests__/date-utils.test.ts" name="date-utils &gt; toDateTimeLocalString &gt; should handle day rollover" time="0.000313">
         </testcase>
-        <testcase classname="src/lib/__tests__/json-utils.test.ts" name="safeJsonParse &gt; should parse standard valid JSON string" time="0.0003543">
+        <testcase classname="src/lib/__tests__/date-utils.test.ts" name="date-utils &gt; fromDateTimeLocalString &gt; should convert datetime-local string to UTC Date" time="0.0003729">
         </testcase>
-        <testcase classname="src/lib/__tests__/json-utils.test.ts" name="safeJsonParse &gt; should parse array JSON string" time="0.0002644">
+        <testcase classname="src/lib/__tests__/date-utils.test.ts" name="date-utils &gt; fromDateTimeLocalString &gt; should handle afternoon time correctly" time="0.0002675">
         </testcase>
-        <testcase classname="src/lib/__tests__/json-utils.test.ts" name="safeJsonParse &gt; should handle double-encoded JSON strings" time="0.0003651">
+        <testcase classname="src/lib/__tests__/date-utils.test.ts" name="date-utils &gt; fromDateTimeLocalString &gt; should handle early morning (day rollback to UTC)" time="0.0001832">
         </testcase>
-        <testcase classname="src/lib/__tests__/json-utils.test.ts" name="safeJsonParse &gt; should handle double-encoded JSON array strings" time="0.0003064">
+        <testcase classname="src/lib/__tests__/date-utils.test.ts" name="date-utils &gt; formatDateJakarta &gt; should format Date for display in UTC+7" time="0.0002674">
         </testcase>
-        <testcase classname="src/lib/__tests__/json-utils.test.ts" name="safeJsonParse &gt; should return fallback on malformed JSON string" time="0.0004305">
+        <testcase classname="src/lib/__tests__/date-utils.test.ts" name="date-utils &gt; formatDateJakarta &gt; should handle string input" time="0.0002159">
         </testcase>
-        <testcase classname="src/lib/__tests__/json-utils.test.ts" name="safeJsonParse &gt; should return fallback on non-string primitives" time="0.0002265">
+        <testcase classname="src/lib/__tests__/date-utils.test.ts" name="date-utils &gt; formatDateJakarta &gt; should format afternoon time correctly" time="0.000305">
         </testcase>
-        <testcase classname="src/lib/__tests__/json-utils.test.ts" name="safeJsonStringify &gt; should stringify valid objects" time="0.0004385">
-        </testcase>
-        <testcase classname="src/lib/__tests__/json-utils.test.ts" name="safeJsonStringify &gt; should return fallback on circular structures" time="0.0175026">
+        <testcase classname="src/lib/__tests__/date-utils.test.ts" name="date-utils &gt; round-trip conversion &gt; should preserve time through conversion cycle" time="0.000214">
         </testcase>
     </testsuite>
-    <testsuite name="src/lib/__tests__/lockdown.test.ts" timestamp="2026-08-14T04:01:00.293Z" hostname="DESKTOP-V0JD0BU" tests="6" failures="0" errors="0" skipped="0" time="0.1034256">
-        <testcase classname="src/lib/__tests__/lockdown.test.ts" name="lockdown &gt; ViolationType &gt; should define valid violation types" time="0.0029722">
+    <testsuite name="src/lib/__tests__/device.test.ts" timestamp="2026-08-14T05:53:42.772Z" hostname="DESKTOP-V0JD0BU" tests="4" failures="0" errors="0" skipped="0" time="0.0043087">
+        <testcase classname="src/lib/__tests__/device.test.ts" name="device helper &gt; validateDeviceId &gt; should permit when no deviceId was stored yet (first connection)" time="0.0013932">
         </testcase>
-        <testcase classname="src/lib/__tests__/lockdown.test.ts" name="lockdown &gt; module exports &gt; should export useTabSwitchDetector" time="0.0958775">
+        <testcase classname="src/lib/__tests__/device.test.ts" name="device helper &gt; validateDeviceId &gt; should permit when stored deviceId matches current deviceId" time="0.0002434">
         </testcase>
-        <testcase classname="src/lib/__tests__/lockdown.test.ts" name="lockdown &gt; module exports &gt; should export useAntiCopyPaste" time="0.0005253">
+        <testcase classname="src/lib/__tests__/device.test.ts" name="device helper &gt; validateDeviceId &gt; should block when current deviceId differs from stored deviceId" time="0.0003966">
         </testcase>
-        <testcase classname="src/lib/__tests__/lockdown.test.ts" name="lockdown &gt; module exports &gt; should export useScreenshotDetector" time="0.0004279">
-        </testcase>
-        <testcase classname="src/lib/__tests__/lockdown.test.ts" name="lockdown &gt; module exports &gt; should export useWatermark" time="0.0004867">
-        </testcase>
-        <testcase classname="src/lib/__tests__/lockdown.test.ts" name="lockdown &gt; module exports &gt; should export useLockdownMode" time="0.0002869">
+        <testcase classname="src/lib/__tests__/device.test.ts" name="device helper &gt; validateDeviceId &gt; should block when no current deviceId is provided but submission has stored deviceId" time="0.0002777">
         </testcase>
     </testsuite>
-    <testsuite name="src/lib/__tests__/logger.test.ts" timestamp="2026-08-14T04:01:00.294Z" hostname="DESKTOP-V0JD0BU" tests="8" failures="0" errors="0" skipped="0" time="0.0127085">
-        <testcase classname="src/lib/__tests__/logger.test.ts" name="logger &gt; logger instance &gt; should export a logger instance" time="0.002483">
+    <testsuite name="src/lib/__tests__/error-messages.test.ts" timestamp="2026-08-14T05:53:42.773Z" hostname="DESKTOP-V0JD0BU" tests="15" failures="0" errors="0" skipped="0" time="0.0084597">
+        <testcase classname="src/lib/__tests__/error-messages.test.ts" name="error-messages &gt; getErrorInfo &gt; should return info for known error code string" time="0.0023105">
         </testcase>
-        <testcase classname="src/lib/__tests__/logger.test.ts" name="logger &gt; logger instance &gt; should have standard log methods" time="0.0008455">
+        <testcase classname="src/lib/__tests__/error-messages.test.ts" name="error-messages &gt; getErrorInfo &gt; should extract error code from bracketed message" time="0.0004071">
         </testcase>
-        <testcase classname="src/lib/__tests__/logger.test.ts" name="logger &gt; createLogger &gt; should create a child logger with context" time="0.0005179">
+        <testcase classname="src/lib/__tests__/error-messages.test.ts" name="error-messages &gt; getErrorInfo &gt; should handle Error object with bracketed message" time="0.0003321">
         </testcase>
-        <testcase classname="src/lib/__tests__/logger.test.ts" name="logger &gt; convenience functions &gt; logInfo should call logger.info" time="0.0007043">
+        <testcase classname="src/lib/__tests__/error-messages.test.ts" name="error-messages &gt; getErrorInfo &gt; should handle object with code property" time="0.0002815">
         </testcase>
-        <testcase classname="src/lib/__tests__/logger.test.ts" name="logger &gt; convenience functions &gt; logWarn should call logger.warn" time="0.0004253">
+        <testcase classname="src/lib/__tests__/error-messages.test.ts" name="error-messages &gt; getErrorInfo &gt; should handle object with error property" time="0.0002681">
         </testcase>
-        <testcase classname="src/lib/__tests__/logger.test.ts" name="logger &gt; convenience functions &gt; logDebug should call logger.debug" time="0.0003135">
+        <testcase classname="src/lib/__tests__/error-messages.test.ts" name="error-messages &gt; getErrorInfo &gt; should return UNKNOWN_ERROR for unrecognized strings" time="0.0002434">
         </testcase>
-        <testcase classname="src/lib/__tests__/logger.test.ts" name="logger &gt; convenience functions &gt; logError should handle Error objects" time="0.0043043">
+        <testcase classname="src/lib/__tests__/error-messages.test.ts" name="error-messages &gt; getErrorInfo &gt; should detect network errors from TypeError" time="0.0002107">
         </testcase>
-        <testcase classname="src/lib/__tests__/logger.test.ts" name="logger &gt; convenience functions &gt; logError should handle non-Error objects" time="0.0003442">
+        <testcase classname="src/lib/__tests__/error-messages.test.ts" name="error-messages &gt; getErrorInfo &gt; should return UNKNOWN_ERROR for null/undefined" time="0.0002155">
         </testcase>
-    </testsuite>
-    <testsuite name="src/lib/__tests__/offline-sync.test.ts" timestamp="2026-08-14T04:01:00.295Z" hostname="DESKTOP-V0JD0BU" tests="5" failures="0" errors="0" skipped="0" time="0.015534">
-        <testcase classname="src/lib/__tests__/offline-sync.test.ts" name="offline-sync utility &gt; should save and retrieve pending answers from local queue" time="0.0041805">
+        <testcase classname="src/lib/__tests__/error-messages.test.ts" name="error-messages &gt; getErrorInfo &gt; should include action for errors that have it" time="0.0003323">
         </testcase>
-        <testcase classname="src/lib/__tests__/offline-sync.test.ts" name="offline-sync utility &gt; should remove individual answer from queue after sync" time="0.0008528">
+        <testcase classname="src/lib/__tests__/error-messages.test.ts" name="error-messages &gt; formatApiError &gt; should format response with known code" time="0.000319">
         </testcase>
-        <testcase classname="src/lib/__tests__/offline-sync.test.ts" name="offline-sync utility &gt; should clear all answers for a session" time="0.0007019">
+        <testcase classname="src/lib/__tests__/error-messages.test.ts" name="error-messages &gt; formatApiError &gt; should format response with known error" time="0.0001541">
         </testcase>
-        <testcase classname="src/lib/__tests__/offline-sync.test.ts" name="offline-sync utility &gt; should sync pending answers to server" time="0.0020414">
+        <testcase classname="src/lib/__tests__/error-messages.test.ts" name="error-messages &gt; formatApiError &gt; should use message for unknown errors" time="0.0001748">
         </testcase>
-        <testcase classname="src/lib/__tests__/offline-sync.test.ts" name="offline-sync utility &gt; should subscribe and unsubscribe from network status events" time="0.0052585">
+        <testcase classname="src/lib/__tests__/error-messages.test.ts" name="error-messages &gt; formatApiError &gt; should use error as fallback description" time="0.0001271">
         </testcase>
-    </testsuite>
-    <testsuite name="src/lib/__tests__/randomization.test.ts" timestamp="2026-08-14T04:01:00.296Z" hostname="DESKTOP-V0JD0BU" tests="21" failures="0" errors="0" skipped="0" time="0.0231085">
-        <testcase classname="src/lib/__tests__/randomization.test.ts" name="randomization &gt; shuffleArray &gt; should return array with same length" time="0.0032907">
+        <testcase classname="src/lib/__tests__/error-messages.test.ts" name="error-messages &gt; formatApiError &gt; should handle empty response" time="0.0001724">
         </testcase>
-        <testcase classname="src/lib/__tests__/randomization.test.ts" name="randomization &gt; shuffleArray &gt; should contain all original elements" time="0.0012675">
-        </testcase>
-        <testcase classname="src/lib/__tests__/randomization.test.ts" name="randomization &gt; shuffleArray &gt; should not mutate original array" time="0.0003738">
-        </testcase>
-        <testcase classname="src/lib/__tests__/randomization.test.ts" name="randomization &gt; shuffleArray &gt; should handle empty array" time="0.0003111">
-        </testcase>
-        <testcase classname="src/lib/__tests__/randomization.test.ts" name="randomization &gt; shuffleArray &gt; should handle single element" time="0.0003106">
-        </testcase>
-        <testcase classname="src/lib/__tests__/randomization.test.ts" name="randomization &gt; shuffleArray &gt; should eventually produce different order (randomness test)" time="0.0004573">
-        </testcase>
-        <testcase classname="src/lib/__tests__/randomization.test.ts" name="randomization &gt; applyQuestionRandomization &gt; should return original order when no rules" time="0.0004348">
-        </testcase>
-        <testcase classname="src/lib/__tests__/randomization.test.ts" name="randomization &gt; applyQuestionRandomization &gt; should return original order when mode is missing" time="0.0002873">
-        </testcase>
-        <testcase classname="src/lib/__tests__/randomization.test.ts" name="randomization &gt; applyQuestionRandomization &gt; should shuffle all questions in &quot;all&quot; mode" time="0.0005615">
-        </testcase>
-        <testcase classname="src/lib/__tests__/randomization.test.ts" name="randomization &gt; applyQuestionRandomization &gt; should only shuffle specified types in &quot;by_type&quot; mode" time="0.003859">
-        </testcase>
-        <testcase classname="src/lib/__tests__/randomization.test.ts" name="randomization &gt; applyQuestionRandomization &gt; should shuffle all except specified types in &quot;exclude_type&quot; mode" time="0.0010368">
-        </testcase>
-        <testcase classname="src/lib/__tests__/randomization.test.ts" name="randomization &gt; applyQuestionRandomization &gt; should only shuffle specific positions in &quot;specific_numbers&quot; mode" time="0.0026454">
-        </testcase>
-        <testcase classname="src/lib/__tests__/randomization.test.ts" name="randomization &gt; shuffleByCondition &gt; should only shuffle items matching condition" time="0.0020498">
-        </testcase>
-        <testcase classname="src/lib/__tests__/randomization.test.ts" name="randomization &gt; shuffleByCondition &gt; should keep all in place when none match condition" time="0.0003451">
-        </testcase>
-        <testcase classname="src/lib/__tests__/randomization.test.ts" name="randomization &gt; shuffleByCondition &gt; should shuffle all when all match condition" time="0.0004122">
-        </testcase>
-        <testcase classname="src/lib/__tests__/randomization.test.ts" name="randomization &gt; shouldShuffleAnswers &gt; should return false when shuffleAnswers is false" time="0.0002318">
-        </testcase>
-        <testcase classname="src/lib/__tests__/randomization.test.ts" name="randomization &gt; shouldShuffleAnswers &gt; should return true for shuffleable types when enabled" time="0.0002488">
-        </testcase>
-        <testcase classname="src/lib/__tests__/randomization.test.ts" name="randomization &gt; shouldShuffleAnswers &gt; should return false for non-shuffleable types" time="0.0001609">
-        </testcase>
-        <testcase classname="src/lib/__tests__/randomization.test.ts" name="randomization &gt; seededShuffle &gt; should be 100% deterministic with same seed" time="0.0008272">
-        </testcase>
-        <testcase classname="src/lib/__tests__/randomization.test.ts" name="randomization &gt; seededShuffle &gt; should produce different order with different seeds" time="0.0003563">
-        </testcase>
-        <testcase classname="src/lib/__tests__/randomization.test.ts" name="randomization &gt; seededShuffle &gt; should accurately map shuffled elements back to original indices" time="0.0002805">
+        <testcase classname="src/lib/__tests__/error-messages.test.ts" name="error-messages &gt; formatApiError &gt; should prioritize code over error" time="0.0001264">
         </testcase>
     </testsuite>
-    <testsuite name="src/lib/__tests__/rate-limit.test.ts" timestamp="2026-08-14T04:01:00.299Z" hostname="DESKTOP-V0JD0BU" tests="5" failures="0" errors="0" skipped="0" time="0.0158916">
-        <testcase classname="src/lib/__tests__/rate-limit.test.ts" name="RateLimiter &gt; should allow requests within limit" time="0.0044228">
+    <testsuite name="src/lib/__tests__/excel-export.test.ts" timestamp="2026-08-14T05:53:42.776Z" hostname="DESKTOP-V0JD0BU" tests="2" failures="0" errors="0" skipped="0" time="0.4450562">
+        <testcase classname="src/lib/__tests__/excel-export.test.ts" name="excel-export &gt; module exports &gt; should export exportToExcel function" time="0.4398954">
         </testcase>
-        <testcase classname="src/lib/__tests__/rate-limit.test.ts" name="RateLimiter &gt; should throw when rate limit exceeded" time="0.0023392">
-        </testcase>
-        <testcase classname="src/lib/__tests__/rate-limit.test.ts" name="RateLimiter &gt; should track different tokens separately" time="0.0013242">
-        </testcase>
-        <testcase classname="src/lib/__tests__/rate-limit.test.ts" name="RateLimiter &gt; should reset count after interval" time="0.0040851">
-        </testcase>
-        <testcase classname="src/lib/__tests__/rate-limit.test.ts" name="RateLimiter &gt; should handle limit of 1" time="0.0008812">
+        <testcase classname="src/lib/__tests__/excel-export.test.ts" name="excel-export &gt; exportToExcel function &gt; should be callable with valid data structure" time="0.0019492">
         </testcase>
     </testsuite>
-    <testsuite name="src/lib/__tests__/session.test.ts" timestamp="2026-08-14T04:01:00.300Z" hostname="DESKTOP-V0JD0BU" tests="5" failures="0" errors="0" skipped="0" time="0.0219432">
-        <testcase classname="src/lib/__tests__/session.test.ts" name="Session Module (HMAC-SHA256 Signed Cookies) &gt; should correctly sign and verify a valid session" time="0.0111286">
+    <testsuite name="src/lib/__tests__/json-utils.test.ts" timestamp="2026-08-14T05:53:42.777Z" hostname="DESKTOP-V0JD0BU" tests="10" failures="0" errors="0" skipped="0" time="0.0271773">
+        <testcase classname="src/lib/__tests__/json-utils.test.ts" name="safeJsonParse &gt; should return fallback when input is null or undefined" time="0.0033497">
         </testcase>
-        <testcase classname="src/lib/__tests__/session.test.ts" name="Session Module (HMAC-SHA256 Signed Cookies) &gt; should reject tampered session payload (e.g. privilege escalation attempt)" time="0.0037725">
+        <testcase classname="src/lib/__tests__/json-utils.test.ts" name="safeJsonParse &gt; should return object or array directly if already parsed" time="0.0006043">
         </testcase>
-        <testcase classname="src/lib/__tests__/session.test.ts" name="Session Module (HMAC-SHA256 Signed Cookies) &gt; should reject tampered signature" time="0.0013135">
+        <testcase classname="src/lib/__tests__/json-utils.test.ts" name="safeJsonParse &gt; should parse standard valid JSON string" time="0.0003667">
         </testcase>
-        <testcase classname="src/lib/__tests__/session.test.ts" name="Session Module (HMAC-SHA256 Signed Cookies) &gt; should reject expired session token" time="0.0026727">
+        <testcase classname="src/lib/__tests__/json-utils.test.ts" name="safeJsonParse &gt; should parse array JSON string" time="0.0003066">
         </testcase>
-        <testcase classname="src/lib/__tests__/session.test.ts" name="Session Module (HMAC-SHA256 Signed Cookies) &gt; should reject malformed or empty token" time="0.0005527">
+        <testcase classname="src/lib/__tests__/json-utils.test.ts" name="safeJsonParse &gt; should handle double-encoded JSON strings" time="0.0003694">
         </testcase>
-    </testsuite>
-    <testsuite name="src/lib/__tests__/utils.test.ts" timestamp="2026-08-14T04:01:00.300Z" hostname="DESKTOP-V0JD0BU" tests="9" failures="0" errors="0" skipped="0" time="0.0281485">
-        <testcase classname="src/lib/__tests__/utils.test.ts" name="utils &gt; cn function &gt; should merge class names" time="0.0196988">
+        <testcase classname="src/lib/__tests__/json-utils.test.ts" name="safeJsonParse &gt; should handle double-encoded JSON array strings" time="0.0003333">
         </testcase>
-        <testcase classname="src/lib/__tests__/utils.test.ts" name="utils &gt; cn function &gt; should handle conditional classes" time="0.0004823">
+        <testcase classname="src/lib/__tests__/json-utils.test.ts" name="safeJsonParse &gt; should return fallback on malformed JSON string" time="0.0004094">
         </testcase>
-        <testcase classname="src/lib/__tests__/utils.test.ts" name="utils &gt; cn function &gt; should merge tailwind classes correctly" time="0.0028423">
+        <testcase classname="src/lib/__tests__/json-utils.test.ts" name="safeJsonParse &gt; should return fallback on non-string primitives" time="0.0002369">
         </testcase>
-        <testcase classname="src/lib/__tests__/utils.test.ts" name="utils &gt; cn function &gt; should handle object notation" time="0.0004107">
+        <testcase classname="src/lib/__tests__/json-utils.test.ts" name="safeJsonStringify &gt; should stringify valid objects" time="0.0006833">
         </testcase>
-        <testcase classname="src/lib/__tests__/utils.test.ts" name="utils &gt; cn function &gt; should handle array of classes" time="0.0003451">
-        </testcase>
-        <testcase classname="src/lib/__tests__/utils.test.ts" name="utils &gt; cn function &gt; should handle undefined and null" time="0.0002239">
-        </testcase>
-        <testcase classname="src/lib/__tests__/utils.test.ts" name="utils &gt; cn function &gt; should return empty string for no arguments" time="0.0002067">
-        </testcase>
-        <testcase classname="src/lib/__tests__/utils.test.ts" name="utils &gt; cn function &gt; should handle mixed tailwind utilities" time="0.0007041">
-        </testcase>
-        <testcase classname="src/lib/__tests__/utils.test.ts" name="utils &gt; cn function &gt; should preserve non-conflicting classes" time="0.0004449">
+        <testcase classname="src/lib/__tests__/json-utils.test.ts" name="safeJsonStringify &gt; should return fallback on circular structures" time="0.0174906">
         </testcase>
     </testsuite>
-    <testsuite name="src/app/api/__tests__/activities.test.ts" timestamp="2026-08-14T04:01:00.302Z" hostname="DESKTOP-V0JD0BU" tests="2" failures="0" errors="0" skipped="0" time="0.0099724">
-        <testcase classname="src/app/api/__tests__/activities.test.ts" name="GET /api/admin/activities &gt; should reject unauthorized requests" time="0.0050081">
+    <testsuite name="src/lib/__tests__/lockdown.test.ts" timestamp="2026-08-14T05:53:42.780Z" hostname="DESKTOP-V0JD0BU" tests="6" failures="0" errors="0" skipped="0" time="0.1328872">
+        <testcase classname="src/lib/__tests__/lockdown.test.ts" name="lockdown &gt; ViolationType &gt; should define valid violation types" time="0.0033371">
+        </testcase>
+        <testcase classname="src/lib/__tests__/lockdown.test.ts" name="lockdown &gt; module exports &gt; should export useTabSwitchDetector" time="0.1250778">
+        </testcase>
+        <testcase classname="src/lib/__tests__/lockdown.test.ts" name="lockdown &gt; module exports &gt; should export useAntiCopyPaste" time="0.0004372">
+        </testcase>
+        <testcase classname="src/lib/__tests__/lockdown.test.ts" name="lockdown &gt; module exports &gt; should export useScreenshotDetector" time="0.0004192">
+        </testcase>
+        <testcase classname="src/lib/__tests__/lockdown.test.ts" name="lockdown &gt; module exports &gt; should export useWatermark" time="0.0004614">
+        </testcase>
+        <testcase classname="src/lib/__tests__/lockdown.test.ts" name="lockdown &gt; module exports &gt; should export useLockdownMode" time="0.0003426">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/lib/__tests__/logger.test.ts" timestamp="2026-08-14T05:53:42.781Z" hostname="DESKTOP-V0JD0BU" tests="8" failures="0" errors="0" skipped="0" time="0.0128079">
+        <testcase classname="src/lib/__tests__/logger.test.ts" name="logger &gt; logger instance &gt; should export a logger instance" time="0.0023132">
+        </testcase>
+        <testcase classname="src/lib/__tests__/logger.test.ts" name="logger &gt; logger instance &gt; should have standard log methods" time="0.0008404">
+        </testcase>
+        <testcase classname="src/lib/__tests__/logger.test.ts" name="logger &gt; createLogger &gt; should create a child logger with context" time="0.0004552">
+        </testcase>
+        <testcase classname="src/lib/__tests__/logger.test.ts" name="logger &gt; convenience functions &gt; logInfo should call logger.info" time="0.000646">
+        </testcase>
+        <testcase classname="src/lib/__tests__/logger.test.ts" name="logger &gt; convenience functions &gt; logWarn should call logger.warn" time="0.0004149">
+        </testcase>
+        <testcase classname="src/lib/__tests__/logger.test.ts" name="logger &gt; convenience functions &gt; logDebug should call logger.debug" time="0.0003315">
+        </testcase>
+        <testcase classname="src/lib/__tests__/logger.test.ts" name="logger &gt; convenience functions &gt; logError should handle Error objects" time="0.0047502">
+        </testcase>
+        <testcase classname="src/lib/__tests__/logger.test.ts" name="logger &gt; convenience functions &gt; logError should handle non-Error objects" time="0.0003465">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/lib/__tests__/offline-sync.test.ts" timestamp="2026-08-14T05:53:42.783Z" hostname="DESKTOP-V0JD0BU" tests="5" failures="0" errors="0" skipped="0" time="0.0178973">
+        <testcase classname="src/lib/__tests__/offline-sync.test.ts" name="offline-sync utility &gt; should save and retrieve pending answers from local queue" time="0.0056424">
+        </testcase>
+        <testcase classname="src/lib/__tests__/offline-sync.test.ts" name="offline-sync utility &gt; should remove individual answer from queue after sync" time="0.0009104">
+        </testcase>
+        <testcase classname="src/lib/__tests__/offline-sync.test.ts" name="offline-sync utility &gt; should clear all answers for a session" time="0.0006009">
+        </testcase>
+        <testcase classname="src/lib/__tests__/offline-sync.test.ts" name="offline-sync utility &gt; should sync pending answers to server" time="0.0020525">
+        </testcase>
+        <testcase classname="src/lib/__tests__/offline-sync.test.ts" name="offline-sync utility &gt; should subscribe and unsubscribe from network status events" time="0.0060626">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/lib/__tests__/proctoring-events.test.ts" timestamp="2026-08-14T05:53:42.784Z" hostname="DESKTOP-V0JD0BU" tests="3" failures="0" errors="0" skipped="0" time="0.0115167">
+        <testcase classname="src/lib/__tests__/proctoring-events.test.ts" name="proctoring-events bus &gt; should allow subscribing to session events and receiving publications" time="0.0065322">
+        </testcase>
+        <testcase classname="src/lib/__tests__/proctoring-events.test.ts" name="proctoring-events bus &gt; should not deliver events after unsubscribing" time="0.00177">
+        </testcase>
+        <testcase classname="src/lib/__tests__/proctoring-events.test.ts" name="proctoring-events bus &gt; should support proctor actions publication" time="0.0006688">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/lib/__tests__/randomization.test.ts" timestamp="2026-08-14T05:53:42.785Z" hostname="DESKTOP-V0JD0BU" tests="21" failures="0" errors="0" skipped="0" time="0.0234122">
+        <testcase classname="src/lib/__tests__/randomization.test.ts" name="randomization &gt; shuffleArray &gt; should return array with same length" time="0.0031904">
+        </testcase>
+        <testcase classname="src/lib/__tests__/randomization.test.ts" name="randomization &gt; shuffleArray &gt; should contain all original elements" time="0.0012817">
+        </testcase>
+        <testcase classname="src/lib/__tests__/randomization.test.ts" name="randomization &gt; shuffleArray &gt; should not mutate original array" time="0.0003479">
+        </testcase>
+        <testcase classname="src/lib/__tests__/randomization.test.ts" name="randomization &gt; shuffleArray &gt; should handle empty array" time="0.0002871">
+        </testcase>
+        <testcase classname="src/lib/__tests__/randomization.test.ts" name="randomization &gt; shuffleArray &gt; should handle single element" time="0.0002992">
+        </testcase>
+        <testcase classname="src/lib/__tests__/randomization.test.ts" name="randomization &gt; shuffleArray &gt; should eventually produce different order (randomness test)" time="0.000441">
+        </testcase>
+        <testcase classname="src/lib/__tests__/randomization.test.ts" name="randomization &gt; applyQuestionRandomization &gt; should return original order when no rules" time="0.0004023">
+        </testcase>
+        <testcase classname="src/lib/__tests__/randomization.test.ts" name="randomization &gt; applyQuestionRandomization &gt; should return original order when mode is missing" time="0.0002785">
+        </testcase>
+        <testcase classname="src/lib/__tests__/randomization.test.ts" name="randomization &gt; applyQuestionRandomization &gt; should shuffle all questions in &quot;all&quot; mode" time="0.0005244">
+        </testcase>
+        <testcase classname="src/lib/__tests__/randomization.test.ts" name="randomization &gt; applyQuestionRandomization &gt; should only shuffle specified types in &quot;by_type&quot; mode" time="0.0039233">
+        </testcase>
+        <testcase classname="src/lib/__tests__/randomization.test.ts" name="randomization &gt; applyQuestionRandomization &gt; should shuffle all except specified types in &quot;exclude_type&quot; mode" time="0.0011207">
+        </testcase>
+        <testcase classname="src/lib/__tests__/randomization.test.ts" name="randomization &gt; applyQuestionRandomization &gt; should only shuffle specific positions in &quot;specific_numbers&quot; mode" time="0.0027341">
+        </testcase>
+        <testcase classname="src/lib/__tests__/randomization.test.ts" name="randomization &gt; shuffleByCondition &gt; should only shuffle items matching condition" time="0.0022341">
+        </testcase>
+        <testcase classname="src/lib/__tests__/randomization.test.ts" name="randomization &gt; shuffleByCondition &gt; should keep all in place when none match condition" time="0.0003085">
+        </testcase>
+        <testcase classname="src/lib/__tests__/randomization.test.ts" name="randomization &gt; shuffleByCondition &gt; should shuffle all when all match condition" time="0.0003648">
+        </testcase>
+        <testcase classname="src/lib/__tests__/randomization.test.ts" name="randomization &gt; shouldShuffleAnswers &gt; should return false when shuffleAnswers is false" time="0.0002516">
+        </testcase>
+        <testcase classname="src/lib/__tests__/randomization.test.ts" name="randomization &gt; shouldShuffleAnswers &gt; should return true for shuffleable types when enabled" time="0.0002883">
+        </testcase>
+        <testcase classname="src/lib/__tests__/randomization.test.ts" name="randomization &gt; shouldShuffleAnswers &gt; should return false for non-shuffleable types" time="0.0001843">
+        </testcase>
+        <testcase classname="src/lib/__tests__/randomization.test.ts" name="randomization &gt; seededShuffle &gt; should be 100% deterministic with same seed" time="0.0007504">
+        </testcase>
+        <testcase classname="src/lib/__tests__/randomization.test.ts" name="randomization &gt; seededShuffle &gt; should produce different order with different seeds" time="0.0003265">
+        </testcase>
+        <testcase classname="src/lib/__tests__/randomization.test.ts" name="randomization &gt; seededShuffle &gt; should accurately map shuffled elements back to original indices" time="0.0003158">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/lib/__tests__/rate-limit.test.ts" timestamp="2026-08-14T05:53:42.789Z" hostname="DESKTOP-V0JD0BU" tests="5" failures="0" errors="0" skipped="0" time="0.0148046">
+        <testcase classname="src/lib/__tests__/rate-limit.test.ts" name="RateLimiter &gt; should allow requests within limit" time="0.0040883">
+        </testcase>
+        <testcase classname="src/lib/__tests__/rate-limit.test.ts" name="RateLimiter &gt; should throw when rate limit exceeded" time="0.0020038">
+        </testcase>
+        <testcase classname="src/lib/__tests__/rate-limit.test.ts" name="RateLimiter &gt; should track different tokens separately" time="0.0008947">
+        </testcase>
+        <testcase classname="src/lib/__tests__/rate-limit.test.ts" name="RateLimiter &gt; should reset count after interval" time="0.0044968">
+        </testcase>
+        <testcase classname="src/lib/__tests__/rate-limit.test.ts" name="RateLimiter &gt; should handle limit of 1" time="0.0008261">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/lib/__tests__/session.test.ts" timestamp="2026-08-14T05:53:42.790Z" hostname="DESKTOP-V0JD0BU" tests="5" failures="0" errors="0" skipped="0" time="0.0450008">
+        <testcase classname="src/lib/__tests__/session.test.ts" name="Session Module (HMAC-SHA256 Signed Cookies) &gt; should correctly sign and verify a valid session" time="0.0348637">
+        </testcase>
+        <testcase classname="src/lib/__tests__/session.test.ts" name="Session Module (HMAC-SHA256 Signed Cookies) &gt; should reject tampered session payload (e.g. privilege escalation attempt)" time="0.0017528">
+        </testcase>
+        <testcase classname="src/lib/__tests__/session.test.ts" name="Session Module (HMAC-SHA256 Signed Cookies) &gt; should reject tampered signature" time="0.0030426">
+        </testcase>
+        <testcase classname="src/lib/__tests__/session.test.ts" name="Session Module (HMAC-SHA256 Signed Cookies) &gt; should reject expired session token" time="0.0020256">
+        </testcase>
+        <testcase classname="src/lib/__tests__/session.test.ts" name="Session Module (HMAC-SHA256 Signed Cookies) &gt; should reject malformed or empty token" time="0.0004947">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/lib/__tests__/utils.test.ts" timestamp="2026-08-14T05:53:42.791Z" hostname="DESKTOP-V0JD0BU" tests="9" failures="0" errors="0" skipped="0" time="0.0184993">
+        <testcase classname="src/lib/__tests__/utils.test.ts" name="utils &gt; cn function &gt; should merge class names" time="0.0108329">
+        </testcase>
+        <testcase classname="src/lib/__tests__/utils.test.ts" name="utils &gt; cn function &gt; should handle conditional classes" time="0.0004463">
+        </testcase>
+        <testcase classname="src/lib/__tests__/utils.test.ts" name="utils &gt; cn function &gt; should merge tailwind classes correctly" time="0.0009675">
+        </testcase>
+        <testcase classname="src/lib/__tests__/utils.test.ts" name="utils &gt; cn function &gt; should handle object notation" time="0.0004199">
+        </testcase>
+        <testcase classname="src/lib/__tests__/utils.test.ts" name="utils &gt; cn function &gt; should handle array of classes" time="0.000604">
+        </testcase>
+        <testcase classname="src/lib/__tests__/utils.test.ts" name="utils &gt; cn function &gt; should handle undefined and null" time="0.0002699">
+        </testcase>
+        <testcase classname="src/lib/__tests__/utils.test.ts" name="utils &gt; cn function &gt; should return empty string for no arguments" time="0.0002194">
+        </testcase>
+        <testcase classname="src/lib/__tests__/utils.test.ts" name="utils &gt; cn function &gt; should handle mixed tailwind utilities" time="0.0006975">
+        </testcase>
+        <testcase classname="src/lib/__tests__/utils.test.ts" name="utils &gt; cn function &gt; should preserve non-conflicting classes" time="0.0004733">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/app/api/__tests__/activities.test.ts" timestamp="2026-08-14T05:53:42.793Z" hostname="DESKTOP-V0JD0BU" tests="2" failures="0" errors="0" skipped="0" time="0.0113501">
+        <testcase classname="src/app/api/__tests__/activities.test.ts" name="GET /api/admin/activities &gt; should reject unauthorized requests" time="0.0057308">
             <system-err>
 Error fetching activities: { message: [32m&apos;Unauthorized&apos;[39m, status: [33m401[39m }
 
             </system-err>
         </testcase>
-        <testcase classname="src/app/api/__tests__/activities.test.ts" name="GET /api/admin/activities &gt; should return formatted activity logs for admin" time="0.0036645">
+        <testcase classname="src/app/api/__tests__/activities.test.ts" name="GET /api/admin/activities &gt; should return formatted activity logs for admin" time="0.0041211">
         </testcase>
     </testsuite>
-    <testsuite name="src/app/api/__tests__/analytics.test.ts" timestamp="2026-08-14T04:01:00.302Z" hostname="DESKTOP-V0JD0BU" tests="2" failures="0" errors="0" skipped="0" time="0.010172">
-        <testcase classname="src/app/api/__tests__/analytics.test.ts" name="GET /api/admin/analytics &gt; should reject unauthenticated request" time="0.0059574">
+    <testsuite name="src/app/api/__tests__/analytics.test.ts" timestamp="2026-08-14T05:53:42.794Z" hostname="DESKTOP-V0JD0BU" tests="2" failures="0" errors="0" skipped="0" time="0.0240587">
+        <testcase classname="src/app/api/__tests__/analytics.test.ts" name="GET /api/admin/analytics &gt; should reject unauthenticated request" time="0.0189545">
             <system-err>
 Error fetching analytics: { message: [32m&apos;Unauthorized&apos;[39m, status: [33m401[39m }
 
             </system-err>
         </testcase>
-        <testcase classname="src/app/api/__tests__/analytics.test.ts" name="GET /api/admin/analytics &gt; should return formatted analytics when authenticated" time="0.0026708">
+        <testcase classname="src/app/api/__tests__/analytics.test.ts" name="GET /api/admin/analytics &gt; should return formatted analytics when authenticated" time="0.0030244">
         </testcase>
     </testsuite>
-    <testsuite name="src/app/api/__tests__/auth-session.test.ts" timestamp="2026-08-14T04:01:00.303Z" hostname="DESKTOP-V0JD0BU" tests="2" failures="0" errors="0" skipped="0" time="0.0073673">
-        <testcase classname="src/app/api/__tests__/auth-session.test.ts" name="GET /api/auth/session &gt; should return 401 when not authenticated" time="0.0048196">
+    <testsuite name="src/app/api/__tests__/auth-session.test.ts" timestamp="2026-08-14T05:53:42.794Z" hostname="DESKTOP-V0JD0BU" tests="2" failures="0" errors="0" skipped="0" time="0.0072097">
+        <testcase classname="src/app/api/__tests__/auth-session.test.ts" name="GET /api/auth/session &gt; should return 401 when not authenticated" time="0.0045641">
         </testcase>
-        <testcase classname="src/app/api/__tests__/auth-session.test.ts" name="GET /api/auth/session &gt; should return user session with 200 when authenticated" time="0.0013043">
+        <testcase classname="src/app/api/__tests__/auth-session.test.ts" name="GET /api/auth/session &gt; should return user session with 200 when authenticated" time="0.0012204">
         </testcase>
     </testsuite>
-    <testsuite name="src/app/api/__tests__/backup.test.ts" timestamp="2026-08-14T04:01:00.303Z" hostname="DESKTOP-V0JD0BU" tests="2" failures="0" errors="0" skipped="0" time="0.0088352">
-        <testcase classname="src/app/api/__tests__/backup.test.ts" name="GET /api/admin/backup &gt; should reject non-admin users" time="0.0046634">
+    <testsuite name="src/app/api/__tests__/backup.test.ts" timestamp="2026-08-14T05:53:42.795Z" hostname="DESKTOP-V0JD0BU" tests="2" failures="0" errors="0" skipped="0" time="0.0087774">
+        <testcase classname="src/app/api/__tests__/backup.test.ts" name="GET /api/admin/backup &gt; should reject non-admin users" time="0.0047397">
             <system-err>
 Backup error: { message: [32m&apos;Unauthorized&apos;[39m, status: [33m403[39m }
 
             </system-err>
         </testcase>
-        <testcase classname="src/app/api/__tests__/backup.test.ts" name="GET /api/admin/backup &gt; should export database backup JSON with attachment header" time="0.0027918">
+        <testcase classname="src/app/api/__tests__/backup.test.ts" name="GET /api/admin/backup &gt; should export database backup JSON with attachment header" time="0.0026558">
         </testcase>
     </testsuite>
-    <testsuite name="src/app/api/__tests__/bulk-export.test.ts" timestamp="2026-08-14T04:01:00.305Z" hostname="DESKTOP-V0JD0BU" tests="2" failures="0" errors="0" skipped="0" time="0.0318707">
-        <testcase classname="src/app/api/__tests__/bulk-export.test.ts" name="GET /api/users/bulk-export &gt; should reject non-admin requests" time="0.0116728">
+    <testsuite name="src/app/api/__tests__/bulk-export.test.ts" timestamp="2026-08-14T05:53:42.795Z" hostname="DESKTOP-V0JD0BU" tests="2" failures="0" errors="0" skipped="0" time="0.0318499">
+        <testcase classname="src/app/api/__tests__/bulk-export.test.ts" name="GET /api/users/bulk-export &gt; should reject non-admin requests" time="0.0120673">
             <system-err>
 Error exporting users: { message: [32m&apos;Unauthorized&apos;[39m, status: [33m403[39m }
 
             </system-err>
         </testcase>
-        <testcase classname="src/app/api/__tests__/bulk-export.test.ts" name="GET /api/users/bulk-export &gt; should export Excel template when type is template" time="0.0180974">
+        <testcase classname="src/app/api/__tests__/bulk-export.test.ts" name="GET /api/users/bulk-export &gt; should export Excel template when type is template" time="0.0169324">
         </testcase>
     </testsuite>
-    <testsuite name="src/app/api/__tests__/notifications.test.ts" timestamp="2026-08-14T04:01:00.305Z" hostname="DESKTOP-V0JD0BU" tests="2" failures="0" errors="0" skipped="0" time="0.0115937">
-        <testcase classname="src/app/api/__tests__/notifications.test.ts" name="GET /api/notifications &gt; should return empty notifications if not authenticated" time="0.0069698">
+    <testsuite name="src/app/api/__tests__/notifications.test.ts" timestamp="2026-08-14T05:53:42.796Z" hostname="DESKTOP-V0JD0BU" tests="2" failures="0" errors="0" skipped="0" time="0.0080226">
+        <testcase classname="src/app/api/__tests__/notifications.test.ts" name="GET /api/notifications &gt; should return empty notifications if not authenticated" time="0.0049745">
         </testcase>
-        <testcase classname="src/app/api/__tests__/notifications.test.ts" name="GET /api/notifications &gt; should return student notifications when logged in as student" time="0.0026493">
+        <testcase classname="src/app/api/__tests__/notifications.test.ts" name="GET /api/notifications &gt; should return student notifications when logged in as student" time="0.0017163">
         </testcase>
     </testsuite>
-    <testsuite name="src/app/api/__tests__/upload.test.ts" timestamp="2026-08-14T04:01:00.306Z" hostname="DESKTOP-V0JD0BU" tests="3" failures="0" errors="0" skipped="0" time="0.0239649">
-        <testcase classname="src/app/api/__tests__/upload.test.ts" name="POST /api/upload &gt; should reject unauthorized requests" time="0.0145028">
+    <testsuite name="src/app/api/__tests__/upload.test.ts" timestamp="2026-08-14T05:53:42.796Z" hostname="DESKTOP-V0JD0BU" tests="3" failures="0" errors="0" skipped="0" time="0.0263841">
+        <testcase classname="src/app/api/__tests__/upload.test.ts" name="POST /api/upload &gt; should reject unauthorized requests" time="0.0133435">
             <system-err>
 Upload error: {
   message: [32m&apos;Unauthorized - Silakan login terlebih dahulu&apos;[39m,
@@ -474,19 +514,19 @@ Upload error: {
 
             </system-err>
         </testcase>
-        <testcase classname="src/app/api/__tests__/upload.test.ts" name="POST /api/upload &gt; should reject missing file in formData" time="0.0038779">
+        <testcase classname="src/app/api/__tests__/upload.test.ts" name="POST /api/upload &gt; should reject missing file in formData" time="0.0038788">
         </testcase>
-        <testcase classname="src/app/api/__tests__/upload.test.ts" name="POST /api/upload &gt; should reject disallowed file types" time="0.0031437">
+        <testcase classname="src/app/api/__tests__/upload.test.ts" name="POST /api/upload &gt; should reject disallowed file types" time="0.0066196">
         </testcase>
     </testsuite>
-    <testsuite name="src/components/ui/__tests__/button.test.tsx" timestamp="2026-08-14T04:01:00.307Z" hostname="DESKTOP-V0JD0BU" tests="4" failures="0" errors="0" skipped="0" time="0.119057">
-        <testcase classname="src/components/ui/__tests__/button.test.tsx" name="Button Component &gt; renders button with text" time="0.0488103">
+    <testsuite name="src/components/ui/__tests__/button.test.tsx" timestamp="2026-08-14T05:53:42.797Z" hostname="DESKTOP-V0JD0BU" tests="4" failures="0" errors="0" skipped="0" time="0.1635484">
+        <testcase classname="src/components/ui/__tests__/button.test.tsx" name="Button Component &gt; renders button with text" time="0.1269609">
         </testcase>
-        <testcase classname="src/components/ui/__tests__/button.test.tsx" name="Button Component &gt; handles click events" time="0.0098124">
+        <testcase classname="src/components/ui/__tests__/button.test.tsx" name="Button Component &gt; handles click events" time="0.0130819">
         </testcase>
-        <testcase classname="src/components/ui/__tests__/button.test.tsx" name="Button Component &gt; renders destructive variant" time="0.0514302">
+        <testcase classname="src/components/ui/__tests__/button.test.tsx" name="Button Component &gt; renders destructive variant" time="0.0127349">
         </testcase>
-        <testcase classname="src/components/ui/__tests__/button.test.tsx" name="Button Component &gt; can be disabled" time="0.0057889">
+        <testcase classname="src/components/ui/__tests__/button.test.tsx" name="Button Component &gt; can be disabled" time="0.005948">
         </testcase>
     </testsuite>
 </testsuites>

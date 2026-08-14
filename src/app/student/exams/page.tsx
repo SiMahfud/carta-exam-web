@@ -10,6 +10,7 @@ import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 import { id as idLocale } from "date-fns/locale";
 import { TokenInputDialog } from "@/components/exam/take-exam/TokenInputDialog";
+import { getDeviceId } from "@/lib/device";
 
 interface Exam {
     id: string;
@@ -120,14 +121,15 @@ export default function StudentExamsPage() {
         }
 
         try {
-            const body: any = { studentId };
+            const deviceId = getDeviceId();
+            const body: any = { studentId, deviceId };
             if (token) {
                 body.token = token;
             }
 
             const response = await fetch(`/api/student/exams/${sessionId}/start`, {
                 method: "POST",
-                headers: { "Content-Type": "application/json" },
+                headers: { "Content-Type": "application/json", "X-Device-Id": deviceId },
                 body: JSON.stringify(body),
             });
 

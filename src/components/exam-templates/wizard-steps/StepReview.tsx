@@ -66,6 +66,9 @@ export function StepReview({ formData, subjects }: StepReviewProps) {
                     <div className="flex flex-wrap gap-2">
                         {formData.enableLockdown && <Badge variant="secondary">Lockdown Browser</Badge>}
                         {formData.requireToken && <Badge variant="secondary">Token Wajib</Badge>}
+                        {formData.violationSettings.deviceBinding && <Badge variant="secondary">Kunci 1 Perangkat</Badge>}
+                        {formData.violationSettings.requireSeb && <Badge variant="secondary">SEB Wajib</Badge>}
+                        {formData.violationSettings.requireExambro && <Badge variant="secondary">Exambro Wajib</Badge>}
                         <Badge variant="secondary">Max Pelanggaran: {formData.maxViolations}</Badge>
                     </div>
                 </div>

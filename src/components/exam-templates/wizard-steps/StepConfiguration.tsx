@@ -109,6 +109,42 @@ export function StepConfiguration({ formData, setFormData }: StepConfigurationPr
                     </div>
                     <div className="flex items-center justify-between p-4 border rounded-lg">
                         <div className="space-y-0.5">
+                            <Label className="text-base">Kunci 1 Perangkat (Device Binding)</Label>
+                            <p className="text-sm text-muted-foreground">
+                                Batasi siswa hanya dapat mengakses ujian dari 1 perangkat yang pertama kali digunakan.
+                            </p>
+                        </div>
+                        <Switch
+                            checked={formData.violationSettings.deviceBinding ?? false}
+                            onCheckedChange={(checked) => updateViolationSetting('deviceBinding', checked)}
+                        />
+                    </div>
+                    <div className="flex items-center justify-between p-4 border rounded-lg">
+                        <div className="space-y-0.5">
+                            <Label className="text-base">Wajibkan Safe Exam Browser (SEB)</Label>
+                            <p className="text-sm text-muted-foreground">
+                                Hanya izinkan pengerjaan melalui aplikasi Safe Exam Browser (PC/Mac/iPad).
+                            </p>
+                        </div>
+                        <Switch
+                            checked={formData.violationSettings.requireSeb ?? false}
+                            onCheckedChange={(checked) => updateViolationSetting('requireSeb', checked)}
+                        />
+                    </div>
+                    <div className="flex items-center justify-between p-4 border rounded-lg">
+                        <div className="space-y-0.5">
+                            <Label className="text-base">Wajibkan Aplikasi Exambro (Android)</Label>
+                            <p className="text-sm text-muted-foreground">
+                                Wajibkan aplikasi Exambro resmi untuk pengerjaan ujian di perangkat Android.
+                            </p>
+                        </div>
+                        <Switch
+                            checked={formData.violationSettings.requireExambro ?? false}
+                            onCheckedChange={(checked) => updateViolationSetting('requireExambro', checked)}
+                        />
+                    </div>
+                    <div className="flex items-center justify-between p-4 border rounded-lg">
+                        <div className="space-y-0.5">
                             <Label className="text-base">Batas Pelanggaran</Label>
                             <p className="text-sm text-muted-foreground">
                                 Jumlah maksimal peringatan sebelum ujian dihentikan otomatis.
@@ -220,6 +256,16 @@ export function StepConfiguration({ formData, setFormData }: StepConfigurationPr
                                         />
                                         <Label htmlFor="detectDevTools" className="cursor-pointer">
                                             Deteksi DevTools (F12)
+                                        </Label>
+                                    </div>
+                                    <div className="flex items-center space-x-2">
+                                        <Checkbox
+                                            id="watermarkAntiTamper"
+                                            checked={formData.violationSettings.watermarkAntiTamper ?? true}
+                                            onCheckedChange={(checked) => updateViolationSetting('watermarkAntiTamper', checked)}
+                                        />
+                                        <Label htmlFor="watermarkAntiTamper" className="cursor-pointer">
+                                            Anti-Tamper Watermark Layar
                                         </Label>
                                     </div>
                                 </div>

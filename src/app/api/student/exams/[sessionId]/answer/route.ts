@@ -273,9 +273,7 @@ export async function POST(
 
         return NextResponse.json({
             success: true,
-            isCorrect,
-            earnedPoints,
-            maxPoints
+            savedAt: new Date().toISOString()
         });
     } catch (error: any) {
         console.error("Error saving answer:", error);

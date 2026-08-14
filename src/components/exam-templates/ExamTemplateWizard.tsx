@@ -67,6 +67,10 @@ export default function ExamTemplateWizard({ initialData, onSubmit, isEditMode =
             detectDevTools: true,
             cooldownSeconds: 5,
             mode: 'strict' as const,
+            deviceBinding: false,
+            requireSeb: false,
+            requireExambro: false,
+            watermarkAntiTamper: true,
         },
         // New field defaults
         targetType: 'all',

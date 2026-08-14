@@ -19,6 +19,10 @@ export interface ViolationSettings {
     detectDevTools: boolean;
     cooldownSeconds: number;
     mode: 'lenient' | 'strict' | 'disabled';
+    deviceBinding?: boolean;
+    requireSeb?: boolean;
+    requireExambro?: boolean;
+    watermarkAntiTamper?: boolean;
 }
 
 export interface ExamTemplateFormData {

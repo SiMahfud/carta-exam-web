@@ -5,7 +5,26 @@ import * as dotenv from 'dotenv';
 dotenv.config();
 
 const provider = process.env.DB_TYPE || 'sqlite';
-const dbUrl = process.env.DATABASE_URL || 'file:local.db';
+let rawDbUrl: string | undefined = process.env.DATABASE_URL;
+
+if (!rawDbUrl && process.env.DB_TYPE && process.env.DB_HOST) {
+    const type = process.env.DB_TYPE;
+    const user = process.env.DB_USER;
+    const pass = process.env.DB_PASS;
+    const host = process.env.DB_HOST;
+    const port = process.env.DB_PORT;
+    const dbName = process.env.DB_NAME;
+
+    if (type === 'mysql') {
+        rawDbUrl = `mysql://${user}:${pass}@${host}:${port}/${dbName}`;
+    } else if (type === 'postgres') {
+        rawDbUrl = `postgres://${user}:${pass}@${host}:${port}/${dbName}`;
+    } else if (type === 'sqlite') {
+        rawDbUrl = `file:${dbName}`;
+    }
+}
+
+const dbUrl: string = rawDbUrl || 'file:local.db';
 
 interface MigrationColumn {
     table: string;
@@ -38,6 +57,8 @@ const MIGRATIONS: MigrationColumn[] = [
         updateExisting: `UPDATE exam_templates SET violation_settings = '${DEFAULT_VIOLATION_SETTINGS}' WHERE violation_settings IS NULL`
     },
     { table: 'exam_sessions', column: 'access_token', type: 'VARCHAR(10)', mysqlType: 'VARCHAR(10)' },
+    // Device binding migration
+    { table: 'submissions', column: 'device_id', type: 'TEXT', mysqlType: 'VARCHAR(64)' },
 ];
 
 async function runMigration() {

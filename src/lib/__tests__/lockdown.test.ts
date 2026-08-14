@@ -14,10 +14,11 @@ describe('lockdown', () => {
                 'copy',
                 'paste',
                 'cut',
-                'screenshot_attempt'
+                'screenshot_attempt',
+                'watermark_tampering'
             ]
 
-            expect(types).toHaveLength(7)
+            expect(types).toHaveLength(8)
         })
     })
 

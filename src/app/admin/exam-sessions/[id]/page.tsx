@@ -22,7 +22,7 @@ interface StudentProgress {
     id: string;
     name: string;
     className: string;
-    status: "not_started" | "in_progress" | "completed";
+    status: "not_started" | "in_progress" | "completed" | "terminated" | "graded";
     score: number | null;
     startTime: string | null;
     endTime: string | null;
@@ -170,11 +170,54 @@ export default function SessionMonitorPage() {
     useEffect(() => {
         fetchData();
         fetchToken();
-        // Auto-refresh every 30s
+
+        // Connect to SSE for real-time proctoring events
+        let eventSource: EventSource | null = null;
+        try {
+            eventSource = new EventSource(`/api/exam-sessions/${params.id}/events`);
+
+            eventSource.onmessage = (e) => {
+                try {
+                    const event = JSON.parse(e.data);
+                    if (event.type === 'violation') {
+                        toast({
+                            title: "⚠️ Pelanggaran Terdeteksi!",
+                            description: `${event.studentName || 'Siswa'}: ${getViolationTypeLabel(event.data?.violationType)} (${event.data?.violationCount || 1} pelanggaran)`,
+                            variant: "destructive",
+                        });
+                        fetchData();
+                    } else if (event.type === 'student_submit') {
+                        toast({
+                            title: "Ujian Dikumpulkan",
+                            description: `${event.studentName || 'Siswa'} telah mengumpulkan ujian.`,
+                        });
+                        fetchData();
+                    } else if (event.type === 'proctor_action' || event.type === 'student_start') {
+                        fetchData();
+                    }
+                } catch {
+                    // Non-JSON or keepalive event
+                }
+            };
+
+            eventSource.onerror = () => {
+                // Fallback gracefully to polling if SSE disconnected
+            };
+        } catch (e) {
+            console.error("SSE connection error:", e);
+        }
+
+        // Auto-refresh fallback every 30s
         const interval = setInterval(fetchData, 30000);
-        return () => clearInterval(interval);
+
+        return () => {
+            clearInterval(interval);
+            if (eventSource) {
+                eventSource.close();
+            }
+        };
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, []);
+    }, [params.id]);
 
 
 
@@ -321,6 +364,7 @@ export default function SessionMonitorPage() {
             paste: "Paste",
             cut: "Cut",
             screenshot_attempt: "Screenshot",
+            watermark_tampering: "Manipulasi Watermark",
             // Legacy/Other
             copy_paste: "Copy/Paste",
             right_click: "Klik Kanan",
@@ -328,6 +372,8 @@ export default function SessionMonitorPage() {
             fullscreen_exit: "Keluar Fullscreen",
             FULLSCREEN_EXIT: "Keluar Fullscreen",
             BACK_BUTTON: "Tombol Kembali",
+            WATERMARK_TAMPERING: "Manipulasi Watermark",
+            DEVICE_MISMATCH: "Perangkat Tidak Cocok / Sesi Ganda",
         };
         return labels[type] || type;
     };
@@ -635,15 +681,27 @@ export default function SessionMonitorPage() {
                                                         </Button>
                                                     </>
                                                 )}
-                                                {student.status === "in_progress" && (
-                                                    <Button
-                                                        variant="ghost"
-                                                        size="sm"
-                                                        className="h-8 px-2 text-xs text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-950/40"
-                                                        onClick={() => handleSingleProctorAction(student.id, "unlock_session")}
-                                                    >
-                                                        Buka Kunci
-                                                    </Button>
+                                                {(student.status === "in_progress" || student.status === "terminated") && (
+                                                    <>
+                                                        <Button
+                                                            variant="ghost"
+                                                            size="sm"
+                                                            className="h-8 px-2 text-xs text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-950/40"
+                                                            onClick={() => handleSingleProctorAction(student.id, "unlock_session")}
+                                                            title="Buka Kunci Sesi Ujian"
+                                                        >
+                                                            Buka Kunci
+                                                        </Button>
+                                                        <Button
+                                                            variant="ghost"
+                                                            size="sm"
+                                                            className="h-8 px-2 text-xs text-purple-600 hover:bg-purple-50 dark:hover:bg-purple-950/40"
+                                                            onClick={() => handleSingleProctorAction(student.id, "reset_device")}
+                                                            title="Reset Kunci Perangkat (Izinkan Ganti Perangkat)"
+                                                        >
+                                                            Reset Device
+                                                        </Button>
+                                                    </>
                                                 )}
                                             </div>
                                         </td>

@@ -166,6 +166,10 @@ export const examTemplates = pgTable("exam_templates", {
             detectDevTools: boolean;
             cooldownSeconds: number;
             mode: 'lenient' | 'strict' | 'disabled';
+            deviceBinding?: boolean;
+            requireSeb?: boolean;
+            requireExambro?: boolean;
+            watermarkAntiTamper?: boolean;
         }>()
         .$defaultFn(() => ({
             detectTabSwitch: true,
@@ -174,7 +178,11 @@ export const examTemplates = pgTable("exam_templates", {
             detectScreenshot: true,
             detectDevTools: true,
             cooldownSeconds: 5,
-            mode: 'strict'
+            mode: 'strict',
+            deviceBinding: false,
+            requireSeb: false,
+            requireExambro: false,
+            watermarkAntiTamper: true,
         })),
     allowReview: boolean("allow_review").default(false),
     showResultImmediately: boolean("show_result_immediately").default(false),
@@ -299,6 +307,7 @@ export const submissions = pgTable("submissions", {
     violationCount: integer("violation_count").default(0),
     violationLog: json("violation_log"), // Array of { type, timestamp }
     bonusTimeMinutes: integer("bonus_time_minutes").default(0), // Additional time granted by admin
+    deviceId: text("device_id"), // Device binding - unique device identifier
     status: text("status", { enum: ["in_progress", "completed", "terminated"] }).default("in_progress"),
 
     // Grading status

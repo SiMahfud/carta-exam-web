@@ -10,6 +10,7 @@ export type ViolationType =
     | 'paste'
     | 'cut'
     | 'screenshot_attempt'
+    | 'watermark_tampering'
 
 export interface ViolationEvent {
     type: ViolationType
@@ -159,52 +160,121 @@ export function useScreenshotDetector(
 }
 
 /**
- * Hook to add watermark overlay (student name + timestamp)
- * This acts as a deterrent for screenshots
+ * Hook to add watermark overlay (student name + timestamp) with anti-tampering protection.
+ * If the watermark element is removed or hidden via styles/attributes, it automatically
+ * recreates it and triggers a security violation.
  */
 export function useWatermark(
     studentName: string,
+    onViolation?: (event: ViolationEvent) => void,
     enabled: boolean = true
 ) {
     useEffect(() => {
         if (!enabled) return
 
-        const watermark = document.createElement('div')
-        watermark.id = 'exam-watermark'
-        watermark.style.cssText = `
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      pointer-events: none;
-      z-index: 9999;
-      font-size: 24px;
-      color: rgba(0, 0, 0, 0.08);
-      font-weight: bold;
-      display: flex;
-      flex-wrap: wrap;
-      gap: 50px;
-      padding: 50px;
-      transform: rotate(-45deg);
-      user-select: none;
-    `
+        let isCleanedUp = false
 
-        // Create repeating watermark pattern
-        for (let i = 0; i < 20; i++) {
-            const text = document.createElement('div')
-            text.textContent = `${studentName} - ${new Date().toLocaleString('id-ID')}`
-            text.style.cssText = 'white-space: nowrap; opacity: 0.5;'
-            watermark.appendChild(text)
+        const createWatermark = () => {
+            if (isCleanedUp) return null
+
+            // Remove existing if any
+            const existing = document.getElementById('exam-watermark')
+            if (existing) existing.remove()
+
+            const watermark = document.createElement('div')
+            watermark.id = 'exam-watermark'
+            watermark.style.cssText = `
+                position: fixed !important;
+                top: 0 !important;
+                left: 0 !important;
+                width: 100% !important;
+                height: 100% !important;
+                pointer-events: none !important;
+                z-index: 9999 !important;
+                font-size: 24px !important;
+                color: rgba(0, 0, 0, 0.08) !important;
+                font-weight: bold !important;
+                display: flex !important;
+                flex-wrap: wrap !important;
+                gap: 50px !important;
+                padding: 50px !important;
+                transform: rotate(-45deg) !important;
+                user-select: none !important;
+                visibility: visible !important;
+                opacity: 1 !important;
+            `
+
+            // Create repeating watermark pattern
+            for (let i = 0; i < 20; i++) {
+                const text = document.createElement('div')
+                text.textContent = `${studentName} - ${new Date().toLocaleString('id-ID')}`
+                text.style.cssText = 'white-space: nowrap; opacity: 0.5;'
+                watermark.appendChild(text)
+            }
+
+            document.body.appendChild(watermark)
+            return watermark
         }
 
-        document.body.appendChild(watermark)
+        let watermarkEl = createWatermark()
+
+        // MutationObserver to detect deletion or attribute tampering
+        const observer = new MutationObserver((mutations) => {
+            if (isCleanedUp) return
+
+            let tampered = false
+
+            for (const mutation of mutations) {
+                // Check if watermark was removed
+                if (mutation.type === 'childList') {
+                    mutation.removedNodes.forEach((node) => {
+                        if (node instanceof HTMLElement && (node.id === 'exam-watermark' || node.contains(watermarkEl))) {
+                            tampered = true
+                        }
+                    })
+                }
+
+                // Check if watermark attributes / styles were tampered
+                if (mutation.type === 'attributes' && mutation.target instanceof HTMLElement) {
+                    if (mutation.target.id === 'exam-watermark') {
+                        const style = mutation.target.getAttribute('style') || ''
+                        if (
+                            style.includes('display: none') ||
+                            style.includes('opacity: 0') ||
+                            style.includes('visibility: hidden') ||
+                            style.includes('height: 0')
+                        ) {
+                            tampered = true
+                        }
+                    }
+                }
+            }
+
+            if (tampered) {
+                // Re-create watermark immediately
+                watermarkEl = createWatermark()
+                onViolation?.({
+                    type: 'watermark_tampering',
+                    timestamp: Date.now(),
+                    details: 'Upaya manipulasi atau penghapusan watermark terdeteksi'
+                })
+            }
+        })
+
+        observer.observe(document.body, {
+            childList: true,
+            subtree: true,
+            attributes: true,
+            attributeFilter: ['style', 'class', 'hidden']
+        })
 
         return () => {
+            isCleanedUp = true
+            observer.disconnect()
             const el = document.getElementById('exam-watermark')
             if (el) el.remove()
         }
-    }, [studentName, enabled])
+    }, [studentName, onViolation, enabled])
 }
 
 /**
@@ -218,5 +288,5 @@ export function useLockdownMode(
     useTabSwitchDetector(onViolation, enabled)
     useAntiCopyPaste(onViolation, enabled)
     useScreenshotDetector(onViolation, enabled)
-    useWatermark(studentName, enabled)
+    useWatermark(studentName, onViolation, enabled)
 }

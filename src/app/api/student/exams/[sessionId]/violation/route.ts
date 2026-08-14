@@ -3,6 +3,7 @@ import { db } from "@/lib/db";
 import { submissions, examSessions, examTemplates } from "@/lib/schema";
 import { eq, and } from "drizzle-orm";
 import { requireAuth } from "@/lib/auth-guard";
+import { publishViolationEvent } from "@/lib/proctoring-events";
 
 // POST /api/student/exams/[sessionId]/violation - Log a violation
 export async function POST(
@@ -126,6 +127,20 @@ export async function POST(
                 endTime: shouldTerminate ? new Date() : submission.endTime,
             })
             .where(eq(submissions.id, submission.id));
+
+        // Broadcast violation event via SSE to proctor dashboard
+        try {
+            publishViolationEvent(
+                sessionId,
+                studentId,
+                user.name || "Siswa",
+                type,
+                newViolationCount,
+                details
+            );
+        } catch (e) {
+            console.error("Error publishing violation event:", e);
+        }
 
         return NextResponse.json({
             violationCount: newViolationCount,

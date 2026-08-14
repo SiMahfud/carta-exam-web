@@ -166,6 +166,10 @@ export const examTemplates = sqliteTable("exam_templates", {
             detectDevTools: boolean;
             cooldownSeconds: number;
             mode: 'lenient' | 'strict' | 'disabled';
+            deviceBinding?: boolean;
+            requireSeb?: boolean;
+            requireExambro?: boolean;
+            watermarkAntiTamper?: boolean;
         }>()
         .$defaultFn(() => ({
             detectTabSwitch: true,
@@ -174,7 +178,11 @@ export const examTemplates = sqliteTable("exam_templates", {
             detectScreenshot: true,
             detectDevTools: true,
             cooldownSeconds: 5,
-            mode: 'strict'
+            mode: 'strict',
+            deviceBinding: false,
+            requireSeb: false,
+            requireExambro: false,
+            watermarkAntiTamper: true,
         })),
     allowReview: integer("allow_review", { mode: "boolean" }).default(false),
     showResultImmediately: integer("show_result_immediately", { mode: "boolean" }).default(false),
@@ -299,6 +307,7 @@ export const submissions = sqliteTable("submissions", {
     violationCount: integer("violation_count").default(0),
     violationLog: text("violation_log", { mode: "json" }), // Array of { type, timestamp }
     bonusTimeMinutes: integer("bonus_time_minutes").default(0), // Additional time granted by admin
+    deviceId: text("device_id"), // Device binding - unique device identifier
     status: text("status", { enum: ["in_progress", "completed", "terminated"] }).default("in_progress"),
 
     // Grading status
