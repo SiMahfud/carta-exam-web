@@ -1,16 +1,19 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { activityLogs, users } from "@/lib/schema";
-import { desc, sql } from "drizzle-orm";
+import { desc, sql, eq } from "drizzle-orm";
+import { requireAuth } from "@/lib/auth-guard";
 
-// GET /api/admin/activities - Get recent activity logs
+// GET /api/admin/activities - Get activity logs with filters
 export async function GET(request: Request) {
     try {
-        const { searchParams } = new URL(request.url);
-        const limit = parseInt(searchParams.get("limit") || "10");
+        await requireAuth(["admin", "teacher"]);
 
-        // Fetch recent activities with user information
-        const activities = await db
+        const { searchParams } = new URL(request.url);
+        const limit = parseInt(searchParams.get("limit") || "50");
+        const entityTypeFilter = searchParams.get("entityType");
+
+        let query = (db as any)
             .select({
                 id: activityLogs.id,
                 action: activityLogs.action,
@@ -22,24 +25,28 @@ export async function GET(request: Request) {
                 userRole: users.role,
             })
             .from(activityLogs)
-            .leftJoin(users, sql`${activityLogs.userId} = ${users.id}`)
+            .leftJoin(users, sql`${activityLogs.userId} = ${users.id}`);
+
+        if (entityTypeFilter && entityTypeFilter !== "all") {
+            query = query.where(eq(activityLogs.entityType, entityTypeFilter));
+        }
+
+        const activities = await query
             .orderBy(desc(activityLogs.createdAt))
             .limit(limit);
 
         // Format activities for display
         const formattedActivities = activities.map((activity: typeof activities[0]) => {
-            const details = activity.details as Record<string, unknown> || {};
+            const details = (activity.details as Record<string, unknown>) || {};
             let description = "";
             let entityName = "";
 
-            // Extract entity name from details
-            if (details.sessionName) entityName = details.sessionName as string;
-            else if (details.bankName) entityName = details.bankName as string;
-            else if (details.subjectName) entityName = details.subjectName as string;
-            else if (details.className) entityName = details.className as string;
-            else if (details.userName) entityName = details.userName as string;
+            if (details.sessionName) entityName = String(details.sessionName);
+            else if (details.bankName) entityName = String(details.bankName);
+            else if (details.subjectName) entityName = String(details.subjectName);
+            else if (details.className) entityName = String(details.className);
+            else if (details.userName) entityName = String(details.userName);
 
-            // Build description based on entity type and action
             const actionTextMap: Record<string, string> = {
                 created: "dibuat",
                 updated: "diperbarui",
@@ -55,12 +62,14 @@ export async function GET(request: Request) {
                 subject: "Mata Pelajaran",
                 class: "Kelas",
                 user: "User",
+                system: "Sistem",
             };
             const entityTypeText = entityTypeTextMap[activity.entityType as keyof typeof entityTypeTextMap] || activity.entityType;
 
-            description = `${entityTypeText} "${entityName}" ${actionText}`;
+            description = entityName
+                ? `${entityTypeText} "${entityName}" ${actionText}`
+                : `${entityTypeText} ${actionText}`;
 
-            // Calculate relative time
             const now = new Date();
             const createdAt = new Date(activity.createdAt!);
             const diffMs = now.getTime() - createdAt.getTime();
@@ -78,19 +87,21 @@ export async function GET(request: Request) {
                 id: activity.id,
                 description,
                 timeAgo,
+                createdAt: activity.createdAt,
                 userName: activity.userName || "Sistem",
-                userRole: activity.userRole,
+                userRole: activity.userRole || "system",
                 action: activity.action,
                 entityType: activity.entityType,
+                details,
             };
         });
 
         return NextResponse.json(formattedActivities);
-    } catch (error) {
+    } catch (error: any) {
         console.error("Error fetching activities:", error);
         return NextResponse.json(
-            { error: "Failed to fetch activities" },
-            { status: 500 }
+            { error: error.message || "Failed to fetch activities" },
+            { status: error.status || 500 }
         );
     }
 }

@@ -18,7 +18,8 @@ import {
     GraduationCap,
     Settings,
     Search,
-    HelpCircle
+    HelpCircle,
+    Activity,
 } from "lucide-react";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
@@ -68,6 +69,7 @@ export default function AdminLayout({
         { href: "/admin/grading", label: "Penilaian", icon: Edit3 },
         { href: "/admin/users", label: "Manajemen User", icon: GraduationCap },
         { href: "/admin/settings", label: "Pengaturan Sekolah", icon: Settings },
+        { href: "/admin/activity-logs", label: "Log Aktivitas", icon: Activity },
     ];
 
     return (

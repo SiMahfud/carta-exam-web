@@ -3,9 +3,11 @@ import { db } from "@/lib/db";
 import { users, classStudents, classes } from "@/lib/schema";
 import { eq } from "drizzle-orm";
 import * as XLSX from 'xlsx';
+import { requireAuth } from "@/lib/auth-guard";
 
 export async function GET(request: NextRequest) {
     try {
+        await requireAuth(["admin"]);
         const { searchParams } = new URL(request.url);
         const type = searchParams.get("type") || "all"; // all, students, teachers, template
         const classId = searchParams.get("classId");
@@ -82,7 +84,7 @@ export async function GET(request: NextRequest) {
         }
 
         // Get all users with their class information
-        const allUsers = await db
+        const allUsers = await (db as any)
             .select({
                 id: users.id,
                 name: users.name,
@@ -192,11 +194,11 @@ export async function GET(request: NextRequest) {
             }
         });
 
-    } catch (error) {
+    } catch (error: any) {
         console.error("Error exporting users:", error);
         return NextResponse.json(
-            { error: "Gagal mengekspor data" },
-            { status: 500 }
+            { error: error.message || "Gagal mengekspor data" },
+            { status: error.status || 500 }
         );
     }
 }
