@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { logout } from "@/actions/auth";
 import { FileText, User, ShieldCheck, LogOut } from "lucide-react";
 import { ModeToggle } from "@/components/ui/mode-toggle";
+import { NotificationDropdown } from "@/components/ui/notification-dropdown";
 
 export default function StudentLayout({
     children,
@@ -48,11 +49,12 @@ export default function StudentLayout({
                             </Link>
                         </nav>
                     </div>
-                    <div className="flex items-center gap-4">
+                    <div className="flex items-center gap-3">
                         <div className="flex items-center gap-2 text-sm bg-secondary/50 px-3 py-1.5 rounded-full border border-border/50">
                             <User className="h-4 w-4 text-muted-foreground" />
                             <span className="font-medium">Siswa</span>
                         </div>
+                        <NotificationDropdown />
                         <ModeToggle />
                         <form action={logout}>
                             <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-destructive hover:bg-destructive/10">

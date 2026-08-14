@@ -38,6 +38,7 @@ import { KeyboardShortcutsHelp } from "@/components/ui/keyboard-shortcuts-help";
 import { RecentItemsDropdown } from "@/components/ui/recent-items";
 import { ModeToggle } from "@/components/ui/mode-toggle";
 import { OnboardingTour } from "@/components/onboarding/OnboardingTour";
+import { NotificationDropdown } from "@/components/ui/notification-dropdown";
 
 export default function AdminLayout({
     children,
@@ -194,6 +195,7 @@ export default function AdminLayout({
                             <Search className="h-5 w-5" />
                         </Button>
                         <ModeToggle />
+                        <NotificationDropdown />
                         <Link href="/help" data-tour="help-button">
                             <Button variant="ghost" size="icon" title="Pusat Bantuan">
                                 <HelpCircle className="h-5 w-5" />

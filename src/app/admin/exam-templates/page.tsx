@@ -10,7 +10,7 @@ import {
     CardTitle,
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Pencil, Trash2, Clock, FileText, Search, Eye, Filter, ArrowUpDown } from "lucide-react";
+import { Plus, Pencil, Trash2, Clock, FileText, Search, Eye, Filter, ArrowUpDown, Printer } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Input } from "@/components/ui/input";
 import ExamPreviewDialog from "@/components/exam-templates/ExamPreviewDialog";
@@ -298,6 +298,11 @@ export default function ExamTemplatesPage() {
                                         >
                                             <Eye className="h-4 w-4" />
                                         </Button>
+                                        <Link href={`/admin/exam-templates/${template.id}/print`}>
+                                            <Button variant="ghost" size="icon" title="Cetak Soal & LJK">
+                                                <Printer className="h-4 w-4" />
+                                            </Button>
+                                        </Link>
                                         <Link href={`/admin/exam-templates/${template.id}/edit`}>
                                             <Button variant="ghost" size="icon" title="Edit Template">
                                                 <Pencil className="h-4 w-4" />

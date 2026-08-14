@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -83,7 +83,10 @@ export default function SessionMonitorPage() {
     const [requireToken, setRequireToken] = useState(false);
     const [generatingToken, setGeneratingToken] = useState(false);
 
-    const fetchData = async () => {
+    // Live Auto-Refresh State
+    const [liveAutoRefresh, setLiveAutoRefresh] = useState(true);
+
+    const fetchData = useCallback(async () => {
         setRefreshing(true);
         try {
             const response = await fetch(`/api/exam-sessions/${params.id}/monitor`);
@@ -105,6 +108,49 @@ export default function SessionMonitorPage() {
         } finally {
             setLoading(false);
             setRefreshing(false);
+        }
+    }, [params.id, toast]);
+
+    // Auto-refresh interval when session is active
+    useEffect(() => {
+        if (!liveAutoRefresh) return;
+
+        const timer = setInterval(() => {
+            fetchData();
+        }, 5000);
+
+        return () => clearInterval(timer);
+    }, [liveAutoRefresh, fetchData]);
+
+    const handleSingleProctorAction = async (studentId: string, action: string) => {
+        try {
+            const response = await fetch(`/api/exam-sessions/${params.id}/monitor/action`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ studentId, action }),
+            });
+
+            if (response.ok) {
+                const res = await response.json();
+                toast({
+                    title: "Aksi Berhasil",
+                    description: res.message || "Aksi pengawas berhasil dijalankan.",
+                });
+                fetchData();
+            } else {
+                const err = await response.json();
+                toast({
+                    title: "Gagal",
+                    description: err.error || "Gagal menjalankan aksi.",
+                    variant: "destructive",
+                });
+            }
+        } catch (error: any) {
+            toast({
+                title: "Error",
+                description: error.message || "Terjadi kesalahan jaringan.",
+                variant: "destructive",
+            });
         }
     };
 
@@ -326,14 +372,23 @@ export default function SessionMonitorPage() {
                         </p>
                     </div>
                 </div>
-                <div className="flex gap-2">
+                <div className="flex gap-2 items-center flex-wrap">
+                    <Button
+                        variant={liveAutoRefresh ? "default" : "outline"}
+                        size="sm"
+                        onClick={() => setLiveAutoRefresh(!liveAutoRefresh)}
+                        className={`gap-1.5 ${liveAutoRefresh ? "bg-emerald-600 hover:bg-emerald-700 text-white" : ""}`}
+                    >
+                        <span className={`h-2 w-2 rounded-full ${liveAutoRefresh ? "bg-white animate-pulse" : "bg-muted-foreground"}`} />
+                        <span>Live (5s): {liveAutoRefresh ? "Aktif" : "Mati"}</span>
+                    </Button>
                     <Link href={`/admin/exam-sessions/${params.id}/results`}>
-                        <Button variant="default">
+                        <Button variant="default" size="sm">
                             <Eye className="mr-2 h-4 w-4" />
                             Lihat Hasil
                         </Button>
                     </Link>
-                    <Button variant="outline" onClick={fetchData} disabled={refreshing}>
+                    <Button variant="outline" size="sm" onClick={fetchData} disabled={refreshing}>
                         <RefreshCw className={`mr-2 h-4 w-4 ${refreshing ? "animate-spin" : ""}`} />
                         Refresh
                     </Button>
@@ -558,16 +613,39 @@ export default function SessionMonitorPage() {
                                             {student.score !== null ? student.score : "-"}
                                         </td>
                                         <td className="p-4">
-                                            {student.violationCount > 0 && (
-                                                <Button
-                                                    variant="ghost"
-                                                    size="sm"
-                                                    onClick={() => handleViewViolations(student)}
-                                                >
-                                                    <Eye className="h-4 w-4 mr-1" />
-                                                    Lihat
-                                                </Button>
-                                            )}
+                                            <div className="flex items-center gap-1">
+                                                {student.violationCount > 0 && (
+                                                    <>
+                                                        <Button
+                                                            variant="ghost"
+                                                            size="sm"
+                                                            className="h-8 px-2 text-xs"
+                                                            onClick={() => handleViewViolations(student)}
+                                                        >
+                                                            <Eye className="h-3.5 w-3.5 mr-1" />
+                                                            Lihat
+                                                        </Button>
+                                                        <Button
+                                                            variant="outline"
+                                                            size="sm"
+                                                            className="h-8 px-2 text-xs text-amber-600 border-amber-300 hover:bg-amber-50 dark:border-amber-800 dark:hover:bg-amber-950/40"
+                                                            onClick={() => handleSingleProctorAction(student.id, "reset_violations")}
+                                                        >
+                                                            Reset
+                                                        </Button>
+                                                    </>
+                                                )}
+                                                {student.status === "in_progress" && (
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="sm"
+                                                        className="h-8 px-2 text-xs text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-950/40"
+                                                        onClick={() => handleSingleProctorAction(student.id, "unlock_session")}
+                                                    >
+                                                        Buka Kunci
+                                                    </Button>
+                                                )}
+                                            </div>
                                         </td>
                                     </tr>
                                 ))}
