@@ -17,7 +17,6 @@ import {
     MessageSquare,
     Filter,
 } from "lucide-react";
-import Link from "next/link";
 import { useToast } from "@/hooks/use-toast";
 
 interface ReviewData {
@@ -118,11 +117,10 @@ export default function StudentExamReviewPage() {
                     icon={HelpCircle}
                     title="Data Review Tidak Ditemukan"
                     description="Hasil ujian belum tersedia atau Anda belum mengerjakan sesi ujian ini."
-                    action={
-                        <Link href="/student">
-                            <Button>Kembali ke Dashboard</Button>
-                        </Link>
-                    }
+                    action={{
+                        label: "Kembali ke Dashboard",
+                        onClick: () => router.push("/student"),
+                    }}
                 />
             </div>
         );

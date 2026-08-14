@@ -401,6 +401,15 @@ export const schoolSettings = pgTable("school_settings", {
     contactPhone: text("contact_phone"),
     address: text("address"),
 
+    // AI Configuration
+    aiConfig: json("ai_config").$type<{
+        provider: 'gemini' | 'openrouter';
+        geminiApiKey?: string;
+        geminiModel?: string;
+        openrouterApiKey?: string;
+        openrouterModel?: string;
+    }>(),
+
     updatedBy: text("updated_by").references(() => users.id, { onDelete: "set null" }),
     updatedAt: timestamp("updated_at").default(sql`CURRENT_TIMESTAMP`),
 });

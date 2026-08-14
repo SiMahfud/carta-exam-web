@@ -280,7 +280,7 @@ export function GradingItemCard({
                 });
             }
 
-            const parsedKey = safeJsonParse(answer.correctAnswer, {});
+            const parsedKey: any = safeJsonParse(answer.correctAnswer, {});
             const correctPairsIndexed: Record<number, number> = {};
 
             if (parsedKey.matches && Array.isArray(parsedKey.matches)) {

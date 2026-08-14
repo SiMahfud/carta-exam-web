@@ -401,6 +401,15 @@ export const schoolSettings = sqliteTable("school_settings", {
     contactPhone: text("contact_phone"),
     address: text("address"),
 
+    // AI Configuration
+    aiConfig: text("ai_config", { mode: "json" }).$type<{
+        provider: 'gemini' | 'openrouter';
+        geminiApiKey?: string;
+        geminiModel?: string;
+        openrouterApiKey?: string;
+        openrouterModel?: string;
+    }>(),
+
     updatedBy: text("updated_by").references(() => users.id, { onDelete: "set null" }),
     updatedAt: integer("updated_at", { mode: "timestamp" }).default(sql`(unixepoch())`),
 });

@@ -22,7 +22,7 @@ export async function getPublicExamSchedule(): Promise<PublicExamSession[]> {
     // We limit to e.g. next 7 days for relevance? Or just today + future.
     // Let's just get today's sessions and future scheduled ones (limit 10)
 
-    const sessions = await db.select({
+    const sessions = await (db as any).select({
         id: examSessions.id,
         sessionName: examSessions.sessionName,
         subjectName: subjects.name,
@@ -63,7 +63,7 @@ export async function getPublicExamSchedule(): Promise<PublicExamSession[]> {
 
     const classMap = new Map<string, string>();
     if (classIdsToFetch.size > 0) {
-        const classList = await db.select({ id: classes.id, name: classes.name })
+        const classList = await (db as any).select({ id: classes.id, name: classes.name })
             .from(classes)
             .where(or(...Array.from(classIdsToFetch).map(id => eq(classes.id, id))));
 

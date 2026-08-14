@@ -63,7 +63,7 @@ export async function login(formData: FormData): Promise<LoginResult> {
     }
 
     // Find user
-    const [user] = await db.select().from(users).where(eq(users.username, username)).limit(1)
+    const [user] = await (db as any).select().from(users).where(eq(users.username, username)).limit(1)
 
     if (!user) {
         // Use same error message for security (don't reveal if user exists)
@@ -115,5 +115,9 @@ export async function logout() {
     redirect("/login")
 }
 
-export { getCurrentUser } from "@/lib/session"
+import { getCurrentUser as getSessionUser } from "@/lib/session"
+
+export async function getCurrentUser() {
+    return getSessionUser()
+}
 

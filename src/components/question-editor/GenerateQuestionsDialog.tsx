@@ -208,7 +208,7 @@ export function GenerateQuestionsDialog({ bankId, onSuccess }: GenerateQuestions
                 <DialogHeader className="p-6 pb-2 border-b flex-shrink-0">
                     <DialogTitle className="flex items-center gap-2 text-xl">
                         <Sparkles className="h-5 w-5 text-purple-600" />
-                        Generate Questions with Gemini AI
+                        Generate Questions with AI
                     </DialogTitle>
                     <DialogDescription>
                         Create questions automatically from a topic, text, or uploaded document (PDF/Image).

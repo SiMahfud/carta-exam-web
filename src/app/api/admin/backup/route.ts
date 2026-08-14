@@ -6,7 +6,7 @@ import {
     questionBanks,
     bankQuestions,
     examTemplates,
-    settings,
+    schoolSettings,
     users,
 } from "@/lib/schema";
 import { requireAuth } from "@/lib/auth-guard";
@@ -20,7 +20,7 @@ export async function GET() {
         const allBanks = await (db as any).select().from(questionBanks);
         const allQuestions = await (db as any).select().from(bankQuestions);
         const allTemplates = await (db as any).select().from(examTemplates);
-        const allSettings = await (db as any).select().from(settings);
+        const allSettings = await (db as any).select().from(schoolSettings);
         const allUsers = await (db as any)
             .select({
                 id: users.id,

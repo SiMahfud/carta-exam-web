@@ -57,8 +57,8 @@ export default function PrintableExamPage() {
                 });
 
                 const formattedQuestions: QuestionItem[] = (data.questions || []).map((q: any) => {
-                    const parsedContent = safeJsonParse(q.content, {});
-                    const parsedKey = safeJsonParse(q.answerKey, {});
+                    const parsedContent: any = safeJsonParse(q.content, {});
+                    const parsedKey: any = safeJsonParse(q.answerKey, {});
                     return {
                         id: q.id,
                         type: q.type,

@@ -197,4 +197,13 @@ export const ActivityLogger = {
                 details: { userName },
             }),
     },
+    system: {
+        updated: (userId: string, description: string) =>
+            logActivity({
+                userId,
+                action: "updated",
+                entityType: "system",
+                details: { description },
+            }),
+    },
 };

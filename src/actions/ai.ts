@@ -1,17 +1,7 @@
 'use server'
 
-import { GoogleGenAI } from "@google/genai";
+import { generateAIContent } from "@/lib/ai-provider";
 import { z } from "zod";
-// zodToJsonSchema removed - not currently used after commenting out responseSchema
-
-const apiKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY!;
-const modelName = process.env.GOOGLE_GENERATIVE_AI_MODEL || "gemini-2.5-flash";
-
-if (!apiKey) {
-    console.warn("Missing GOOGLE_GENERATIVE_AI_API_KEY in .env");
-}
-
-const ai = new GoogleGenAI({ apiKey });
 
 // Define Zod Schema for Structured Output
 const GeneratedQuestionSchema = z.object({
@@ -39,7 +29,7 @@ const GeneratedQuestionSchema = z.object({
     difficulty: z.enum(["easy", "medium", "hard"]).describe("The difficulty level of the question."),
 });
 
-// Use a wrapper object for better stability with Gemini JSON mode
+// Use a wrapper object for better stability with JSON mode
 const GeneratedQuestionsListSchema = z.object({
     questions: z.array(GeneratedQuestionSchema).describe("A list of generated exam questions."),
 });
@@ -74,8 +64,6 @@ export async function generateQuestions(
     options?: GenerationOptions
 ): Promise<z.infer<typeof GeneratedQuestionSchema>[]> {
     try {
-        if (!apiKey) throw new Error("API Key configuration error");
-
         const qType = options?.type || "mc";
         let qCount = options?.count || 5;
         const qDiff = options?.difficulty || "medium";
@@ -91,8 +79,8 @@ export async function generateQuestions(
             requirementDesc = `Generate ${qCount} exam questions of type "${qType}" (or mixed if type is 'all')`;
         }
 
-        // Structured input for Gemini
-        // We explicitly ask for the JSON structure matching our schema
+        // Structured input parts
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const parts: any[] = [
             {
                 text: `
@@ -193,15 +181,10 @@ Ensure complete adherence to this schema for every question.
             });
         }
 
-        const requestContents = parts;
-
-        const response = await ai.models.generateContent({
-            model: modelName,
-            contents: requestContents,
+        const response = await generateAIContent({
+            prompt: parts,
             config: {
                 responseMimeType: "application/json",
-                // Removing strict schema constraint as it seems to cause mode collapse (returning simple numbers)
-                // responseSchema: zodToJsonSchema(GeneratedQuestionsListSchema as any) as any,
             }
         });
 
@@ -210,7 +193,7 @@ Ensure complete adherence to this schema for every question.
         if (!text) throw new Error("No response from AI");
 
         // Debug logging
-        console.log("Gemini Raw Response:", text);
+        console.log("AI Raw Response:", text);
 
         // Sanitize JSON before parsing
         const cleanedText = cleanJson(text);
@@ -296,7 +279,7 @@ Ensure complete adherence to this schema for every question.
         return normalizedQuestions;
 
     } catch (error) {
-        console.error("Gemini Generation Error:", error);
+        console.error("AI Generation Error:", error);
         throw new Error("Failed to generate questions with AI");
     }
 }

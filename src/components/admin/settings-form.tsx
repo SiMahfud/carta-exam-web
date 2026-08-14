@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -25,9 +25,10 @@ import {
     CardTitle,
 } from "../ui/card";
 import { Switch } from "../ui/switch";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
 import { toast } from "../../lib/toast-store";
 import { updateSchoolSettings, SchoolSettings } from "../../actions/settings";
-import { Loader2 } from "lucide-react";
+import { Loader2, Eye, EyeOff, Sparkles, CheckCircle2, XCircle, Zap } from "lucide-react";
 
 const settingsSchema = z.object({
     schoolName: z.string().min(1, "Nama sekolah wajib diisi"),
@@ -54,6 +55,13 @@ const settingsSchema = z.object({
     contactPhone: z.string().optional(),
     address: z.string().optional(),
     footerText: z.string().optional(),
+
+    // AI Configuration
+    aiProvider: z.enum(["gemini", "openrouter"]).default("gemini"),
+    geminiApiKey: z.string().optional(),
+    geminiModel: z.string().optional(),
+    openrouterApiKey: z.string().optional(),
+    openrouterModel: z.string().optional(),
 });
 
 type SettingsFormValues = z.infer<typeof settingsSchema>;
@@ -64,9 +72,22 @@ interface SettingsFormProps {
 
 export function SettingsForm({ initialSettings }: SettingsFormProps) {
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [showGeminiKey, setShowGeminiKey] = useState(false);
+    const [showOpenRouterKey, setShowOpenRouterKey] = useState(false);
+    const [isTesting, setIsTesting] = useState(false);
+    const [testResult, setTestResult] = useState<{ success: boolean; message: string } | null>(null);
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const aiConfig = (initialSettings as any)?.aiConfig as {
+        provider?: string;
+        geminiApiKey?: string;
+        geminiModel?: string;
+        openrouterApiKey?: string;
+        openrouterModel?: string;
+    } | null;
 
     const form = useForm<SettingsFormValues>({
-        resolver: zodResolver(settingsSchema),
+        resolver: zodResolver(settingsSchema) as any,
         defaultValues: {
             schoolName: initialSettings?.schoolName || "SMAN 1 Campurdarat",
             schoolDescription: initialSettings?.schoolDescription || "",
@@ -84,15 +105,72 @@ export function SettingsForm({ initialSettings }: SettingsFormProps) {
             contactPhone: initialSettings?.contactPhone || "",
             address: initialSettings?.address || "",
             footerText: initialSettings?.footerText || "Built with ❤️ for education.",
+            // AI Config
+            aiProvider: (aiConfig?.provider as "gemini" | "openrouter") || "gemini",
+            geminiApiKey: aiConfig?.geminiApiKey || "",
+            geminiModel: aiConfig?.geminiModel || "",
+            openrouterApiKey: aiConfig?.openrouterApiKey || "",
+            openrouterModel: aiConfig?.openrouterModel || "",
         },
     });
 
+    const selectedProvider = form.watch("aiProvider");
 
+    // Clear test result when provider changes
+    useEffect(() => {
+        setTestResult(null);
+    }, [selectedProvider]);
+
+    async function handleTestConnection() {
+        const provider = form.getValues("aiProvider");
+        const apiKey = provider === "gemini"
+            ? form.getValues("geminiApiKey")
+            : form.getValues("openrouterApiKey");
+        const model = provider === "gemini"
+            ? form.getValues("geminiModel")
+            : form.getValues("openrouterModel");
+
+        if (!apiKey) {
+            setTestResult({ success: false, message: "API Key wajib diisi untuk menguji koneksi." });
+            return;
+        }
+
+        setIsTesting(true);
+        setTestResult(null);
+
+        try {
+            const response = await fetch("/api/admin/ai-test", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ provider, apiKey, model }),
+            });
+
+            const result = await response.json();
+            setTestResult(result);
+        } catch {
+            setTestResult({ success: false, message: "Gagal menguji koneksi. Periksa jaringan Anda." });
+        } finally {
+            setIsTesting(false);
+        }
+    }
 
     async function onSubmit(data: SettingsFormValues) {
         setIsSubmitting(true);
         try {
-            const result = await updateSchoolSettings(data);
+            // Extract AI config into the JSON column format
+            const { aiProvider, geminiApiKey, geminiModel, openrouterApiKey, openrouterModel, ...rest } = data;
+            const payload = {
+                ...rest,
+                aiConfig: {
+                    provider: aiProvider,
+                    geminiApiKey: geminiApiKey || undefined,
+                    geminiModel: geminiModel || undefined,
+                    openrouterApiKey: openrouterApiKey || undefined,
+                    openrouterModel: openrouterModel || undefined,
+                },
+            };
+
+            const result = await updateSchoolSettings(payload);
             if (result.success) {
                 toast({ title: "Sukses", description: "Pengaturan berhasil disimpan", variant: "success" });
             } else {
@@ -320,6 +398,210 @@ export function SettingsForm({ initialSettings }: SettingsFormProps) {
                                     </FormItem>
                                 )}
                             />
+                        </div>
+                    </CardContent>
+                </Card>
+
+                {/* AI Configuration */}
+                <Card className="border-purple-200 dark:border-purple-800/50">
+                    <CardHeader>
+                        <CardTitle className="flex items-center gap-2">
+                            <Sparkles className="h-5 w-5 text-purple-600" />
+                            Konfigurasi AI
+                        </CardTitle>
+                        <CardDescription>
+                            Pilih provider AI dan konfigurasi API Key untuk fitur AI Generator dan AI Grading.
+                            Jika dikosongkan, sistem akan menggunakan konfigurasi dari environment variables.
+                        </CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-6">
+                        {/* Provider Selection */}
+                        <FormField
+                            control={form.control}
+                            name="aiProvider"
+                            render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>AI Provider</FormLabel>
+                                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                        <FormControl>
+                                            <SelectTrigger>
+                                                <SelectValue placeholder="Pilih provider..." />
+                                            </SelectTrigger>
+                                        </FormControl>
+                                        <SelectContent>
+                                            <SelectItem value="gemini">
+                                                <div className="flex items-center gap-2">
+                                                    <span>🔷</span>
+                                                    <span>Google Gemini</span>
+                                                </div>
+                                            </SelectItem>
+                                            <SelectItem value="openrouter">
+                                                <div className="flex items-center gap-2">
+                                                    <span>🌐</span>
+                                                    <span>OpenRouter</span>
+                                                </div>
+                                            </SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                    <FormDescription>
+                                        {selectedProvider === "gemini"
+                                            ? "Gunakan Google Gemini langsung. Dapatkan API Key di: https://aistudio.google.com/apikey"
+                                            : "Gunakan OpenRouter untuk akses ke berbagai model AI (Gemini, Claude, GPT, dll). Dapatkan API Key di: https://openrouter.ai/keys"
+                                        }
+                                    </FormDescription>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+
+                        {/* Provider-specific fields */}
+                        <div className="rounded-lg border p-4 bg-muted/30 space-y-4">
+                            {selectedProvider === "gemini" ? (
+                                <>
+                                    <h4 className="font-medium text-sm flex items-center gap-2">
+                                        <span>🔷</span> Konfigurasi Google Gemini
+                                    </h4>
+                                    <FormField
+                                        control={form.control}
+                                        name="geminiApiKey"
+                                        render={({ field }) => (
+                                            <FormItem>
+                                                <FormLabel>API Key</FormLabel>
+                                                <FormControl>
+                                                    <div className="flex gap-2">
+                                                        <div className="relative flex-1">
+                                                            <Input
+                                                                type={showGeminiKey ? "text" : "password"}
+                                                                placeholder="AIzaSy..."
+                                                                {...field}
+                                                            />
+                                                            <button
+                                                                type="button"
+                                                                className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                                                                onClick={() => setShowGeminiKey(!showGeminiKey)}
+                                                            >
+                                                                {showGeminiKey ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                                                            </button>
+                                                        </div>
+                                                    </div>
+                                                </FormControl>
+                                                <FormDescription>
+                                                    Kosongkan untuk menggunakan env var GOOGLE_GENERATIVE_AI_API_KEY.
+                                                </FormDescription>
+                                                <FormMessage />
+                                            </FormItem>
+                                        )}
+                                    />
+                                    <FormField
+                                        control={form.control}
+                                        name="geminiModel"
+                                        render={({ field }) => (
+                                            <FormItem>
+                                                <FormLabel>Model</FormLabel>
+                                                <FormControl>
+                                                    <Input
+                                                        placeholder="gemini-2.5-flash (default)"
+                                                        {...field}
+                                                    />
+                                                </FormControl>
+                                                <FormDescription>
+                                                    Nama model Gemini. Kosongkan untuk default (gemini-2.5-flash).
+                                                </FormDescription>
+                                                <FormMessage />
+                                            </FormItem>
+                                        )}
+                                    />
+                                </>
+                            ) : (
+                                <>
+                                    <h4 className="font-medium text-sm flex items-center gap-2">
+                                        <span>🌐</span> Konfigurasi OpenRouter
+                                    </h4>
+                                    <FormField
+                                        control={form.control}
+                                        name="openrouterApiKey"
+                                        render={({ field }) => (
+                                            <FormItem>
+                                                <FormLabel>API Key</FormLabel>
+                                                <FormControl>
+                                                    <div className="flex gap-2">
+                                                        <div className="relative flex-1">
+                                                            <Input
+                                                                type={showOpenRouterKey ? "text" : "password"}
+                                                                placeholder="sk-or-..."
+                                                                {...field}
+                                                            />
+                                                            <button
+                                                                type="button"
+                                                                className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                                                                onClick={() => setShowOpenRouterKey(!showOpenRouterKey)}
+                                                            >
+                                                                {showOpenRouterKey ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                                                            </button>
+                                                        </div>
+                                                    </div>
+                                                </FormControl>
+                                                <FormMessage />
+                                            </FormItem>
+                                        )}
+                                    />
+                                    <FormField
+                                        control={form.control}
+                                        name="openrouterModel"
+                                        render={({ field }) => (
+                                            <FormItem>
+                                                <FormLabel>Model</FormLabel>
+                                                <FormControl>
+                                                    <Input
+                                                        placeholder="google/gemini-2.5-flash (default)"
+                                                        {...field}
+                                                    />
+                                                </FormControl>
+                                                <FormDescription>
+                                                    Model dari OpenRouter. Contoh: google/gemini-2.5-flash, anthropic/claude-sonnet-4, openai/gpt-4o, dll.
+                                                    Lihat daftar model di: https://openrouter.ai/models
+                                                </FormDescription>
+                                                <FormMessage />
+                                            </FormItem>
+                                        )}
+                                    />
+                                </>
+                            )}
+
+                            {/* Test Connection Button */}
+                            <div className="flex items-center gap-3 pt-2">
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={handleTestConnection}
+                                    disabled={isTesting}
+                                    className="gap-2"
+                                >
+                                    {isTesting ? (
+                                        <>
+                                            <Loader2 className="h-3 w-3 animate-spin" />
+                                            Menguji...
+                                        </>
+                                    ) : (
+                                        <>
+                                            <Zap className="h-3 w-3" />
+                                            Test Koneksi
+                                        </>
+                                    )}
+                                </Button>
+
+                                {testResult && (
+                                    <div className={`flex items-center gap-1.5 text-sm ${testResult.success ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"}`}>
+                                        {testResult.success ? (
+                                            <CheckCircle2 className="h-4 w-4" />
+                                        ) : (
+                                            <XCircle className="h-4 w-4" />
+                                        )}
+                                        <span>{testResult.message}</span>
+                                    </div>
+                                )}
+                            </div>
                         </div>
                     </CardContent>
                 </Card>

@@ -12,7 +12,7 @@ export async function submitAnswer(
     isFlagged: boolean = false
 ) {
     // Check if answer exists
-    const existing = await db.select().from(answers).where(
+    const existing = await (db as any).select().from(answers).where(
         and(
             eq(answers.submissionId, submissionId),
             eq(answers.questionId, questionId)
@@ -20,12 +20,12 @@ export async function submitAnswer(
     ).get()
 
     if (existing) {
-        await db.update(answers).set({
+        await (db as any).update(answers).set({
             studentAnswer: answerValue,
             isFlagged
         }).where(eq(answers.id, existing.id))
     } else {
-        await db.insert(answers).values({
+        await (db as any).insert(answers).values({
             submissionId,
             questionId,
             studentAnswer: answerValue,
@@ -38,11 +38,11 @@ export async function submitAnswer(
 
 export async function finishExam(submissionId: string) {
     // Calculate score
-    const submissionAnswers = await db.select().from(answers).where(eq(answers.submissionId, submissionId)).all()
+    const submissionAnswers = await (db as any).select().from(answers).where(eq(answers.submissionId, submissionId)).all()
     let totalScore = 0
 
     for (const ans of submissionAnswers) {
-        const q = await db.select().from(questions).where(eq(questions.id, ans.questionId)).get()
+        const q = await (db as any).select().from(questions).where(eq(questions.id, ans.questionId)).get()
         if (!q) continue
 
         let isCorrect = false
@@ -57,13 +57,13 @@ export async function finishExam(submissionId: string) {
 
         if (isCorrect) {
             totalScore += 10 // Default score per question, can be dynamic
-            await db.update(answers).set({ isCorrect: true, score: 10 }).where(eq(answers.id, ans.id))
+            await (db as any).update(answers).set({ isCorrect: true, score: 10 }).where(eq(answers.id, ans.id))
         } else {
-            await db.update(answers).set({ isCorrect: false, score: 0 }).where(eq(answers.id, ans.id))
+            await (db as any).update(answers).set({ isCorrect: false, score: 0 }).where(eq(answers.id, ans.id))
         }
     }
 
-    await db.update(submissions).set({
+    await (db as any).update(submissions).set({
         status: "completed",
         endTime: new Date(),
         score: totalScore
@@ -77,7 +77,7 @@ export async function logViolation(
     violationType: string,
     details?: string
 ) {
-    const submission = await db.select().from(submissions).where(eq(submissions.id, submissionId)).get()
+    const submission = await (db as any).select().from(submissions).where(eq(submissions.id, submissionId)).get()
 
     if (!submission) return { success: false }
 
@@ -93,7 +93,7 @@ export async function logViolation(
 
     const newCount = (submission.violationCount || 0) + 1
 
-    await db.update(submissions).set({
+    await (db as any).update(submissions).set({
         violationLog: newLog,
         violationCount: newCount
     }).where(eq(submissions.id, submissionId))
@@ -102,7 +102,7 @@ export async function logViolation(
 }
 
 export async function flagQuestion(submissionId: string, questionId: string, flag: boolean) {
-    const existing = await db.select().from(answers).where(
+    const existing = await (db as any).select().from(answers).where(
         and(
             eq(answers.submissionId, submissionId),
             eq(answers.questionId, questionId)
@@ -110,10 +110,10 @@ export async function flagQuestion(submissionId: string, questionId: string, fla
     ).get()
 
     if (existing) {
-        await db.update(answers).set({ isFlagged: flag }).where(eq(answers.id, existing.id))
+        await (db as any).update(answers).set({ isFlagged: flag }).where(eq(answers.id, existing.id))
     } else {
         // Create empty answer with flag
-        await db.insert(answers).values({
+        await (db as any).insert(answers).values({
             submissionId,
             questionId,
             studentAnswer: null,

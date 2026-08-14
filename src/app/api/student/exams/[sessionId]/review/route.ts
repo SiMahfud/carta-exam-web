@@ -33,7 +33,7 @@ export async function GET(
                 subjectId: examTemplates.subjectId,
                 subjectName: subjects.name,
                 allowReview: examTemplates.allowReview,
-                showResult: examTemplates.showResult,
+                showResult: examTemplates.showResultImmediately,
                 totalScore: examTemplates.totalScore,
             })
             .from(examSessions)
@@ -74,15 +74,15 @@ export async function GET(
             .select({
                 id: answers.id,
                 questionId: answers.questionId,
-                answer: answers.answer,
+                answer: answers.studentAnswer,
                 isCorrect: answers.isCorrect,
                 score: answers.score,
-                feedback: answers.feedback,
+                feedback: answers.gradingNotes,
             })
             .from(answers)
             .where(eq(answers.submissionId, submission.id));
 
-        const answerMap = new Map(studentAnswers.map((a) => [a.questionId, a]));
+        const answerMap = new Map(studentAnswers.map((a: any) => [a.questionId, a]));
 
         // 4. Retrieve questions in the randomized questionOrder
         const questionIds: string[] = safeJsonParse(submission.questionOrder, []);
@@ -96,20 +96,20 @@ export async function GET(
                     content: bankQuestions.content,
                     answerKey: bankQuestions.answerKey,
                     defaultPoints: bankQuestions.defaultPoints,
-                    explanation: bankQuestions.explanation,
+                    metadata: bankQuestions.metadata,
                 })
                 .from(bankQuestions);
 
-            const questionMap = new Map(fetchedQuestions.map((q) => [q.id, q]));
+            const questionMap = new Map(fetchedQuestions.map((q: any) => [q.id, q]));
 
             questionDetails = questionIds
                 .map((qId) => {
-                    const q = questionMap.get(qId);
+                    const q: any = questionMap.get(qId);
                     if (!q) return null;
 
-                    const studentAns = answerMap.get(qId);
-                    const parsedContent = safeJsonParse(q.content, {});
-                    const parsedKey = safeJsonParse(q.answerKey, {});
+                    const studentAns: any = answerMap.get(qId);
+                    const parsedContent: any = safeJsonParse(q.content, {});
+                    const parsedKey: any = safeJsonParse(q.answerKey, {});
                     const parsedStudentAnswer = studentAns?.answer ? safeJsonParse(studentAns.answer, studentAns.answer) : null;
 
                     return {
@@ -123,7 +123,7 @@ export async function GET(
                         score: studentAns?.score ?? 0,
                         feedback: studentAns?.feedback || null,
                         correctAnswer: parsedKey,
-                        explanation: q.explanation || null,
+                        explanation: parsedContent.explanation || (q.metadata as any)?.explanation || null,
                     };
                 })
                 .filter(Boolean);

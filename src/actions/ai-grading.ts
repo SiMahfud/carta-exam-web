@@ -1,6 +1,6 @@
 'use server'
 
-import { GoogleGenAI } from "@google/genai";
+import { generateAIContent } from "@/lib/ai-provider";
 import { requireAuth } from "@/lib/auth-guard";
 
 export interface AIGradingRequest {
@@ -25,14 +25,6 @@ export async function evaluateEssayWithAI(payload: AIGradingRequest): Promise<AI
     try {
         await requireAuth(["admin", "teacher"]);
 
-        const apiKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY;
-        if (!apiKey) {
-            return {
-                success: false,
-                error: "Kunci API Google Gemini (GOOGLE_GENERATIVE_AI_API_KEY) belum dikonfigurasi pada server.",
-            };
-        }
-
         if (!payload.studentAnswer || !payload.studentAnswer.trim()) {
             return {
                 success: true,
@@ -42,9 +34,6 @@ export async function evaluateEssayWithAI(payload: AIGradingRequest): Promise<AI
                 improvements: ["Jawaban kosong."],
             };
         }
-
-        const modelName = process.env.GOOGLE_GENERATIVE_AI_MODEL || "gemini-2.5-flash";
-        const ai = new GoogleGenAI({ apiKey });
 
         const rubricText = payload.rubric && payload.rubric.length > 0
             ? payload.rubric
@@ -86,9 +75,8 @@ Instruksi Penilaian:
   "improvements": ["kekurangan/saran perbaikan 1"]
 }`;
 
-        const response = await ai.models.generateContent({
-            model: modelName,
-            contents: prompt,
+        const response = await generateAIContent({
+            prompt,
             config: {
                 temperature: 0.2, // Low temperature for deterministic and consistent grading
                 responseMimeType: "application/json",

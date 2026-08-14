@@ -72,5 +72,5 @@ if (provider === 'mysql' || process.env.DB_TYPE === 'mysql') {
     dbInstance = drizzleSqlite(sqlite, { schema: schemaSqlite });
 }
 
-export const db = dbInstance;
-export const schema = schemaInstance;
+export const db = dbInstance as any;
+export const schema = schemaInstance as any;
