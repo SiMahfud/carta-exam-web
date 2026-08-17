@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import {
     Dialog,
@@ -13,15 +13,181 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { generateQuestions } from "@/actions/ai";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Sparkles, AlertCircle, Save } from "lucide-react";
+import { Loader2, Sparkles, AlertCircle, Save, Terminal, ChevronDown, ChevronUp, Zap, Clock, FileText, CheckCircle2, Cpu, Shield } from "lucide-react";
 import { QuestionPreviewCard } from "./QuestionPreviewCard";
+
+// ============================================================================
+// Types
+// ============================================================================
 
 interface GenerateQuestionsDialogProps {
     bankId: string;
     onSuccess: () => void;
 }
+
+type StreamStep = 1 | 2 | 3 | 4;
+
+interface StepInfo {
+    step: StreamStep;
+    label: string;
+    provider?: string;
+}
+
+// ============================================================================
+// Step Progress Component
+// ============================================================================
+
+const STEPS: { step: StreamStep; icon: React.ElementType; defaultLabel: string }[] = [
+    { step: 1, icon: FileText, defaultLabel: "Menyiapkan konteks & prompt..." },
+    { step: 2, icon: Cpu, defaultLabel: "Menghubungkan ke AI..." },
+    { step: 3, icon: Shield, defaultLabel: "Memvalidasi format & kunci jawaban..." },
+    { step: 4, icon: CheckCircle2, defaultLabel: "Selesai!" },
+];
+
+function StepProgress({ currentStep, stepInfo }: { currentStep: StreamStep; stepInfo: StepInfo | null }) {
+    return (
+        <div className="flex items-center gap-1 w-full">
+            {STEPS.map(({ step, icon: Icon, defaultLabel }, idx) => {
+                const isActive = currentStep === step;
+                const isDone = currentStep > step;
+                const label = (stepInfo?.step === step ? stepInfo.label : defaultLabel);
+
+                return (
+                    <div key={step} className="flex items-center flex-1 min-w-0">
+                        <div className="flex items-center gap-1.5 min-w-0">
+                            <div className={`
+                                flex-shrink-0 w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold transition-all duration-500
+                                ${isDone
+                                    ? 'bg-emerald-500 text-white shadow-sm shadow-emerald-500/30'
+                                    : isActive
+                                        ? 'bg-purple-600 text-white shadow-sm shadow-purple-500/30 animate-pulse'
+                                        : 'bg-muted text-muted-foreground'
+                                }
+                            `}>
+                                {isDone ? (
+                                    <CheckCircle2 className="w-3.5 h-3.5" />
+                                ) : (
+                                    <Icon className={`w-3 h-3 ${isActive ? 'animate-pulse' : ''}`} />
+                                )}
+                            </div>
+                            <span className={`
+                                text-[10px] leading-tight truncate transition-colors duration-300
+                                ${isActive ? 'text-foreground font-semibold' : isDone ? 'text-emerald-600 dark:text-emerald-400' : 'text-muted-foreground'}
+                            `}>
+                                {label}
+                            </span>
+                        </div>
+                        {idx < STEPS.length - 1 && (
+                            <div className={`
+                                flex-shrink-0 h-px mx-1 w-4 transition-colors duration-500
+                                ${isDone ? 'bg-emerald-400' : 'bg-border'}
+                            `} />
+                        )}
+                    </div>
+                );
+            })}
+        </div>
+    );
+}
+
+// ============================================================================
+// Stream Terminal Component
+// ============================================================================
+
+function StreamTerminal({
+    streamText,
+    isVisible,
+    onToggle,
+}: {
+    streamText: string;
+    isVisible: boolean;
+    onToggle: () => void;
+}) {
+    const terminalRef = useRef<HTMLPreElement>(null);
+
+    useEffect(() => {
+        if (terminalRef.current && isVisible) {
+            terminalRef.current.scrollTop = terminalRef.current.scrollHeight;
+        }
+    }, [streamText, isVisible]);
+
+    return (
+        <div className="border rounded-lg overflow-hidden bg-slate-950 dark:bg-black/60">
+            <button
+                onClick={onToggle}
+                className="w-full flex items-center justify-between px-3 py-1.5 bg-slate-900 dark:bg-slate-950 text-slate-300 hover:text-white text-xs font-mono transition-colors"
+            >
+                <div className="flex items-center gap-2">
+                    <Terminal className="w-3 h-3" />
+                    <span>AI Raw Output</span>
+                    {streamText.length > 0 && (
+                        <span className="text-slate-500">({streamText.length.toLocaleString()} chars)</span>
+                    )}
+                </div>
+                {isVisible ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
+            </button>
+            {isVisible && (
+                <pre
+                    ref={terminalRef}
+                    className="p-3 text-[11px] leading-relaxed text-emerald-400 font-mono overflow-auto max-h-[200px] whitespace-pre-wrap break-all select-text"
+                >
+                    {streamText || <span className="text-slate-600 italic">Menunggu respon dari AI...</span>}
+                    {streamText.length > 0 && (
+                        <span className="inline-block w-1.5 h-3.5 bg-emerald-400 ml-0.5 animate-pulse align-middle" />
+                    )}
+                </pre>
+            )}
+        </div>
+    );
+}
+
+// ============================================================================
+// Stats Bar Component
+// ============================================================================
+
+function StatsBar({
+    elapsedMs,
+    charCount,
+    chunkCount,
+    provider,
+}: {
+    elapsedMs: number;
+    charCount: number;
+    chunkCount: number;
+    provider: string | null;
+}) {
+    const seconds = Math.floor(elapsedMs / 1000);
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    const timeStr = `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+
+    return (
+        <div className="flex items-center gap-3 text-[11px] text-muted-foreground font-mono px-1">
+            <div className="flex items-center gap-1">
+                <Clock className="w-3 h-3" />
+                <span className="tabular-nums">{timeStr}</span>
+            </div>
+            <div className="flex items-center gap-1">
+                <Zap className="w-3 h-3" />
+                <span className="tabular-nums">{charCount.toLocaleString()} chars</span>
+            </div>
+            <div className="flex items-center gap-1">
+                <span className="tabular-nums">{chunkCount} chunks</span>
+            </div>
+            {provider && (
+                <div className="ml-auto flex items-center gap-1 bg-purple-500/10 text-purple-600 dark:text-purple-400 px-1.5 py-0.5 rounded text-[10px] font-semibold">
+                    <Cpu className="w-2.5 h-2.5" />
+                    {provider}
+                </div>
+            )}
+        </div>
+    );
+}
+
+// ============================================================================
+// Main Dialog Component
+// ============================================================================
 
 export function GenerateQuestionsDialog({ bankId, onSuccess }: GenerateQuestionsDialogProps) {
     const [open, setOpen] = useState(false);
@@ -37,8 +203,8 @@ export function GenerateQuestionsDialog({ bankId, onSuccess }: GenerateQuestions
     const [qType, setQType] = useState<string>("mc");
     const [qCount, setQCount] = useState(5);
     const [qDifficulty, setQDifficulty] = useState<string>("medium");
+    const [replaceMode, setReplaceMode] = useState(false);
     const qTopic = ""; // topic is passed as options.topic below
-
 
     const [customDistribution, setCustomDistribution] = useState<{ [key: string]: number }>({
         mc: 0,
@@ -49,8 +215,41 @@ export function GenerateQuestionsDialog({ bankId, onSuccess }: GenerateQuestions
         essay: 0
     });
 
+    // Streaming state
+    const [currentStep, setCurrentStep] = useState<StreamStep>(1);
+    const [stepInfo, setStepInfo] = useState<StepInfo | null>(null);
+    const [streamText, setStreamText] = useState("");
+    const [showTerminal, setShowTerminal] = useState(true);
+    const [charCount, setCharCount] = useState(0);
+    const [chunkCount, setChunkCount] = useState(0);
+    const [provider, setProvider] = useState<string | null>(null);
+    const [elapsedMs, setElapsedMs] = useState(0);
+
     const { toast } = useToast();
     const fileInputRef = useRef<HTMLInputElement>(null);
+    const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+    const startTimeRef = useRef<number>(0);
+    const abortControllerRef = useRef<AbortController | null>(null);
+
+    // Timer effect
+    useEffect(() => {
+        if (isGenerating) {
+            startTimeRef.current = Date.now();
+            timerRef.current = setInterval(() => {
+                setElapsedMs(Date.now() - startTimeRef.current);
+            }, 100);
+        } else {
+            if (timerRef.current) {
+                clearInterval(timerRef.current);
+                timerRef.current = null;
+            }
+        }
+        return () => {
+            if (timerRef.current) {
+                clearInterval(timerRef.current);
+            }
+        };
+    }, [isGenerating]);
 
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files && e.target.files[0]) {
@@ -64,7 +263,6 @@ export function GenerateQuestionsDialog({ bankId, onSuccess }: GenerateQuestions
             reader.readAsDataURL(file);
             reader.onload = () => {
                 const result = reader.result as string;
-                // remove prefix data:application/pdf;base64,
                 const base64 = result.split(',')[1];
                 resolve({
                     base64,
@@ -75,10 +273,21 @@ export function GenerateQuestionsDialog({ bankId, onSuccess }: GenerateQuestions
         });
     };
 
-    const handleGenerate = async () => {
+    const handleGenerate = useCallback(async () => {
         setIsGenerating(true);
         setError(null);
         setGeneratedQuestions([]);
+        setStreamText("");
+        setCharCount(0);
+        setChunkCount(0);
+        setProvider(null);
+        setCurrentStep(1);
+        setStepInfo(null);
+        setElapsedMs(0);
+
+        // Create abort controller for cancellation
+        const abortController = new AbortController();
+        abortControllerRef.current = abortController;
 
         try {
             let contextFile = undefined;
@@ -99,7 +308,6 @@ export function GenerateQuestionsDialog({ bankId, onSuccess }: GenerateQuestions
 
             if (qType === 'mixed_custom') {
                 options.type = 'all';
-                // Filter out 0 counts
                 // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 const dist: any = {};
                 Object.entries(customDistribution).forEach(([k, v]) => {
@@ -112,37 +320,134 @@ export function GenerateQuestionsDialog({ bankId, onSuccess }: GenerateQuestions
                 options.questionDistribution = dist;
             }
 
-            const questions = await generateQuestions(prompt, contextFile, options);
+            // Call streaming endpoint
+            const response = await fetch("/api/ai/generate-questions/stream", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    promptText: prompt,
+                    contextFile,
+                    options,
+                }),
+                signal: abortController.signal,
+            });
 
-            // Post-process questions. Backend now returns validated Zod schema match.
-            // We ensure it has metadata matching ImportQuestionsDialog needs.
-            // Type-based default points: MC=1, Complex=2, Matching=3, Short=2, TrueFalse=1, Essay=0
-            const getDefaultPoints = (type: string) => {
-                switch (type) {
-                    case "mc": return 1;
-                    case "complex_mc": return 2;
-                    case "matching": return 3;
-                    case "short": return 2;
-                    case "essay": return 0;
-                    case "true_false": return 1;
-                    default: return 1;
+            if (!response.ok) {
+                throw new Error(`Server error: ${response.status}`);
+            }
+
+            const reader = response.body?.getReader();
+            if (!reader) {
+                throw new Error("Tidak bisa membaca stream response.");
+            }
+
+            const decoder = new TextDecoder();
+            let buffer = "";
+            let currentEvent = "";
+            let currentData = "";
+
+            const handleEvent = (eventType: string, dataStr: string) => {
+                if (!eventType || !dataStr) return;
+                try {
+                    const data = JSON.parse(dataStr);
+
+                    switch (eventType) {
+                        case "status": {
+                            const step = data.step as StreamStep;
+                            setCurrentStep(step);
+                            setStepInfo({ step, label: data.label, provider: data.provider });
+                            if (data.provider) {
+                                setProvider(data.provider);
+                            }
+                            break;
+                        }
+                        case "token": {
+                            setStreamText(prev => prev + (data.chunk || ""));
+                            if (data.totalLength !== undefined) setCharCount(data.totalLength);
+                            if (data.chunkIndex !== undefined) setChunkCount(data.chunkIndex);
+                            break;
+                        }
+                        case "complete": {
+                            // Post-process questions (add metadata matching ImportQuestionsDialog needs)
+                            const getDefaultPoints = (type: string) => {
+                                switch (type) {
+                                    case "mc": return 1;
+                                    case "complex_mc": return 2;
+                                    case "matching": return 3;
+                                    case "short": return 2;
+                                    case "essay": return 0;
+                                    case "true_false": return 1;
+                                    default: return 1;
+                                }
+                            };
+
+                            const questionsList = Array.isArray(data.questions) ? data.questions : [];
+                            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                            const processed = questionsList.map((q: any, idx: number) => ({
+                                ...q,
+                                metadata: { imported: true, originalNo: idx + 1 },
+                                tags: [],
+                                defaultPoints: getDefaultPoints(q.type)
+                            }));
+
+                            setGeneratedQuestions(processed);
+
+                            if (processed.length === 0) {
+                                setError("AI generation produced no valid questions. Try adjusting your prompt.");
+                            }
+
+                            // Hide terminal on success
+                            setShowTerminal(false);
+                            break;
+                        }
+                        case "error": {
+                            throw new Error(data.message || "Terjadi kesalahan saat generate soal.");
+                        }
+                    }
+                } catch (parseErr) {
+                    if (parseErr instanceof Error && parseErr.message !== "Unexpected end of JSON input") {
+                        throw parseErr;
+                    }
                 }
             };
 
-            const processed = questions.map((q, idx) => ({
-                ...q,
-                metadata: { imported: true, originalNo: idx + 1 },
-                tags: [],
-                defaultPoints: getDefaultPoints(q.type)
-            }));
+            while (true) {
+                const { done, value } = await reader.read();
+                if (done) {
+                    if (currentData) {
+                        handleEvent(currentEvent || "message", currentData);
+                    }
+                    break;
+                }
 
-            setGeneratedQuestions(processed);
+                buffer += decoder.decode(value, { stream: true });
+                const lines = buffer.split("\n");
+                // Keep incomplete trailing line in buffer
+                buffer = lines.pop() ?? "";
 
-            if (processed.length === 0) {
-                setError("AI generation produced no valid questions. Try adjusting your prompt.");
+                for (const line of lines) {
+                    const trimmed = line.trim();
+                    if (!trimmed) {
+                        // Empty line signals end of an SSE event block
+                        if (currentData) {
+                            handleEvent(currentEvent || "message", currentData);
+                            currentEvent = "";
+                            currentData = "";
+                        }
+                    } else if (line.startsWith("event: ")) {
+                        currentEvent = line.slice(7).trim();
+                    } else if (line.startsWith("data: ")) {
+                        const dataPart = line.slice(6);
+                        currentData = currentData ? currentData + "\n" + dataPart : dataPart;
+                    }
+                }
             }
 
         } catch (err) {
+            if (err instanceof DOMException && err.name === 'AbortError') {
+                // User cancelled - not an error
+                return;
+            }
             console.error("Generation failed:", err);
             const errorMessage = err instanceof Error ? err.message : "Failed to generate questions. Please try again.";
             setError(errorMessage);
@@ -153,16 +458,23 @@ export function GenerateQuestionsDialog({ bankId, onSuccess }: GenerateQuestions
             });
         } finally {
             setIsGenerating(false);
+            abortControllerRef.current = null;
         }
-    };
+    }, [file, prompt, qType, qCount, qDifficulty, qTopic, customDistribution, toast]);
+
+    const handleCancel = useCallback(() => {
+        if (abortControllerRef.current) {
+            abortControllerRef.current.abort();
+            setIsGenerating(false);
+        }
+    }, []);
 
     const handleSave = async () => {
         if (generatedQuestions.length === 0) return;
 
         setIsSaving(true);
         try {
-            // Re-use the existing bulk create endpoint
-            const url = `/api/question-banks/${bankId}/questions`;
+            const url = `/api/question-banks/${bankId}/questions${replaceMode ? '?mode=replace' : ''}`;
             const response = await fetch(url, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
@@ -172,8 +484,8 @@ export function GenerateQuestionsDialog({ bankId, onSuccess }: GenerateQuestions
             if (response.ok) {
                 const result = await response.json();
                 toast({
-                    title: "Saved!",
-                    description: `${result.created} questions saved successfully.`,
+                    title: replaceMode ? "Soal Digantikan!" : "Saved!",
+                    description: `${result.created} questions ${replaceMode ? 'saved replacing all old questions' : 'saved successfully'}.`,
                 });
                 onSuccess();
                 setOpen(false);
@@ -181,6 +493,10 @@ export function GenerateQuestionsDialog({ bankId, onSuccess }: GenerateQuestions
                 setGeneratedQuestions([]);
                 setPrompt("");
                 setFile(null);
+                setStreamText("");
+                setCurrentStep(1);
+                setStepInfo(null);
+                setReplaceMode(false);
             } else {
                 throw new Error("Failed to save questions");
             }
@@ -328,7 +644,7 @@ export function GenerateQuestionsDialog({ bankId, onSuccess }: GenerateQuestions
                             </Select>
                         </div>
 
-                        <div className="pt-4">
+                        <div className="pt-4 space-y-2">
                             <Button
                                 className="w-full bg-purple-600 hover:bg-purple-700 text-white"
                                 onClick={handleGenerate}
@@ -346,6 +662,16 @@ export function GenerateQuestionsDialog({ bankId, onSuccess }: GenerateQuestions
                                     </>
                                 )}
                             </Button>
+                            {isGenerating && (
+                                <Button
+                                    variant="outline"
+                                    className="w-full text-destructive border-destructive/30 hover:bg-destructive/10"
+                                    onClick={handleCancel}
+                                    size="sm"
+                                >
+                                    Cancel
+                                </Button>
+                            )}
                         </div>
 
                         {error && (
@@ -356,7 +682,7 @@ export function GenerateQuestionsDialog({ bankId, onSuccess }: GenerateQuestions
                         )}
                     </div>
 
-                    {/* Right: Preview */}
+                    {/* Right: Preview / Stream */}
                     <div className="w-full md:w-2/3 p-4 md:p-6 flex flex-col bg-background md:overflow-hidden min-h-[400px] md:min-h-0">
                         <div className="flex items-center justify-between mb-4">
                             <h3 className="font-semibold text-lg">Preview</h3>
@@ -367,12 +693,49 @@ export function GenerateQuestionsDialog({ bankId, onSuccess }: GenerateQuestions
                             )}
                         </div>
 
+                        {/* Streaming Progress UI */}
+                        {isGenerating && (
+                            <div className="space-y-3 mb-4">
+                                {/* Step Progress Bar */}
+                                <StepProgress currentStep={currentStep} stepInfo={stepInfo} />
+
+                                {/* Stats Bar */}
+                                <StatsBar
+                                    elapsedMs={elapsedMs}
+                                    charCount={charCount}
+                                    chunkCount={chunkCount}
+                                    provider={provider}
+                                />
+
+                                {/* Stream Terminal */}
+                                <StreamTerminal
+                                    streamText={streamText}
+                                    isVisible={showTerminal}
+                                    onToggle={() => setShowTerminal(v => !v)}
+                                />
+                            </div>
+                        )}
+
+                        {/* Results / Empty state */}
                         <div className="flex-1 md:overflow-y-auto min-h-[300px] border rounded-md p-4 bg-slate-50 dark:bg-slate-900/50">
                             {generatedQuestions.length === 0 ? (
                                 <div className="h-full flex flex-col items-center justify-center text-muted-foreground p-8 text-center">
-                                    <Sparkles className="h-12 w-12 mb-4 text-purple-200" />
-                                    <p>Ready to generate.</p>
-                                    <p className="text-sm">Enter instructions or upload a file, then click Generate.</p>
+                                    {isGenerating ? (
+                                        <>
+                                            <div className="relative">
+                                                <Sparkles className="h-12 w-12 text-purple-400 animate-pulse" />
+                                                <div className="absolute inset-0 h-12 w-12 rounded-full bg-purple-500/20 animate-ping" />
+                                            </div>
+                                            <p className="mt-4 font-medium text-foreground">AI sedang membuat soal...</p>
+                                            <p className="text-sm mt-1">Lihat progress pada panel di atas</p>
+                                        </>
+                                    ) : (
+                                        <>
+                                            <Sparkles className="h-12 w-12 mb-4 text-purple-200" />
+                                            <p>Ready to generate.</p>
+                                            <p className="text-sm">Enter instructions or upload a file, then click Generate.</p>
+                                        </>
+                                    )}
                                 </div>
                             ) : (
                                 <div className="space-y-6">
@@ -398,21 +761,51 @@ export function GenerateQuestionsDialog({ bankId, onSuccess }: GenerateQuestions
                     </div>
                 </div>
 
-                <DialogFooter className="p-4 border-t bg-muted/20">
-                    <Button variant="ghost" onClick={() => setOpen(false)}>Cancel</Button>
-                    <Button onClick={handleSave} disabled={generatedQuestions.length === 0 || isSaving}>
-                        {isSaving ? (
-                            <>
-                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                Saving...
-                            </>
-                        ) : (
-                            <>
-                                <Save className="mr-2 h-4 w-4" />
-                                Save Questions
-                            </>
+                <DialogFooter className="p-4 border-t bg-muted/20 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                    {/* Replace Mode Toggle */}
+                    <div className="flex flex-col gap-1">
+                        <div className="flex items-center space-x-2">
+                            <input
+                                type="checkbox"
+                                id="ai-replace-mode"
+                                className="h-4 w-4 rounded border-gray-300 text-purple-600 focus:ring-purple-500 cursor-pointer"
+                                checked={replaceMode}
+                                onChange={(e) => setReplaceMode(e.target.checked)}
+                            />
+                            <label
+                                htmlFor="ai-replace-mode"
+                                className="text-xs sm:text-sm font-medium text-foreground cursor-pointer select-none"
+                            >
+                                Hapus semua soal lama (Replace All)
+                            </label>
+                        </div>
+                        {replaceMode && (
+                            <span className="text-[11px] text-amber-600 dark:text-amber-400 font-medium">
+                                ⚠️ Perhatian: Semua soal yang ada di bank soal ini akan dihapus dan digantikan.
+                            </span>
                         )}
-                    </Button>
+                    </div>
+
+                    <div className="flex items-center gap-2 self-end sm:self-auto">
+                        <Button variant="ghost" onClick={() => setOpen(false)}>Batal</Button>
+                        <Button
+                            onClick={handleSave}
+                            disabled={generatedQuestions.length === 0 || isSaving}
+                            className={replaceMode ? "bg-amber-600 hover:bg-amber-700 text-white" : "bg-purple-600 hover:bg-purple-700 text-white"}
+                        >
+                            {isSaving ? (
+                                <>
+                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                    Menyimpan...
+                                </>
+                            ) : (
+                                <>
+                                    <Save className="mr-2 h-4 w-4" />
+                                    {replaceMode ? "Gantikan & Simpan Soal" : "Simpan Soal"}
+                                </>
+                            )}
+                        </Button>
+                    </div>
                 </DialogFooter>
             </DialogContent>
         </Dialog>

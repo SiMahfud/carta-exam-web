@@ -157,8 +157,136 @@ async function callOpenRouter(
 }
 
 // ============================================================================
+// Gemini Streaming Provider
+// ============================================================================
+
+async function* callGeminiStream(
+    apiKey: string,
+    model: string,
+    request: AIGenerateRequest
+): AsyncGenerator<string, void, unknown> {
+    const { GoogleGenAI } = await import("@google/genai");
+    const ai = new GoogleGenAI({ apiKey });
+
+    const stream = await ai.models.generateContentStream({
+        model,
+        contents: request.prompt,
+        config: {
+            responseMimeType: request.config?.responseMimeType,
+            temperature: request.config?.temperature,
+        },
+    });
+
+    for await (const chunk of stream) {
+        const text = chunk.text;
+        if (text) {
+            yield text;
+        }
+    }
+}
+
+// ============================================================================
+// OpenRouter Streaming Provider
+// ============================================================================
+
+async function* callOpenRouterStream(
+    apiKey: string,
+    model: string,
+    request: AIGenerateRequest
+): AsyncGenerator<string, void, unknown> {
+    // Build messages (same as non-streaming)
+    const messages: Array<{ role: string; content: string | Array<{ type: string; text?: string; image_url?: { url: string } }> }> = [];
+
+    if (typeof request.prompt === 'string') {
+        messages.push({ role: "user", content: request.prompt });
+    } else if (Array.isArray(request.prompt)) {
+        const contentParts: Array<{ type: string; text?: string; image_url?: { url: string } }> = [];
+        for (const part of request.prompt) {
+            if ('text' in part && part.text) {
+                contentParts.push({ type: "text", text: part.text });
+            }
+            if ('inlineData' in part && part.inlineData) {
+                contentParts.push({
+                    type: "image_url",
+                    image_url: {
+                        url: `data:${part.inlineData.mimeType};base64,${part.inlineData.data}`
+                    }
+                });
+            }
+        }
+        messages.push({ role: "user", content: contentParts });
+    }
+
+    const body: Record<string, unknown> = {
+        model,
+        messages,
+        stream: true,
+    };
+
+    if (request.config?.temperature !== undefined) {
+        body.temperature = request.config.temperature;
+    }
+    if (request.config?.responseMimeType === "application/json") {
+        body.response_format = { type: "json_object" };
+    }
+
+    const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+        method: "POST",
+        headers: {
+            "Authorization": `Bearer ${apiKey}`,
+            "Content-Type": "application/json",
+            "HTTP-Referer": process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000",
+            "X-Title": "CartaExam",
+        },
+        body: JSON.stringify(body),
+    });
+
+    if (!response.ok) {
+        const errorBody = await response.text();
+        throw new Error(`OpenRouter API error: ${response.status} - ${errorBody}`);
+    }
+
+    const reader = response.body?.getReader();
+    if (!reader) throw new Error("No response body from OpenRouter stream");
+
+    const decoder = new TextDecoder();
+    let buffer = "";
+
+    while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split("\n");
+        buffer = lines.pop() || "";
+
+        for (const line of lines) {
+            const trimmed = line.trim();
+            if (!trimmed || !trimmed.startsWith("data: ")) continue;
+            const data = trimmed.slice(6);
+            if (data === "[DONE]") return;
+
+            try {
+                const parsed = JSON.parse(data);
+                const content = parsed.choices?.[0]?.delta?.content;
+                if (content) {
+                    yield content;
+                }
+            } catch {
+                // Skip malformed SSE chunks
+            }
+        }
+    }
+}
+
+// ============================================================================
 // Public API
 // ============================================================================
+
+/**
+ * Expose resolveAIConfig for use in streaming API routes.
+ */
+export { resolveAIConfig };
 
 /**
  * Generate content using the configured AI provider.
@@ -179,6 +307,30 @@ export async function generateAIContent(request: AIGenerateRequest): Promise<AIG
     const model = config.geminiModel || "gemini-2.5-flash";
     if (!apiKey) throw new Error("Gemini API Key belum dikonfigurasi.");
     return callGemini(apiKey, model, request);
+}
+
+/**
+ * Generate content as a stream using the configured AI provider.
+ * Yields text chunks as they arrive from the model.
+ */
+export async function* generateAIContentStream(
+    request: AIGenerateRequest
+): AsyncGenerator<string, void, unknown> {
+    const config = await resolveAIConfig();
+
+    if (config.provider === 'openrouter') {
+        const apiKey = config.openrouterApiKey;
+        const model = config.openrouterModel || "google/gemini-2.5-flash";
+        if (!apiKey) throw new Error("OpenRouter API Key belum dikonfigurasi.");
+        yield* callOpenRouterStream(apiKey, model, request);
+        return;
+    }
+
+    // Default: Gemini
+    const apiKey = config.geminiApiKey;
+    const model = config.geminiModel || "gemini-2.5-flash";
+    if (!apiKey) throw new Error("Gemini API Key belum dikonfigurasi.");
+    yield* callGeminiStream(apiKey, model, request);
 }
 
 /**
@@ -223,6 +375,7 @@ export async function testAIConnection(
             message: `Koneksi berhasil! (${latencyMs}ms)`,
             latencyMs,
         };
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (error: any) {
         return {
             success: false,
