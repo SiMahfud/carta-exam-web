@@ -31,6 +31,7 @@ export async function GET(
             matching: sql<number>`SUM(CASE WHEN ${bankQuestions.type} = 'matching' THEN 1 ELSE 0 END)`,
             short: sql<number>`SUM(CASE WHEN ${bankQuestions.type} = 'short' THEN 1 ELSE 0 END)`,
             essay: sql<number>`SUM(CASE WHEN ${bankQuestions.type} = 'essay' THEN 1 ELSE 0 END)`,
+            true_false: sql<number>`SUM(CASE WHEN ${bankQuestions.type} = 'true_false' THEN 1 ELSE 0 END)`,
             easy: sql<number>`SUM(CASE WHEN ${bankQuestions.difficulty} = 'easy' THEN 1 ELSE 0 END)`,
             medium: sql<number>`SUM(CASE WHEN ${bankQuestions.difficulty} = 'medium' THEN 1 ELSE 0 END)`,
             hard: sql<number>`SUM(CASE WHEN ${bankQuestions.difficulty} = 'hard' THEN 1 ELSE 0 END)`,

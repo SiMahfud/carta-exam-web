@@ -165,6 +165,7 @@ export default function QuestionBankDetailPage() {
                     title: "Berhasil",
                     description: "Soal berhasil dihapus",
                 });
+                fetchBankDetails();
                 fetchQuestions();
                 fetchTags();
             } else {
@@ -223,6 +224,7 @@ export default function QuestionBankDetailPage() {
                         <ImportQuestionsDialog
                             bankId={bankId}
                             onSuccess={() => {
+                                fetchBankDetails();
                                 fetchQuestions();
                                 fetchTags();
                             }}
@@ -230,6 +232,7 @@ export default function QuestionBankDetailPage() {
                         <GenerateQuestionsDialog
                             bankId={bankId}
                             onSuccess={() => {
+                                fetchBankDetails();
                                 fetchQuestions();
                                 fetchTags();
                             }}
@@ -323,7 +326,7 @@ export default function QuestionBankDetailPage() {
             </div>
 
             {/* Statistics */}
-            <div className="grid grid-cols-2 md:grid-cols-6 gap-4 mb-6">
+            <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-3 mb-6">
                 <Card>
                     <CardHeader className="p-4">
                         <CardTitle className="text-sm">Total</CardTitle>
@@ -518,6 +521,7 @@ export default function QuestionBankDetailPage() {
                 }}
                 bankId={bankId}
                 onSuccess={() => {
+                    fetchBankDetails();
                     fetchQuestions();
                     fetchTags();
                 }}
