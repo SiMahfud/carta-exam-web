@@ -12,9 +12,34 @@ import { Bell, Calendar, Edit3, Info, AlertTriangle, CheckCheck } from "lucide-r
 import Link from "next/link";
 import { AppNotification } from "@/app/api/notifications/route";
 
+const STORAGE_PREFIX = "carta_read_notifications_";
+
+function getStoredReadIds(userId?: string): string[] {
+    if (typeof window === "undefined") return [];
+    try {
+        const key = `${STORAGE_PREFIX}${userId || "anonymous"}`;
+        const raw = localStorage.getItem(key);
+        return raw ? JSON.parse(raw) : [];
+    } catch {
+        return [];
+    }
+}
+
+function storeReadIds(ids: string[], userId?: string) {
+    if (typeof window === "undefined") return;
+    try {
+        const key = `${STORAGE_PREFIX}${userId || "anonymous"}`;
+        const unique = Array.from(new Set(ids)).slice(-100);
+        localStorage.setItem(key, JSON.stringify(unique));
+    } catch {
+        // Ignore localStorage write errors
+    }
+}
+
 export function NotificationDropdown() {
     const [notifications, setNotifications] = useState<AppNotification[]>([]);
     const [unreadCount, setUnreadCount] = useState(0);
+    const [userId, setUserId] = useState<string>("");
     const [open, setOpen] = useState(false);
 
     const fetchNotifications = async () => {
@@ -22,8 +47,19 @@ export function NotificationDropdown() {
             const res = await fetch("/api/notifications");
             if (res.ok) {
                 const data = await res.json();
-                setNotifications(data.notifications || []);
-                setUnreadCount(data.unreadCount || 0);
+                const currentUserId = data.userId || "";
+                setUserId(currentUserId);
+
+                const rawList: AppNotification[] = data.notifications || [];
+                const readIds = getStoredReadIds(currentUserId);
+
+                const processed = rawList.map((item) => ({
+                    ...item,
+                    read: readIds.includes(item.id) || !!item.read,
+                }));
+
+                setNotifications(processed);
+                setUnreadCount(processed.filter((item) => !item.read).length);
             }
         } catch {
             // Ignore background fetch errors
@@ -36,9 +72,32 @@ export function NotificationDropdown() {
         return () => clearInterval(interval);
     }, []);
 
-    const markAllAsRead = () => {
-        setUnreadCount(0);
+    const markAllAsRead = (e?: React.MouseEvent) => {
+        if (e) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
+        const allIds = notifications.map((n) => n.id);
+        const existing = getStoredReadIds(userId);
+        const updated = Array.from(new Set([...existing, ...allIds]));
+        storeReadIds(updated, userId);
+
         setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
+        setUnreadCount(0);
+    };
+
+    const handleItemClick = (item: AppNotification) => {
+        setOpen(false);
+        if (!item.read) {
+            const existing = getStoredReadIds(userId);
+            const updated = Array.from(new Set([...existing, item.id]));
+            storeReadIds(updated, userId);
+
+            setNotifications((prev) =>
+                prev.map((n) => (n.id === item.id ? { ...n, read: true } : n))
+            );
+            setUnreadCount((prev) => Math.max(0, prev - 1));
+        }
     };
 
     const getIcon = (type: string) => {
@@ -93,17 +152,22 @@ export function NotificationDropdown() {
                             <Link
                                 key={item.id}
                                 href={item.link || "#"}
-                                onClick={() => setOpen(false)}
+                                onClick={() => handleItemClick(item)}
                                 className="block"
                             >
-                                <DropdownMenuItem className="p-2.5 cursor-pointer rounded-md hover:bg-muted/70 flex items-start gap-2.5">
+                                <DropdownMenuItem className={`p-2.5 cursor-pointer rounded-md transition-colors flex items-start gap-2.5 ${!item.read ? "bg-primary/5 hover:bg-primary/10" : "hover:bg-muted/70 opacity-80"}`}>
                                     <div className="mt-0.5 shrink-0 bg-muted p-1.5 rounded-full">
                                         {getIcon(item.type)}
                                     </div>
                                     <div className="space-y-0.5 flex-1 min-w-0">
-                                        <p className="text-xs font-semibold text-foreground truncate">
-                                            {item.title}
-                                        </p>
+                                        <div className="flex items-center justify-between gap-1">
+                                            <p className={`text-xs truncate ${!item.read ? "font-semibold text-foreground" : "font-normal text-muted-foreground"}`}>
+                                                {item.title}
+                                            </p>
+                                            {!item.read && (
+                                                <span className="h-2 w-2 rounded-full bg-blue-600 shrink-0" />
+                                            )}
+                                        </div>
                                         <p className="text-[11px] text-muted-foreground line-clamp-2 leading-tight">
                                             {item.description}
                                         </p>

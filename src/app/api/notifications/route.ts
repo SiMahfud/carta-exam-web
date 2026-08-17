@@ -128,9 +128,10 @@ export async function GET() {
         return NextResponse.json({
             notifications,
             unreadCount: notifications.length,
+            userId: user.id,
         });
     } catch (err: any) {
         console.error("Error in notifications API:", err);
-        return NextResponse.json({ notifications: [], unreadCount: 0 });
+        return NextResponse.json({ notifications: [], unreadCount: 0, userId: null });
     }
 }

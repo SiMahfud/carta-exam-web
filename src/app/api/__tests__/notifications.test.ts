@@ -48,5 +48,6 @@ describe("GET /api/notifications", () => {
         const json = await res.json();
         expect(json.notifications.length).toBeGreaterThanOrEqual(1);
         expect(json.notifications[0].title).toBe("Ujian Sedang Berlangsung");
+        expect(json.userId).toBe("student-1");
     });
 });
