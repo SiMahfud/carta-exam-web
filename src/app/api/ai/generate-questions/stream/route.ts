@@ -14,6 +14,42 @@ export async function POST(request: NextRequest) {
 
     const stream = new ReadableStream({
         async start(controller) {
+            let isClosed = false;
+
+            const safeEnqueue = (data: Uint8Array): boolean => {
+                if (isClosed || request.signal.aborted) return false;
+                try {
+                    if (controller.desiredSize === null) {
+                        isClosed = true;
+                        return false;
+                    }
+                    controller.enqueue(data);
+                    return true;
+                } catch {
+                    isClosed = true;
+                    return false;
+                }
+            };
+
+            const safeClose = () => {
+                if (isClosed) return;
+                isClosed = true;
+                try {
+                    if (controller.desiredSize !== null) {
+                        controller.close();
+                    }
+                } catch {
+                    // Ignore if already closed or in invalid state
+                }
+            };
+
+            const abortHandler = () => {
+                isClosed = true;
+                safeClose();
+            };
+
+            request.signal.addEventListener("abort", abortHandler);
+
             try {
                 // 1. Parse request body
                 const body = await request.json();
@@ -23,8 +59,10 @@ export async function POST(request: NextRequest) {
                     options?: GenerationOptions;
                 };
 
+                if (request.signal.aborted) return;
+
                 // 2. Send initial status - preparing
-                controller.enqueue(sseMessage("status", {
+                safeEnqueue(sseMessage("status", {
                     step: 1,
                     label: "Menyiapkan konteks & prompt...",
                 }));
@@ -32,13 +70,15 @@ export async function POST(request: NextRequest) {
                 // 3. Build prompt
                 const { parts } = buildQuestionPrompt(promptText, contextFile, options);
 
+                if (request.signal.aborted) return;
+
                 // 4. Resolve provider info for display
                 const config = await resolveAIConfig();
                 const providerName = config.provider === 'openrouter'
                     ? `OpenRouter (${config.openrouterModel || 'google/gemini-2.5-flash'})`
                     : `Gemini (${config.geminiModel || 'gemini-2.5-flash'})`;
 
-                controller.enqueue(sseMessage("status", {
+                safeEnqueue(sseMessage("status", {
                     step: 2,
                     label: `Menghubungkan ke ${providerName}...`,
                     provider: providerName,
@@ -56,19 +96,25 @@ export async function POST(request: NextRequest) {
                 });
 
                 for await (const chunk of streamGenerator) {
+                    if (request.signal.aborted || isClosed) {
+                        break;
+                    }
+
                     fullText += chunk;
                     chunkCount++;
 
                     // Send token chunk to client
-                    controller.enqueue(sseMessage("token", {
+                    safeEnqueue(sseMessage("token", {
                         chunk,
                         totalLength: fullText.length,
                         chunkIndex: chunkCount,
                     }));
                 }
 
+                if (request.signal.aborted || isClosed) return;
+
                 // 6. Validate and normalize
-                controller.enqueue(sseMessage("status", {
+                safeEnqueue(sseMessage("status", {
                     step: 3,
                     label: "Memvalidasi format & kunci jawaban...",
                 }));
@@ -79,13 +125,15 @@ export async function POST(request: NextRequest) {
 
                 const questions = normalizeAndValidateQuestions(fullText);
 
+                if (request.signal.aborted || isClosed) return;
+
                 // 7. Send completed result
-                controller.enqueue(sseMessage("status", {
+                safeEnqueue(sseMessage("status", {
                     step: 4,
                     label: "Selesai!",
                 }));
 
-                controller.enqueue(sseMessage("complete", {
+                safeEnqueue(sseMessage("complete", {
                     questions,
                     totalChunks: chunkCount,
                     totalChars: fullText.length,
@@ -94,11 +142,15 @@ export async function POST(request: NextRequest) {
             } catch (err) {
                 console.error("Streaming generation error:", err);
                 const message = err instanceof Error ? err.message : "Gagal generate soal. Silakan coba lagi.";
-                controller.enqueue(sseMessage("error", { message }));
+                safeEnqueue(sseMessage("error", { message }));
             } finally {
-                controller.close();
+                request.signal.removeEventListener("abort", abortHandler);
+                safeClose();
             }
         },
+        cancel() {
+            // Invoked when stream reader cancels
+        }
     });
 
     return new Response(stream, {

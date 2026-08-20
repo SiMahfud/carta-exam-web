@@ -28,7 +28,7 @@ describe("evaluateEssayWithAI", () => {
         });
 
         expect(res.success).toBe(false);
-        expect(res.error).toContain("GOOGLE_GENERATIVE_AI_API_KEY");
+        expect(res.error).toMatch(/API Key/i);
     });
 
     it("should handle empty student answer with 0 score", async () => {

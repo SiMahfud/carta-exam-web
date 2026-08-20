@@ -64,13 +64,320 @@ export const cleanJson = (text: string): string => {
     // Strategy:
     // 1. Match known SAFE escape sequences first and preserve them (Double backslashes, newline, quotes, unicode).
     // 2. Any other backslash is considered a "bad" LaTeX escape (e.g., \alpha instead of \\alpha) and is doubled.
-    // Note: We deliberately exclude \b, \f, \r, \t from safe list because in the context of LaTeX, 
-    // \beta, \frac, \rho, \theta are common and we want them to become \\beta, \\frac, etc.
     return text.replace(/(\\\\|\\n|\\"|\\\/|\\u[0-9a-fA-F]{4})|(\\)/g, (match, safe, _unsafe) => {
         if (safe) return safe;
         return "\\\\";
     });
 };
+
+/**
+ * Safely parse JSON from raw AI text, handling markdown fences, surrounding commentary,
+ * LaTeX escapes, and trailing commas.
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function parseAIJson(rawText: string): any {
+    if (!rawText || !rawText.trim()) {
+        throw new Error("AI tidak menghasilkan teks respons.");
+    }
+
+    let text = rawText.trim();
+
+    // 1. Remove markdown code blocks if present
+    const markdownMatch = text.match(/```(?:json)?\s*([\s\S]*?)\s*```/i);
+    if (markdownMatch) {
+        text = markdownMatch[1].trim();
+    }
+
+    // 2. If text still contains non-JSON prefix/suffix, find outer { } or [ ]
+    const firstBrace = text.indexOf('{');
+    const firstBracket = text.indexOf('[');
+    let startIdx = -1;
+    let endIdx = -1;
+
+    if (firstBrace !== -1 && (firstBracket === -1 || firstBrace < firstBracket)) {
+        startIdx = firstBrace;
+        endIdx = text.lastIndexOf('}');
+    } else if (firstBracket !== -1) {
+        startIdx = firstBracket;
+        endIdx = text.lastIndexOf(']');
+    }
+
+    if (startIdx !== -1 && endIdx !== -1 && endIdx > startIdx) {
+        text = text.substring(startIdx, endIdx + 1);
+    }
+
+    // 3. Try direct JSON.parse first
+    try {
+        return JSON.parse(text);
+    } catch {
+        // Continue to cleaning & repairing
+    }
+
+    // 4. Clean LaTeX / unescaped backslashes
+    const cleaned = cleanJson(text);
+    try {
+        return JSON.parse(cleaned);
+    } catch {
+        // Continue to remove trailing commas and repair
+    }
+
+    // 5. Remove trailing commas in objects and arrays
+    const repaired = cleaned.replace(/,\s*([}\]])/g, '$1');
+    try {
+        return JSON.parse(repaired);
+    } catch {
+        // 6. Try parsing original rawText as last resort
+        try {
+            return JSON.parse(rawText);
+        } catch {
+            console.warn("All JSON parsing strategies failed. Raw text slice:", rawText.slice(0, 300));
+            throw new Error("Gagal membaca struktur JSON dari respons AI. Silakan coba generate kembali.");
+        }
+    }
+}
+
+/**
+ * Pre-normalize a single raw question object produced by AI before Zod validation.
+ * Handles missing 'content' wrappers, string content, top-level options, letter-based answer keys, etc.
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function normalizeRawQuestion(raw: any, index: number): z.infer<typeof GeneratedQuestionSchema> | null {
+    if (!raw || typeof raw !== 'object') return null;
+
+    // 1. Extract question text from diverse possible structures
+    let questionText = "";
+    if (typeof raw.content === 'string') {
+        questionText = raw.content;
+    } else if (raw.content && typeof raw.content === 'object') {
+        questionText = raw.content.question || raw.content.text || raw.content.prompt || raw.content.soal || raw.content.pertanyaan || raw.content.title || raw.content.body || "";
+    }
+    if (!questionText) {
+        questionText = raw.question || raw.text || raw.prompt || raw.soal || raw.pertanyaan || raw.title || raw.body || "";
+    }
+    if (typeof questionText !== 'string' || !questionText.trim()) {
+        questionText = `Soal ${index + 1}`;
+    }
+    questionText = questionText.trim();
+
+    // 2. Determine and normalize question type
+    const rawType = (raw.type || "").toString().toLowerCase().trim();
+    let type: "mc" | "true_false" | "essay" | "short" | "complex_mc" | "matching" = "mc";
+
+    if (["mc", "multiple_choice", "pilihan_ganda", "pg", "single_choice", "multiple-choice"].includes(rawType)) {
+        type = "mc";
+    } else if (["complex_mc", "complex", "multiple_select", "pg_kompleks", "multi_choice", "checkbox", "complex-mc"].includes(rawType)) {
+        type = "complex_mc";
+    } else if (["true_false", "tf", "boolean", "benar_salah", "benar-salah", "true-false"].includes(rawType)) {
+        type = "true_false";
+    } else if (["matching", "match", "menjodohkan", "jodohkan"].includes(rawType)) {
+        type = "matching";
+    } else if (["short", "short_answer", "isian", "isian_singkat", "short-answer"].includes(rawType)) {
+        type = "short";
+    } else if (["essay", "uraian", "long", "essay_answer", "long_answer"].includes(rawType)) {
+        type = "essay";
+    } else {
+        // Infer type from content structure
+        if (raw.content?.leftItems || raw.leftItems || raw.content?.matches || raw.matches || raw.content?.rightItems || raw.rightItems) {
+            type = "matching";
+        } else if (raw.answerKey?.acceptedAnswers || raw.acceptedAnswers) {
+            type = "short";
+        } else if (raw.answerKey?.modelAnswer || raw.modelAnswer) {
+            type = "essay";
+        } else if (raw.answerKey?.correctIndices || raw.correctIndices) {
+            type = "complex_mc";
+        } else {
+            type = "mc";
+        }
+    }
+
+    // 3. Extract and normalize options
+    const rawOptions = raw.content?.options || raw.options || raw.choices || raw.pilihan || raw.answers;
+    let options: string[] | undefined = undefined;
+
+    if (Array.isArray(rawOptions)) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        options = rawOptions.map((opt: any) => {
+            if (typeof opt === 'string') return opt;
+            if (opt && typeof opt === 'object') {
+                return opt.text || opt.option || opt.label || opt.value || opt.content || JSON.stringify(opt);
+            }
+            return String(opt ?? "");
+        }).filter(Boolean);
+    }
+
+    if (type === 'true_false') {
+        if (!options || options.length < 2) {
+            options = ["Benar", "Salah"];
+        } else {
+            options = options.slice(0, 2);
+        }
+    } else if ((type === 'mc' || type === 'complex_mc') && (!options || options.length === 0)) {
+        options = ["Pilihan A", "Pilihan B", "Pilihan C", "Pilihan D", "Pilihan E"];
+    }
+
+    // 4. Extract and normalize leftItems and rightItems (for matching)
+    const rawLeft = raw.content?.leftItems || raw.leftItems || raw.left || raw.kiri;
+    const rawRight = raw.content?.rightItems || raw.rightItems || raw.right || raw.kanan;
+    let leftItems: Array<{ id: string; text: string }> | undefined = undefined;
+    let rightItems: Array<{ id: string; text: string }> | undefined = undefined;
+
+    if (type === 'matching') {
+        if (Array.isArray(rawLeft)) {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            leftItems = rawLeft.map((item: any, idx: number) => {
+                if (typeof item === 'string') return { id: `l${idx + 1}`, text: item };
+                if (item && typeof item === 'object') {
+                    return {
+                        id: String(item.id || `l${idx + 1}`),
+                        text: String(item.text || item.label || item.value || `Item ${idx + 1}`)
+                    };
+                }
+                return { id: `l${idx + 1}`, text: String(item ?? "") };
+            });
+        }
+        if (Array.isArray(rawRight)) {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            rightItems = rawRight.map((item: any, idx: number) => {
+                if (typeof item === 'string') return { id: `r${idx + 1}`, text: item };
+                if (item && typeof item === 'object') {
+                    return {
+                        id: String(item.id || `r${idx + 1}`),
+                        text: String(item.text || item.label || item.value || `Item ${idx + 1}`)
+                    };
+                }
+                return { id: `r${idx + 1}`, text: String(item ?? "") };
+            });
+        }
+    }
+
+    // 5. Extract and normalize AnswerKey
+    const rawAnswerKey = (raw.answerKey && typeof raw.answerKey === 'object') ? raw.answerKey : {};
+    const rawCorrect = rawAnswerKey.correct !== undefined 
+        ? rawAnswerKey.correct 
+        : (raw.correct !== undefined ? raw.correct : (raw.correctAnswer !== undefined ? raw.correctAnswer : (raw.kunci !== undefined ? raw.kunci : (raw.jawaban !== undefined ? raw.jawaban : undefined))));
+
+    // Helper to convert letter ('A', 'B', 'C'...) to index 0, 1, 2...
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const letterToIndex = (val: any): number | undefined => {
+        if (typeof val === 'number') return val;
+        if (typeof val === 'string') {
+            const trimmed = val.trim().toUpperCase();
+            if (/^[A-Z]$/.test(trimmed)) {
+                return trimmed.charCodeAt(0) - 65; // 'A' -> 0, 'B' -> 1...
+            }
+            const num = parseInt(trimmed, 10);
+            if (!isNaN(num)) return num;
+        }
+        return undefined;
+    };
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const answerKey: Record<string, any> = {};
+
+    if (type === 'mc') {
+        let correctIdx = letterToIndex(rawCorrect);
+        if (correctIdx === undefined && typeof rawCorrect === 'string' && options) {
+            const foundIdx = options.findIndex(o => o.trim().toLowerCase() === rawCorrect.trim().toLowerCase());
+            if (foundIdx !== -1) correctIdx = foundIdx;
+        }
+        answerKey.correct = correctIdx !== undefined ? correctIdx : 0;
+    } else if (type === 'true_false') {
+        if (typeof rawCorrect === 'boolean') {
+            answerKey.correct = rawCorrect ? 0 : 1;
+        } else if (typeof rawCorrect === 'string') {
+            const val = rawCorrect.toLowerCase().trim();
+            if (val === 'true' || val === 'benar' || val === 'a') {
+                answerKey.correct = 0;
+            } else if (val === 'false' || val === 'salah' || val === 'b') {
+                answerKey.correct = 1;
+            } else {
+                answerKey.correct = 0;
+            }
+        } else if (typeof rawCorrect === 'number') {
+            answerKey.correct = rawCorrect === 1 ? 1 : 0;
+        } else {
+            answerKey.correct = 0;
+        }
+    } else if (type === 'complex_mc') {
+        const rawIndices = rawAnswerKey.correctIndices || raw.correctIndices || rawAnswerKey.correct || raw.correct;
+        let indices: number[] = [];
+        if (Array.isArray(rawIndices)) {
+            indices = rawIndices.map(letterToIndex).filter((idx): idx is number => idx !== undefined);
+        } else if (rawIndices !== undefined) {
+            const idx = letterToIndex(rawIndices);
+            if (idx !== undefined) indices = [idx];
+        }
+        if (indices.length === 0) indices = [0];
+        answerKey.correctIndices = indices;
+    } else if (type === 'matching') {
+        const rawMatches = rawAnswerKey.matches || raw.matches || [];
+        if (Array.isArray(rawMatches)) {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            answerKey.matches = rawMatches.map((m: any) => {
+                if (typeof m.from === 'number' && typeof m.to === 'number') {
+                    const left = leftItems?.[m.from];
+                    const right = rightItems?.[m.to];
+                    if (left && right) {
+                        return { leftId: left.id, rightId: right.id };
+                    }
+                }
+                if (m.from && m.to && !m.leftId) {
+                    return { leftId: String(m.from), rightId: String(m.to) };
+                }
+                if (m.left && m.right && !m.leftId) {
+                    return { leftId: String(m.left), rightId: String(m.right) };
+                }
+                if (m.leftId && m.rightId) {
+                    return { leftId: String(m.leftId), rightId: String(m.rightId) };
+                }
+                return m;
+            });
+        } else {
+            answerKey.matches = [];
+        }
+    } else if (type === 'short') {
+        const accepted = rawAnswerKey.acceptedAnswers || raw.acceptedAnswers || rawCorrect || raw.answer;
+        if (Array.isArray(accepted)) {
+            answerKey.acceptedAnswers = accepted.map(String).filter(Boolean);
+        } else if (typeof accepted === 'string' && accepted.trim()) {
+            answerKey.acceptedAnswers = [accepted.trim()];
+        } else {
+            answerKey.acceptedAnswers = ["Jawaban"];
+        }
+    } else if (type === 'essay') {
+        const model = rawAnswerKey.modelAnswer || raw.modelAnswer || rawCorrect || raw.answer || raw.rubric;
+        if (typeof model === 'string') {
+            answerKey.modelAnswer = model;
+        } else if (Array.isArray(model)) {
+            answerKey.modelAnswer = model.join("\n");
+        } else {
+            answerKey.modelAnswer = "";
+        }
+    }
+
+    // 6. Normalize difficulty
+    const rawDiff = (raw.difficulty || raw.level || raw.tingkatKesulitan || "").toString().toLowerCase().trim();
+    let difficulty: "easy" | "medium" | "hard" = "medium";
+    if (["easy", "mudah"].includes(rawDiff)) difficulty = "easy";
+    else if (["hard", "sulit", "sukar"].includes(rawDiff)) difficulty = "hard";
+    else difficulty = "medium";
+
+    // 7. Assemble normalized object
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const normalized: any = {
+        type,
+        difficulty,
+        content: {
+            question: questionText,
+            ...(options ? { options } : {}),
+            ...(leftItems ? { leftItems } : {}),
+            ...(rightItems ? { rightItems } : {}),
+        },
+        answerKey,
+    };
+
+    return normalized;
+}
 
 /**
  * Build the AI prompt parts for question generation.
@@ -129,6 +436,7 @@ For "mc" (Multiple Choice) questions, you MUST provide EXACTLY 5 options (A, B, 
 OUTPUT FORMAT:
 Return a single valid JSON object with the key "questions".
 The value MUST be an array of objects, NOT strings.
+CRITICAL: Ensure every item has "content" with "question" string!
 
 Example of expected JSON structure:
 {
@@ -142,14 +450,14 @@ Example of expected JSON structure:
     {
       "type": "complex_mc",
       "difficulty": "hard",
-      "content": { "question": "Question?", "options": ["A", "B", "C"] },
+      "content": { "question": "Manakah pernyataan yang benar?", "options": ["Pernyataan A", "Pernyataan B", "Pernyataan C", "Pernyataan D", "Pernyataan E"] },
       "answerKey": { "correctIndices": [0, 2] }
     },
     {
       "type": "matching",
       "difficulty": "medium",
       "content": {
-        "question": "Match items (One-to-Many supported)",
+        "question": "Pasangkan kelompok berikut:",
         "leftItems": [{"id": "l1", "text": "Buah"}, {"id": "l2", "text": "Sayur"}],
         "rightItems": [{"id": "r1", "text": "Apel"}, {"id": "r2", "text": "Pisang"}, {"id": "r3", "text": "Wortel"}]
       },
@@ -164,20 +472,20 @@ Example of expected JSON structure:
     {
       "type": "true_false",
       "difficulty": "easy",
-      "content": { "question": "Langit berwarna biru?", "options": ["Benar", "Salah"] },
+      "content": { "question": "Langit berwarna biru pada siang hari yang cerah.", "options": ["Benar", "Salah"] },
       "answerKey": { "correct": 0 } 
     },
     {
       "type": "short",
       "difficulty": "medium",
-      "content": { "question": "1 + 1 = ?" },
-      "answerKey": { "acceptedAnswers": ["2", "Dua"] } 
+      "content": { "question": "Ibukota Indonesia saat ini adalah?" },
+      "answerKey": { "acceptedAnswers": ["Jakarta", "DKI Jakarta"] } 
     },
     {
       "type": "essay",
       "difficulty": "medium",
-      "content": { "question": "Jelaskan kenapa bumi bulat!" },
-      "answerKey": { "modelAnswer": "Bumi bulat karena..." }
+      "content": { "question": "Jelaskan proses terjadinya fotosintesis pada tumbuhan hijau!" },
+      "answerKey": { "modelAnswer": "Fotosintesis adalah proses di mana tumbuhan menggunakan energi cahaya matahari..." }
     }
   ]
 }
@@ -201,85 +509,73 @@ Ensure complete adherence to this schema for every question.
 
 /**
  * Parse raw JSON text from AI response and normalize/validate with Zod schema.
+ * Tolerates variations in structure (such as missing content wrappers, option letters, etc.)
+ * and recovers all valid questions.
  * Used by both the server action and the streaming API route.
  */
 export function normalizeAndValidateQuestions(
     rawText: string
 ): z.infer<typeof GeneratedQuestionSchema>[] {
-    // Sanitize JSON before parsing
-    const cleanedText = cleanJson(rawText);
+    const json = parseAIJson(rawText);
 
-    let json;
-    try {
-        json = JSON.parse(cleanedText);
-    } catch (parseError) {
-        console.warn("JSON Parse failed even after cleaning. Trying original...", parseError);
-        json = JSON.parse(rawText);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    let rawList: any[] = [];
+    if (Array.isArray(json)) {
+        rawList = json;
+    } else if (json && typeof json === 'object') {
+        if (Array.isArray(json.questions)) {
+            rawList = json.questions;
+        } else if (Array.isArray(json.data)) {
+            rawList = json.data;
+        } else if (Array.isArray(json.items)) {
+            rawList = json.items;
+        } else if (Array.isArray(json.results)) {
+            rawList = json.results;
+        } else if (Array.isArray(json.soal)) {
+            rawList = json.soal;
+        } else if (Array.isArray(json.bankQuestions)) {
+            rawList = json.bankQuestions;
+        } else if (Array.isArray(json.bank_questions)) {
+            rawList = json.bank_questions;
+        } else {
+            // Check if object has numerical keys {"0": {...}, "1": {...}}
+            const values = Object.values(json);
+            if (values.length > 0 && typeof values[0] === 'object') {
+                rawList = values;
+            }
+        }
     }
 
-    // Validate with Zod
-    const result = GeneratedQuestionsListSchema.parse(json);
+    if (!Array.isArray(rawList) || rawList.length === 0) {
+        throw new Error("AI tidak menghasilkan daftar soal yang valid.");
+    }
 
-    // NORMALIZATION: Fix common AI hallucinations/schema mismatches
-    const normalizedQuestions = result.questions.map(q => {
-        if (!q.answerKey) {
-            q.answerKey = {};
-        }
+    const validatedQuestions: z.infer<typeof GeneratedQuestionSchema>[] = [];
+    const validationErrors: string[] = [];
 
-        // Fix 1: AI sometimes returns 'correct' int for 'complex_mc' instead of 'correctIndices' array
-        if (q.type === 'complex_mc') {
-            if (q.answerKey.correctIndices === undefined && typeof q.answerKey.correct === 'number') {
-                q.answerKey.correctIndices = [q.answerKey.correct];
+    for (let i = 0; i < rawList.length; i++) {
+        try {
+            const normalized = normalizeRawQuestion(rawList[i], i);
+            if (!normalized) continue;
+
+            const parseResult = GeneratedQuestionSchema.safeParse(normalized);
+            if (parseResult.success) {
+                validatedQuestions.push(parseResult.data);
+            } else {
+                console.warn(`Soal index ${i} gagal validasi schema:`, parseResult.error.format());
+                validationErrors.push(`Soal ${i + 1}: ${parseResult.error.issues.map(iss => iss.message).join(', ')}`);
             }
+        } catch (itemErr) {
+            console.warn(`Error normalizing question ${i}:`, itemErr);
         }
+    }
 
-        // Fix 2: AI matches normalization (from/to indices -> leftId/rightId)
-        if (q.type === 'matching' && q.content.leftItems && q.content.rightItems && q.answerKey.matches) {
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            q.answerKey.matches = q.answerKey.matches.map((m: any) => {
-                if (typeof m.from === 'number' && typeof m.to === 'number') {
-                    const left = q.content.leftItems?.[m.from];
-                    const right = q.content.rightItems?.[m.to];
-                    if (left && right) {
-                        return { leftId: left.id, rightId: right.id };
-                    }
-                }
-                if (m.from && m.to && !m.leftId) {
-                    return { leftId: m.from, rightId: m.to };
-                }
-                return m;
-            });
-        }
+    if (validatedQuestions.length === 0) {
+        throw new Error(
+            `Gagal memvalidasi format soal AI. ${validationErrors.length > 0 ? validationErrors.slice(0, 3).join('; ') : 'Format tidak sesuai.'}`
+        );
+    }
 
-        // Fix 3: True/False normalization (boolean/string -> index)
-        if (q.type === 'true_false') {
-            if (!q.content.options || q.content.options.length === 0) {
-                q.content.options = ["True", "False"];
-            }
-            if (typeof q.answerKey.correct === 'boolean') {
-                q.answerKey.correct = q.answerKey.correct ? 0 : 1;
-            } else if (typeof q.answerKey.correct === 'string') {
-                const val = q.answerKey.correct.toLowerCase();
-                if (val === 'true') q.answerKey.correct = 0;
-                else if (val === 'false') q.answerKey.correct = 1;
-            }
-        }
-
-        // Fix 4: Short/Essay normalization (string 'correct' -> acceptedAnswers/modelAnswer)
-        if ((q.type === 'short' || q.type === 'essay') && typeof q.answerKey.correct === 'string') {
-            if (q.type === 'short') {
-                if (!q.answerKey.acceptedAnswers) {
-                    q.answerKey.acceptedAnswers = [q.answerKey.correct];
-                }
-            } else if (q.type === 'essay') {
-                if (!q.answerKey.modelAnswer) {
-                    q.answerKey.modelAnswer = q.answerKey.correct;
-                }
-            }
-        }
-
-        return q;
-    });
-
-    return normalizedQuestions;
+    return validatedQuestions;
 }
+
