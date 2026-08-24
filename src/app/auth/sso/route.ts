@@ -1,7 +1,7 @@
-﻿import { NextRequest, NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { users } from "@/lib/schema";
-import { eq } from "drizzle-orm";
+import { users, classes, classStudents } from "@/lib/schema";
+import { eq, and } from "drizzle-orm";
 import bcrypt from "bcryptjs";
 import crypto from "crypto";
 import { signSession, UserRole } from "@/lib/session";
@@ -95,7 +95,7 @@ export async function GET(request: NextRequest) {
             role = "teacher";
         }
 
-        // Cari user di database CartaExam
+        // Cari atau buat user di database CartaExam
         let [existingUser] = await (db as any)
             .select()
             .from(users)
@@ -129,6 +129,66 @@ export async function GET(request: NextRequest) {
                     .where(eq(users.id, existingUser.id));
                 existingUser.name = ssoUser.nama;
                 existingUser.role = role;
+            }
+        }
+
+        // Auto-enrollment kelas instan jika siswa memiliki informasi kelas pada SSO payload
+        if (role === "student" && ssoUser.classroom) {
+            try {
+                const className = String(ssoUser.classroom).trim();
+                const academicYear = ssoUser.academic_year?.trim() || "2026/2027";
+
+                let [targetClass] = await (db as any)
+                    .select()
+                    .from(classes)
+                    .where(and(eq(classes.name, className), eq(classes.academicYear, academicYear)))
+                    .limit(1);
+
+                if (!targetClass) {
+                    // Coba cari hanya berdasarkan nama jika tahun ajaran berbeda
+                    const [fallbackClass] = await (db as any)
+                        .select()
+                        .from(classes)
+                        .where(eq(classes.name, className))
+                        .limit(1);
+
+                    if (fallbackClass) {
+                        targetClass = fallbackClass;
+                    } else {
+                        // Buat kelas baru jika belum ada
+                        let gradeNum = 10;
+                        if (className.startsWith("XI-") || className.startsWith("XI ")) gradeNum = 11;
+                        else if (className.startsWith("XII-") || className.startsWith("XII ")) gradeNum = 12;
+
+                        const newClassId = crypto.randomUUID();
+                        await (db as any).insert(classes).values({
+                            id: newClassId,
+                            name: className,
+                            grade: gradeNum,
+                            academicYear: academicYear,
+                            teacherId: null
+                        });
+                        targetClass = { id: newClassId, name: className };
+                    }
+                }
+
+                if (targetClass?.id) {
+                    const [existingEnrollment] = await (db as any)
+                        .select()
+                        .from(classStudents)
+                        .where(and(eq(classStudents.classId, targetClass.id), eq(classStudents.studentId, existingUser.id)))
+                        .limit(1);
+
+                    if (!existingEnrollment) {
+                        await (db as any).insert(classStudents).values({
+                            id: crypto.randomUUID(),
+                            classId: targetClass.id,
+                            studentId: existingUser.id
+                        });
+                    }
+                }
+            } catch (enrollErr) {
+                console.error("SSO Class Auto-Enroll Error (non-blocking):", enrollErr);
             }
         }
 
