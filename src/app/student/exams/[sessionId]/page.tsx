@@ -12,11 +12,11 @@ import { useWatermark } from "@/lib/lockdown";
 import { ExamHeader } from "@/components/exam/take-exam/ExamHeader";
 import { ExamSidebar } from "@/components/exam/take-exam/ExamSidebar";
 import { SubmitDialog } from "@/components/exam/take-exam/SubmitDialog";
-import { FullscreenPrompt } from "@/components/exam/take-exam/FullscreenPrompt";
+import { PreExamDialog } from "@/components/exam/take-exam/PreExamDialog";
 import { SecurityWarningBanner } from "@/components/exam/take-exam/SecurityWarningBanner";
-import { TokenInputDialog } from "@/components/exam/take-exam/TokenInputDialog";
 import { TerminatedExamView } from "@/components/exam/take-exam/TerminatedExamView";
 import { QuestionCard } from "@/components/exam/take-exam/QuestionCard";
+import { FloatingExamTools } from "@/components/exam/take-exam/FloatingExamTools";
 
 // Types
 import { Question, Answer } from "@/components/exam/take-exam/types";
@@ -39,7 +39,9 @@ export default function TakeExamPage() {
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
     const [studentId, setStudentId] = useState<string | null>(null);
     const [studentName, setStudentName] = useState<string>("");
-    const [showFullscreenPrompt, setShowFullscreenPrompt] = useState(true);
+    const [studentUsername, setStudentUsername] = useState<string>("");
+    const [studentClass, setStudentClass] = useState<string>("");
+    const [showPreExamDialog, setShowPreExamDialog] = useState(true);
     const [examStarted, setExamStarted] = useState(false);
     const [violationCount, setViolationCount] = useState(0);
     const [showViolationBanner, setShowViolationBanner] = useState(false);
@@ -47,17 +49,56 @@ export default function TakeExamPage() {
     const [isTerminated, setIsTerminated] = useState(false);
     const [examName, setExamName] = useState<string>("");
     const [minSubmitMinutes, setMinSubmitMinutes] = useState(0);
+    const [durationMinutes, setDurationMinutes] = useState<number | undefined>(undefined);
     const [startTime, setStartTime] = useState<Date | null>(null);
-    const [violationSettings, setViolationSettings] = useState<any>(null); // To store config
+    const [violationSettings, setViolationSettings] = useState<any>(null);
+
+    // UI/UX Customization States
+    const [fontSize, setFontSize] = useState<"sm" | "base" | "lg" | "xl">("base");
+    const [isZenMode, setIsZenMode] = useState(false);
+    const [eliminatedOptions, setEliminatedOptions] = useState<Map<string, string[]>>(new Map());
 
     // Token states
-    const [showTokenDialog, setShowTokenDialog] = useState(false);
     const [tokenRequired, setTokenRequired] = useState(false);
-    void tokenRequired; // Used to track token state
     const [tokenError, setTokenError] = useState<string | null>(null);
     const [verifyingToken, setVerifyingToken] = useState(false);
 
     const sessionId = params.sessionId as string;
+
+    // Load saved font size preference
+    useEffect(() => {
+        try {
+            const savedFont = localStorage.getItem("carta_exam_fontsize") as "sm" | "base" | "lg" | "xl";
+            if (savedFont && ["sm", "base", "lg", "xl"].includes(savedFont)) {
+                setFontSize(savedFont);
+            }
+        } catch {
+            // Ignore localStorage errors
+        }
+    }, []);
+
+    const handleChangeFontSize = (size: "sm" | "base" | "lg" | "xl") => {
+        setFontSize(size);
+        try {
+            localStorage.setItem("carta_exam_fontsize", size);
+        } catch {
+            // Ignore
+        }
+    };
+
+    // Toggle option elimination for MC & Complex MC
+    const handleToggleEliminate = (questionId: string, label: string) => {
+        setEliminatedOptions((prev) => {
+            const next = new Map(prev);
+            const currentList = next.get(questionId) || [];
+            if (currentList.includes(label)) {
+                next.set(questionId, currentList.filter(l => l !== label));
+            } else {
+                next.set(questionId, [...currentList, label]);
+            }
+            return next;
+        });
+    };
 
     // Log security violations to backend and check for termination
     const logSecurityViolation = useCallback(async (type: string, details?: string) => {
@@ -71,15 +112,12 @@ export default function TakeExamPage() {
             if (response.ok) {
                 const data = await response.json();
 
-                // Update violation count from server
                 if (data.violationCount !== undefined) {
                     setViolationCount(data.violationCount);
                 }
 
-                // Check if should terminate - immediately show terminated page
                 if (data.shouldTerminate) {
                     setIsTerminated(true);
-                    // Exit fullscreen
                     if (isFullscreen) {
                         await exitFullscreen();
                     }
@@ -95,18 +133,22 @@ export default function TakeExamPage() {
         }
     }, [sessionId, studentId, isFullscreen, exitFullscreen, toast]);
 
-    const fetchStudentId = useCallback(async () => {
+    const fetchStudentProfile = useCallback(async () => {
         try {
-            const response = await fetch("/api/auth/session");
+            const response = await fetch("/api/student/profile");
             if (response.ok) {
                 const data = await response.json();
-                setStudentId(data.user.id);
-                setStudentName(data.user.name || "");
+                if (data.success && data.data) {
+                    setStudentId(data.data.id);
+                    setStudentName(data.data.name || "");
+                    setStudentUsername(data.data.username || "");
+                    setStudentClass(data.data.primaryClass?.name || (data.data.classes?.[0]?.name) || "Siswa");
+                }
             } else {
                 router.push("/login");
             }
         } catch (error) {
-            console.error("Error fetching session:", error);
+            console.error("Error fetching student profile:", error);
             router.push("/login");
         }
     }, [router]);
@@ -134,11 +176,13 @@ export default function TakeExamPage() {
                 setEndTime(new Date(data.endTime));
                 setExamName(data.examName || "");
                 setMinSubmitMinutes(data.minDurationMinutes || 0);
+                if (data.durationMinutes) {
+                    setDurationMinutes(data.durationMinutes);
+                }
                 if (data.startTime) {
                     setStartTime(new Date(data.startTime));
                 }
 
-                // Restore violation count from server
                 if (data.violationCount !== undefined) {
                     setViolationCount(data.violationCount);
                 }
@@ -147,7 +191,6 @@ export default function TakeExamPage() {
                     setViolationSettings(data.violationSettings);
                 }
 
-                // Restore answers if available
                 if (data.answers) {
                     const restoredAnswers = new Map<string, Answer>();
                     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -161,14 +204,12 @@ export default function TakeExamPage() {
                     setAnswers(restoredAnswers);
                 }
 
-                // Clear token error if successful
                 setTokenRequired(false);
                 setTokenError(null);
                 return true;
             } else if (response.status === 403) {
                 const data = await response.json();
 
-                // Check if blocked due to browser or device mismatch
                 if (data.browserBlocked) {
                     toast({
                         title: "Browser Ditolak",
@@ -176,7 +217,7 @@ export default function TakeExamPage() {
                         variant: "destructive",
                     });
                     router.push("/student/exams");
-                    return;
+                    return false;
                 }
 
                 if (data.deviceBlocked) {
@@ -186,20 +227,17 @@ export default function TakeExamPage() {
                         variant: "destructive",
                     });
                     router.push("/student/exams");
-                    return;
+                    return false;
                 }
 
-                // Check if token is required (resume flow)
                 if (data.requireToken) {
                     setTokenRequired(true);
                     if (token) {
                         setTokenError("Token tidak valid");
                     }
-                    // Don't throw error, let the UI handle it via FullscreenPrompt
-                    return;
+                    return false;
                 }
 
-                // Check if terminated or completed
                 if (data.terminated) {
                     setIsTerminated(true);
                     setViolationCount(data.violationCount || 0);
@@ -210,6 +248,7 @@ export default function TakeExamPage() {
                     });
                     router.push("/student/exams");
                 }
+                return false;
             } else {
                 throw new Error("Failed to load questions");
             }
@@ -220,6 +259,7 @@ export default function TakeExamPage() {
                 description: "Gagal memuat soal ujian",
                 variant: "destructive",
             });
+            return false;
         } finally {
             setLoading(false);
         }
@@ -235,7 +275,6 @@ export default function TakeExamPage() {
             });
 
             if (response.ok) {
-                // Exit fullscreen before navigating
                 if (isFullscreen) {
                     try {
                         await exitFullscreen();
@@ -249,10 +288,7 @@ export default function TakeExamPage() {
                     description: "Ujian berhasil dikumpulkan",
                 });
 
-                // Force navigation using window.location to ensure we exit the exam context completely
                 window.location.href = "/student/exams";
-
-                // Don't setSubmitting(false) here, keep it true while navigating to prevent violations
             } else {
                 throw new Error("Failed to submit");
             }
@@ -275,7 +311,7 @@ export default function TakeExamPage() {
         handleSubmit();
     }, [handleSubmit, toast]);
 
-    // Security hook - only enabled after exam starts
+    // Security hook
     useExamSecurity({
         enabled: examStarted,
         cooldownMs: (violationSettings?.cooldownSeconds || 5) * 1000,
@@ -283,15 +319,12 @@ export default function TakeExamPage() {
         disableRightClick: violationSettings?.detectRightClick ?? true,
         detectTabSwitch: violationSettings?.detectTabSwitch ?? true,
         detectScreenshot: violationSettings?.detectScreenshot ?? true,
-        detectWindowBlur: false, // Maintain default
+        detectWindowBlur: false,
         onViolation: (violation) => {
             setViolationCount(prev => prev + 1);
             setLastViolationType(violation.type);
             setShowViolationBanner(true);
-            // Auto-hide banner after 5 seconds
             setTimeout(() => setShowViolationBanner(false), 5000);
-
-            // Log violation to backend
             logSecurityViolation(violation.type, violation.details);
         }
     });
@@ -309,7 +342,7 @@ export default function TakeExamPage() {
         examStarted && (violationSettings?.watermarkAntiTamper ?? true)
     );
 
-    // Heartbeat for server-side time synchronization & clock manipulation check
+    // Heartbeat sync
     useEffect(() => {
         if (!examStarted || submitting || isTerminated || !studentId) return;
 
@@ -350,28 +383,22 @@ export default function TakeExamPage() {
             }
         };
 
-        // Send initial heartbeat
         sendHeartbeat();
-
-        // Send heartbeat every 20 seconds
         const interval = setInterval(sendHeartbeat, 20000);
         return () => clearInterval(interval);
     }, [examStarted, submitting, isTerminated, sessionId, studentId, toast]);
 
-    // Prevent escape from fullscreen during exam (including Android back button)
+    // Fullscreen enforcement
     useEffect(() => {
         if (!examStarted) return;
 
-        // Push a dummy state to history so back button stays on this page
         const pushDummyState = () => {
             window.history.pushState({ examInProgress: true }, '', window.location.href);
         };
 
-        // Initial push
         pushDummyState();
 
         const handleFullscreenChange = () => {
-            // If user tries to exit fullscreen during exam, re-enter
             const isCurrentlyFullscreen = !!(
                 document.fullscreenElement ||
                 (document as unknown as { webkitFullscreenElement?: Element }).webkitFullscreenElement ||
@@ -384,12 +411,10 @@ export default function TakeExamPage() {
                     description: "Anda tidak dapat keluar dari layar penuh selama ujian berlangsung.",
                     variant: "destructive",
                 });
-                // Re-enter fullscreen after a short delay
                 setTimeout(() => {
                     enterFullscreen();
                 }, 100);
 
-                // Log this as a violation and show banner
                 logSecurityViolation("FULLSCREEN_EXIT", "User attempted to exit fullscreen");
                 setViolationCount(prev => prev + 1);
                 setLastViolationType("FULLSCREEN_EXIT");
@@ -398,16 +423,11 @@ export default function TakeExamPage() {
             }
         };
 
-        // Handle Android back button
         const handlePopState = (e: PopStateEvent) => {
             if (examStarted && !submitting) {
-                // Prevent going back
                 e.preventDefault();
-
-                // Push state again to keep user on this page
                 pushDummyState();
 
-                // Re-enter fullscreen if not in fullscreen
                 const isCurrentlyFullscreen = !!(
                     document.fullscreenElement ||
                     (document as unknown as { webkitFullscreenElement?: Element }).webkitFullscreenElement
@@ -424,7 +444,6 @@ export default function TakeExamPage() {
                         enterFullscreen();
                     }, 100);
 
-                    // Log this as a violation and show banner
                     logSecurityViolation("BACK_BUTTON", "User pressed back button on Android");
                     setViolationCount(prev => prev + 1);
                     setLastViolationType("BACK_BUTTON");
@@ -434,10 +453,8 @@ export default function TakeExamPage() {
             }
         };
 
-        // Handle visibility change (for when back button minimizes app briefly)
         const handleVisibilityChange = () => {
             if (document.visibilityState === 'visible' && examStarted && !submitting) {
-                // When page becomes visible again, check fullscreen
                 setTimeout(() => {
                     const isCurrentlyFullscreen = !!(
                         document.fullscreenElement ||
@@ -466,66 +483,39 @@ export default function TakeExamPage() {
         };
     }, [examStarted, submitting, enterFullscreen, toast, logSecurityViolation]);
 
-
-
-
-    // Handle fullscreen start (and optional token verification)
-    const handleStartFullscreen = async (token?: string) => {
-        if (tokenRequired) {
-            if (!token) {
-                setTokenError("Token harus diisi");
-                return;
-            }
-            // Re-fetch questions with token
-            const success = await fetchQuestions(token);
-            if (success) {
-                // If verification succeeded, proceed directly
-                await proceedWithExamStart();
-            }
-        } else {
-            await proceedWithExamStart();
+    // Handle Start from PreExamDialog
+    const handleStartExam = async (token?: string) => {
+        if (tokenRequired && !token) {
+            setTokenError("Token harus diisi");
+            return;
         }
-    };
 
-    // Start exam with token verification
-    const handleStartWithToken = async (token: string) => {
         setVerifyingToken(true);
         setTokenError(null);
 
         try {
-            const deviceId = getDeviceId();
-            // Call start API with token and deviceId
-            const response = await fetch(`/api/student/exams/${sessionId}/start`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'X-Device-Id': deviceId },
-                body: JSON.stringify({ studentId, token, deviceId })
-            });
-
-            if (response.ok) {
-                setShowTokenDialog(false);
-                await proceedWithExamStart();
-            } else {
-                const data = await response.json();
-                setTokenError(data.error || "Token tidak valid");
+            if (token) {
+                const success = await fetchQuestions(token);
+                if (!success) {
+                    setVerifyingToken(false);
+                    return;
+                }
             }
-        } catch (error) {
-            void error;
-            setTokenError("Gagal memverifikasi token. Silakan coba lagi.");
+
+            if (fullscreenSupported) {
+                await enterFullscreen();
+            }
+
+            setShowPreExamDialog(false);
+            setExamStarted(true);
+        } catch (err) {
+            console.error("Start exam error:", err);
+            setTokenError("Gagal memulai ujian. Silakan coba lagi.");
         } finally {
             setVerifyingToken(false);
         }
     };
 
-    // Actually start the exam (enter fullscreen, etc)
-    const proceedWithExamStart = async () => {
-        if (fullscreenSupported) {
-            await enterFullscreen();
-        }
-        setShowFullscreenPrompt(false);
-        setExamStarted(true);
-    };
-
-    // Helper function to ensure fullscreen is active
     const ensureFullscreen = useCallback(() => {
         if (!examStarted || submitting || !fullscreenSupported) return;
 
@@ -540,33 +530,31 @@ export default function TakeExamPage() {
         }
     }, [examStarted, submitting, fullscreenSupported, enterFullscreen]);
 
-    // Periodic fullscreen check - every 3 seconds during exam
+    // Periodic fullscreen check
     useEffect(() => {
         if (!examStarted || submitting) return;
 
         const interval = setInterval(() => {
             ensureFullscreen();
-        }, 3000); // Check every 3 seconds
+        }, 3000);
 
         return () => clearInterval(interval);
     }, [examStarted, submitting, ensureFullscreen]);
 
-    // Navigation handler that also ensures fullscreen
+    // Navigation handler
     const navigateToQuestion = useCallback((index: number) => {
         setCurrentQuestionIndex(index);
-        // Re-enter fullscreen on navigation
         setTimeout(() => {
             ensureFullscreen();
         }, 100);
     }, [ensureFullscreen]);
 
     useEffect(() => {
-        fetchStudentId();
-    }, [fetchStudentId]);
+        fetchStudentProfile();
+    }, [fetchStudentProfile]);
 
     useEffect(() => {
         if (studentId) {
-            // Check for token in session storage (passed from list page)
             let storedToken: string | undefined;
             try {
                 storedToken = sessionStorage.getItem(`exam_token_${sessionId}`) || undefined;
@@ -577,8 +565,7 @@ export default function TakeExamPage() {
         }
     }, [studentId, fetchQuestions, sessionId]);
 
-
-
+    // Timer countdown
     useEffect(() => {
         if (!endTime) return;
 
@@ -595,8 +582,7 @@ export default function TakeExamPage() {
         return () => clearInterval(interval);
     }, [endTime, handleAutoSubmit]);
 
-
-
+    // Save answer API call
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const saveAnswer = useCallback(async (questionId: string, answer: any, isFlagged: boolean = false) => {
         setAutoSaving(true);
@@ -614,7 +600,7 @@ export default function TakeExamPage() {
     }, [sessionId, studentId]);
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const handleAnswerChange = (questionId: string, answer: any) => {
+    const handleAnswerChange = useCallback((questionId: string, answer: any) => {
         const newAnswers = new Map(answers);
         const existing = newAnswers.get(questionId);
         newAnswers.set(questionId, {
@@ -624,21 +610,96 @@ export default function TakeExamPage() {
         });
         setAnswers(newAnswers);
         saveAnswer(questionId, answer, existing?.isFlagged || false);
-    };
+    }, [answers, saveAnswer]);
 
-    const toggleFlag = () => {
+    const toggleFlag = useCallback(() => {
         const question = questions[currentQuestionIndex];
+        if (!question) return;
         const newAnswers = new Map(answers);
         const existing = newAnswers.get(question.id) || { questionId: question.id, answer: null, isFlagged: false };
         existing.isFlagged = !existing.isFlagged;
         newAnswers.set(question.id, existing);
         setAnswers(newAnswers);
         saveAnswer(question.id, existing.answer, existing.isFlagged);
-    };
+    }, [questions, currentQuestionIndex, answers, saveAnswer]);
 
+    // KEYBOARD SHORTCUTS INTEGRATION (ala UTBK/UNBK)
+    useEffect(() => {
+        if (!examStarted || submitting || isTerminated) return;
 
+        const handleKeyDown = (e: KeyboardEvent) => {
+            const target = e.target as HTMLElement;
+            const isTyping = target.tagName === "INPUT" || target.tagName === "TEXTAREA" || target.isContentEditable;
 
+            // If student is actively typing in an input field, do not trigger shortcuts
+            if (isTyping) return;
 
+            const key = e.key.toUpperCase();
+            const currentQ = questions[currentQuestionIndex];
+            if (!currentQ) return;
+
+            // Shortcut: Previous question (ArrowLeft)
+            if (e.key === "ArrowLeft") {
+                e.preventDefault();
+                if (currentQuestionIndex > 0) {
+                    navigateToQuestion(currentQuestionIndex - 1);
+                }
+                return;
+            }
+
+            // Shortcut: Next question (ArrowRight)
+            if (e.key === "ArrowRight") {
+                e.preventDefault();
+                if (currentQuestionIndex < questions.length - 1) {
+                    navigateToQuestion(currentQuestionIndex + 1);
+                }
+                return;
+            }
+
+            // Shortcut: Flag / Ragu-ragu (F)
+            if (key === "F") {
+                e.preventDefault();
+                toggleFlag();
+                return;
+            }
+
+            // Shortcut: Select Option A-E (for MC)
+            if (["A", "B", "C", "D", "E"].includes(key)) {
+                if (currentQ.type === "mc") {
+                    const opt = currentQ.options?.find(o => o.label === key);
+                    if (opt) {
+                        e.preventDefault();
+                        handleAnswerChange(currentQ.id, key);
+                    }
+                } else if (currentQ.type === "complex_mc") {
+                    const opt = currentQ.options?.find(o => o.label === key);
+                    if (opt) {
+                        e.preventDefault();
+                        const currentAns: string[] = answers.get(currentQ.id)?.answer || [];
+                        const nextAns = currentAns.includes(key)
+                            ? currentAns.filter(k => k !== key)
+                            : [...currentAns, key];
+                        handleAnswerChange(currentQ.id, nextAns);
+                    }
+                }
+                return;
+            }
+
+            // Shortcut: True/False (1 for Benar, 2 for Salah)
+            if (currentQ.type === "true_false") {
+                if (e.key === "1") {
+                    e.preventDefault();
+                    handleAnswerChange(currentQ.id, "true");
+                } else if (e.key === "2") {
+                    e.preventDefault();
+                    handleAnswerChange(currentQ.id, "false");
+                }
+            }
+        };
+
+        window.addEventListener("keydown", handleKeyDown);
+        return () => window.removeEventListener("keydown", handleKeyDown);
+    }, [examStarted, submitting, isTerminated, questions, currentQuestionIndex, answers, navigateToQuestion, handleAnswerChange, toggleFlag]);
 
     const currentQuestion = questions[currentQuestionIndex];
     const currentAnswer = currentQuestion ? answers.get(currentQuestion.id) : null;
@@ -655,7 +716,6 @@ export default function TakeExamPage() {
         );
     }
 
-    // Show terminated page if exam was stopped due to violations
     if (isTerminated) {
         return (
             <TerminatedExamView
@@ -665,33 +725,25 @@ export default function TakeExamPage() {
         );
     }
 
-    // If no questions and not loading/verifying, showing specific messages
     if (!currentQuestion && !loading && !tokenRequired) {
         return <div className="flex items-center justify-center min-h-screen">Tidak ada soal</div>;
     }
 
     return (
         <>
-            {/* Fullscreen Prompt */}
-            <FullscreenPrompt
-                open={showFullscreenPrompt && !loading && !showTokenDialog}
-                onConfirm={handleStartFullscreen}
+            {/* Pre-Exam Preparation & Student Identity Verification Dialog */}
+            <PreExamDialog
+                open={showPreExamDialog && !loading}
                 examName={examName}
+                studentName={studentName}
+                studentUsername={studentUsername}
+                className={studentClass}
+                durationMinutes={durationMinutes}
+                totalQuestions={questions.length}
                 requireToken={tokenRequired}
                 tokenError={tokenError}
-            />
-
-            {/* Token Input Dialog */}
-            <TokenInputDialog
-                open={showTokenDialog}
-                onSubmit={handleStartWithToken}
-                onCancel={() => {
-                    setShowTokenDialog(false);
-                    router.push("/student/exams");
-                }}
+                onStartExam={handleStartExam}
                 loading={verifyingToken}
-                error={tokenError}
-                examName={examName}
             />
 
             {/* Security Warning Banner */}
@@ -704,7 +756,6 @@ export default function TakeExamPage() {
             )}
 
             {!currentQuestion ? (
-                // Just a placeholder while waiting for token input or loading
                 <div className="min-h-screen bg-muted/30 flex items-center justify-center">
                     {tokenRequired ? (
                         <div className="text-muted-foreground animate-pulse">Menunggu verifikasi token...</div>
@@ -714,6 +765,7 @@ export default function TakeExamPage() {
                 </div>
             ) : (
                 <div className={`min-h-screen bg-muted/30 flex flex-col ${showViolationBanner ? 'pt-10' : ''}`}>
+                    {/* Header */}
                     <ExamHeader
                         currentQuestionIndex={currentQuestionIndex}
                         totalQuestions={questions.length}
@@ -722,19 +774,30 @@ export default function TakeExamPage() {
                         onShowSubmit={() => setShowSubmitDialog(true)}
                         isSidebarOpen={isSidebarOpen}
                         setIsSidebarOpen={setIsSidebarOpen}
+                        studentName={studentName}
+                        studentUsername={studentUsername}
+                        className={studentClass}
+                        fontSize={fontSize}
+                        onChangeFontSize={handleChangeFontSize}
+                        isZenMode={isZenMode}
+                        onToggleZenMode={() => setIsZenMode(!isZenMode)}
                     />
 
-                    <div className="flex-1 container mx-auto px-4 py-6 flex gap-6 relative">
-                        <ExamSidebar
-                            questions={questions}
-                            answers={answers}
-                            currentQuestionIndex={currentQuestionIndex}
-                            setCurrentQuestionIndex={navigateToQuestion}
-                            isSidebarOpen={isSidebarOpen}
-                            setIsSidebarOpen={setIsSidebarOpen}
-                        />
+                    {/* Main Body */}
+                    <div className="flex-1 container mx-auto px-3 sm:px-4 py-4 sm:py-6 flex gap-6 relative">
+                        {/* Sidebar (can be hidden in Zen Mode) */}
+                        {!isZenMode && (
+                            <ExamSidebar
+                                questions={questions}
+                                answers={answers}
+                                currentQuestionIndex={currentQuestionIndex}
+                                setCurrentQuestionIndex={navigateToQuestion}
+                                isSidebarOpen={isSidebarOpen}
+                                setIsSidebarOpen={setIsSidebarOpen}
+                            />
+                        )}
 
-                        {/* Main Content */}
+                        {/* Main Question Area */}
                         <main className="flex-1 min-w-0">
                             <QuestionCard
                                 currentQuestion={currentQuestion}
@@ -749,18 +812,25 @@ export default function TakeExamPage() {
                                 onToggleFlag={toggleFlag}
                                 onAnswerChange={handleAnswerChange}
                                 onNavigate={navigateToQuestion}
+                                fontSize={fontSize}
+                                eliminatedOptions={eliminatedOptions}
+                                onToggleEliminate={handleToggleEliminate}
                             />
                         </main>
                     </div>
 
+                    {/* Floating Tools: Mini Calculator, Digital Scratchpad, Keyboard Shortcuts Help */}
+                    <FloatingExamTools />
+
                     {/* Violation count indicator */}
                     {violationCount > 0 && (
-                        <div className="fixed bottom-4 left-4 bg-red-100 text-red-700 px-3 py-1.5 rounded-full text-sm font-medium shadow-lg border border-red-200 flex items-center gap-2">
+                        <div className="fixed bottom-4 left-4 bg-red-100 text-red-700 px-3 py-1.5 rounded-full text-xs font-semibold shadow-lg border border-red-200 flex items-center gap-2 z-30">
                             <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse"></div>
-                            {violationCount} pelanggaran
+                            {violationCount} pelanggaran terdeteksi
                         </div>
                     )}
 
+                    {/* Submit Dialog */}
                     <SubmitDialog
                         open={showSubmitDialog}
                         onOpenChange={setShowSubmitDialog}

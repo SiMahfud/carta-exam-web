@@ -10,6 +10,7 @@ import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 import { id as idLocale } from "date-fns/locale";
 import { TokenInputDialog } from "@/components/exam/take-exam/TokenInputDialog";
+import { StudentProfileCard, StudentProfile } from "@/components/student/StudentProfileCard";
 import { getDeviceId } from "@/lib/device";
 
 interface Exam {
@@ -34,6 +35,8 @@ export default function StudentExamsPage() {
     const { toast } = useToast();
     const [exams, setExams] = useState<Exam[]>([]);
     const [loading, setLoading] = useState(true);
+    const [profileLoading, setProfileLoading] = useState(true);
+    const [profile, setProfile] = useState<StudentProfile | null>(null);
     const [filter, setFilter] = useState("all");
     const [studentId, setStudentId] = useState<string | null>(null);
 
@@ -43,18 +46,24 @@ export default function StudentExamsPage() {
     const [tokenError, setTokenError] = useState<string | null>(null);
     const [verifyingToken, setVerifyingToken] = useState(false);
 
-    const fetchStudentId = useCallback(async () => {
+    const fetchStudentProfile = useCallback(async () => {
+        setProfileLoading(true);
         try {
-            const response = await fetch("/api/auth/session");
+            const response = await fetch("/api/student/profile");
             if (response.ok) {
                 const data = await response.json();
-                setStudentId(data.user.id);
+                if (data.success && data.data) {
+                    setProfile(data.data);
+                    setStudentId(data.data.id);
+                }
             } else {
                 router.push("/login");
             }
         } catch (error) {
-            console.error("Error fetching session:", error);
+            console.error("Error fetching session/profile:", error);
             router.push("/login");
+        } finally {
+            setProfileLoading(false);
         }
     }, [router]);
 
@@ -71,7 +80,7 @@ export default function StudentExamsPage() {
             const response = await fetch(`/api/student/exams?${params.toString()}`);
             if (response.ok) {
                 const data = await response.json();
-                setExams(data.data);
+                setExams(data.data || []);
             }
         } catch (error) {
             console.error("Error fetching exams:", error);
@@ -86,8 +95,8 @@ export default function StudentExamsPage() {
     }, [studentId, filter, toast]);
 
     useEffect(() => {
-        fetchStudentId();
-    }, [fetchStudentId]);
+        fetchStudentProfile();
+    }, [fetchStudentProfile]);
 
     useEffect(() => {
         if (studentId) {
@@ -98,13 +107,13 @@ export default function StudentExamsPage() {
     const getStatusBadge = (examStatus: string) => {
         switch (examStatus) {
             case "active":
-                return <Badge className="bg-green-500 hover:bg-green-600">Sedang Berlangsung</Badge>;
+                return <Badge className="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold">Sedang Berlangsung</Badge>;
             case "in_progress":
-                return <Badge className="bg-blue-500 hover:bg-blue-600">Sedang Dikerjakan</Badge>;
+                return <Badge className="bg-blue-600 hover:bg-blue-700 text-white font-semibold">Sedang Dikerjakan</Badge>;
             case "completed":
-                return <Badge variant="secondary" className="bg-muted text-muted-foreground">Selesai</Badge>;
+                return <Badge variant="secondary" className="bg-muted text-muted-foreground font-medium">Selesai</Badge>;
             case "upcoming":
-                return <Badge variant="outline" className="border-primary text-primary">Akan Datang</Badge>;
+                return <Badge variant="outline" className="border-primary/60 text-primary font-medium">Akan Datang</Badge>;
             case "expired":
                 return <Badge variant="destructive">Terlewat</Badge>;
             default:
@@ -122,6 +131,7 @@ export default function StudentExamsPage() {
 
         try {
             const deviceId = getDeviceId();
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const body: any = { studentId, deviceId };
             if (token) {
                 body.token = token;
@@ -135,16 +145,14 @@ export default function StudentExamsPage() {
 
             if (response.ok) {
                 const data = await response.json();
-                void data; // Response needed for success verification
+                void data;
 
-                // If we were in the dialog, close it
                 if (tokenDialogOpen) {
                     setTokenDialogOpen(false);
                     setSelectedExamId(null);
                     setTokenError(null);
                 }
 
-                // Save token for next page to avoid double entry
                 if (token) {
                     try {
                         sessionStorage.setItem(`exam_token_${sessionId}`, token);
@@ -157,30 +165,26 @@ export default function StudentExamsPage() {
             } else {
                 const error = await response.json();
 
-                // Check if token is required or invalid
                 if (response.status === 403 && error.requireToken) {
-                    // If we already sent a token, it means it was invalid
                     if (token) {
                         setTokenError("Token tidak valid. Silakan coba lagi.");
-                        // Ensure dialog is open (in case it was closed or we're retrying)
                         if (!tokenDialogOpen) {
                             setSelectedExamId(sessionId);
                             setTokenDialogOpen(true);
                         }
                     } else {
-                        // If no token was sent, we need to ask for one
                         setSelectedExamId(sessionId);
                         setTokenDialogOpen(true);
                     }
                     return;
                 }
 
-                throw new Error(error.error || "Failed to start exam");
+                throw new Error(error.error || "Gagal memulai ujian");
             }
         } catch (error: unknown) {
-            const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+            const errorMessage = error instanceof Error ? error.message : "Terjadi kesalahan";
             toast({
-                title: "Error",
+                title: "Gagal Masuk Ujian",
                 description: errorMessage,
                 variant: "destructive",
             });
@@ -201,122 +205,180 @@ export default function StudentExamsPage() {
         router.push(`/student/exams/${sessionId}`);
     };
 
+    const activeCount = exams.filter(e => e.examStatus === "active" || e.examStatus === "in_progress").length;
+    const upcomingCount = exams.filter(e => e.examStatus === "upcoming").length;
+    const completedCount = exams.filter(e => e.examStatus === "completed").length;
+
     return (
-        <div className="space-y-8">
-            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+        <div className="space-y-6 max-w-6xl mx-auto">
+            {/* Student Profile Card (Identity Verification) */}
+            <StudentProfileCard
+                profile={profile}
+                loading={profileLoading}
+                activeExamsCount={activeCount}
+            />
+
+            {/* Header & Filter Controls */}
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 pt-2">
                 <div>
-                    <h1 className="text-3xl font-bold tracking-tight">Ujian Saya</h1>
-                    <p className="text-muted-foreground mt-1">Kelola dan kerjakan ujian yang ditugaskan.</p>
+                    <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground">
+                        Daftar Ujian Siswa
+                    </h1>
+                    <p className="text-sm text-muted-foreground mt-0.5">
+                        Pilih dan kerjakan jadwal ujian sesuai mata pelajaran Anda.
+                    </p>
                 </div>
 
-                {/* Filters */}
-                <div className="flex p-1 bg-muted/50 rounded-lg border">
-                    {["all", "active", "upcoming", "completed"].map((status) => (
+                {/* Filter Pills */}
+                <div className="flex flex-wrap p-1 bg-muted/60 rounded-xl border border-border/80 text-xs sm:text-sm">
+                    {[
+                        { id: "all", label: `Semua (${exams.length})` },
+                        { id: "active", label: `Aktif (${activeCount})` },
+                        { id: "upcoming", label: `Akan Datang (${upcomingCount})` },
+                        { id: "completed", label: `Selesai (${completedCount})` },
+                    ].map((tab) => (
                         <Button
-                            key={status}
-                            variant={filter === status ? "secondary" : "ghost"}
+                            key={tab.id}
+                            variant={filter === tab.id ? "secondary" : "ghost"}
                             size="sm"
-                            onClick={() => setFilter(status)}
-                            className={`rounded-md px-4 ${filter === status ? "bg-background shadow-sm text-primary font-medium" : "text-muted-foreground"}`}
+                            onClick={() => setFilter(tab.id)}
+                            className={`rounded-lg px-3 sm:px-4 text-xs font-semibold cursor-pointer ${filter === tab.id ? "bg-background shadow-xs text-primary font-bold" : "text-muted-foreground hover:text-foreground"}`}
                         >
-                            {status === "all" ? "Semua" : status === "active" ? "Aktif" : status === "upcoming" ? "Akan Datang" : "Selesai"}
+                            {tab.label}
                         </Button>
                     ))}
                 </div>
             </div>
 
+            {/* Exams Grid */}
             {loading ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
                     {[1, 2, 3].map((i) => (
-                        <Card key={i} className="h-[250px] animate-pulse bg-muted/20" />
+                        <Card key={i} className="h-64 animate-pulse bg-muted/30 border rounded-2xl" />
                     ))}
                 </div>
             ) : exams.length === 0 ? (
-                <Card className="border-dashed border-2 bg-muted/10">
-                    <CardContent className="text-center py-20 flex flex-col items-center">
-                        <div className="h-16 w-16 bg-muted rounded-full flex items-center justify-center mb-4">
+                <Card className="border-dashed border-2 bg-muted/10 rounded-2xl">
+                    <CardContent className="text-center py-16 flex flex-col items-center">
+                        <div className="h-16 w-16 bg-muted/60 rounded-2xl flex items-center justify-center mb-4">
                             <FileText className="h-8 w-8 text-muted-foreground" />
                         </div>
-                        <h3 className="text-lg font-semibold">Tidak ada ujian ditemukan</h3>
-                        <p className="text-muted-foreground max-w-sm mt-2">
-                            Belum ada ujian yang sesuai dengan filter yang Anda pilih.
+                        <h3 className="text-lg font-bold text-foreground">Tidak ada ujian pada kategori ini</h3>
+                        <p className="text-sm text-muted-foreground max-w-sm mt-1">
+                            Belum ada jadwal ujian yang ditugaskan untuk kelas Anda pada filter yang dipilih.
                         </p>
                     </CardContent>
                 </Card>
             ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
                     {exams.map((exam) => (
-                        <Card key={exam.id} className="flex flex-col overflow-hidden transition-all duration-300 hover:shadow-lg hover:-translate-y-1 border-muted/60">
-                            <div className={`h-2 w-full ${exam.examStatus === 'active' ? 'bg-green-500' :
-                                exam.examStatus === 'in_progress' ? 'bg-blue-500' :
-                                    exam.examStatus === 'upcoming' ? 'bg-primary' :
-                                        exam.examStatus === 'expired' ? 'bg-destructive' : 'bg-muted'
-                                }`} />
-                            <CardHeader className="pb-3">
-                                <div className="flex justify-between items-start mb-2">
+                        <Card
+                            key={exam.id}
+                            className="flex flex-col overflow-hidden border border-border/80 shadow-xs hover:shadow-lg hover:-translate-y-1 transition-all duration-200 rounded-2xl bg-card"
+                        >
+                            {/* Color Accent Indicator Top Bar */}
+                            <div
+                                className={`h-1.5 w-full ${
+                                    exam.examStatus === "active"
+                                        ? "bg-emerald-500"
+                                        : exam.examStatus === "in_progress"
+                                            ? "bg-blue-500"
+                                            : exam.examStatus === "upcoming"
+                                                ? "bg-primary"
+                                                : exam.examStatus === "expired"
+                                                    ? "bg-destructive"
+                                                    : "bg-muted"
+                                }`}
+                            />
+
+                            <CardHeader className="pb-3 pt-5 px-5">
+                                <div className="flex justify-between items-start gap-2 mb-2">
                                     {getStatusBadge(exam.examStatus)}
                                     {exam.score !== undefined && exam.showScore && (
-                                        <Badge variant={exam.score >= 75 ? "default" : "destructive"} className="ml-2">
+                                        <Badge
+                                            variant="outline"
+                                            className={`font-bold px-2.5 py-0.5 ${
+                                                exam.score >= 75
+                                                    ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-400 border-emerald-300"
+                                                    : "bg-red-50 text-red-700 dark:bg-red-950/50 dark:text-red-400 border-red-300"
+                                            }`}
+                                        >
                                             Nilai: {exam.score}
                                         </Badge>
                                     )}
                                 </div>
-                                <CardTitle className="line-clamp-2 text-lg">{exam.sessionName}</CardTitle>
-                                <CardDescription className="line-clamp-1">{exam.subjectName}</CardDescription>
+                                <CardTitle className="line-clamp-2 text-base sm:text-lg font-bold text-foreground leading-snug">
+                                    {exam.sessionName}
+                                </CardTitle>
+                                <CardDescription className="line-clamp-1 font-medium text-xs text-primary">
+                                    {exam.subjectName}
+                                </CardDescription>
                             </CardHeader>
-                            <CardContent className="flex-1 space-y-4 text-sm">
-                                <div className="grid grid-cols-2 gap-3">
-                                    <div className="flex items-center gap-2 text-muted-foreground bg-muted/30 p-2 rounded-md">
-                                        <Calendar className="h-4 w-4 text-primary" />
-                                        <span className="text-xs font-medium">{format(new Date(exam.startTime), "d MMM", { locale: idLocale })}</span>
+
+                            <CardContent className="flex-1 space-y-3 px-5 text-xs">
+                                <div className="grid grid-cols-2 gap-2">
+                                    <div className="flex items-center gap-2 bg-muted/40 p-2 rounded-lg border border-border/50">
+                                        <Calendar className="h-3.5 w-3.5 text-primary shrink-0" />
+                                        <span className="font-medium text-foreground truncate">
+                                            {format(new Date(exam.startTime), "d MMM yyyy", { locale: idLocale })}
+                                        </span>
                                     </div>
-                                    <div className="flex items-center gap-2 text-muted-foreground bg-muted/30 p-2 rounded-md">
-                                        <Clock className="h-4 w-4 text-primary" />
-                                        <span className="text-xs font-medium">{format(new Date(exam.startTime), "HH:mm")}</span>
+                                    <div className="flex items-center gap-2 bg-muted/40 p-2 rounded-lg border border-border/50">
+                                        <Clock className="h-3.5 w-3.5 text-primary shrink-0" />
+                                        <span className="font-medium text-foreground">
+                                            {format(new Date(exam.startTime), "HH:mm")} WIB
+                                        </span>
                                     </div>
-                                    <div className="flex items-center gap-2 text-muted-foreground bg-muted/30 p-2 rounded-md">
-                                        <Timer className="h-4 w-4 text-primary" />
-                                        <span className="text-xs font-medium">{exam.durationMinutes} mnt</span>
+                                    <div className="flex items-center gap-2 bg-muted/40 p-2 rounded-lg border border-border/50">
+                                        <Timer className="h-3.5 w-3.5 text-indigo-500 shrink-0" />
+                                        <span className="font-medium text-foreground">{exam.durationMinutes} Menit</span>
                                     </div>
-                                    <div className="flex items-center gap-2 text-muted-foreground bg-muted/30 p-2 rounded-md">
-                                        <FileText className="h-4 w-4 text-primary" />
-                                        <span className="text-xs font-medium">{exam.totalScore} pts</span>
+                                    <div className="flex items-center gap-2 bg-muted/40 p-2 rounded-lg border border-border/50">
+                                        <FileText className="h-3.5 w-3.5 text-emerald-500 shrink-0" />
+                                        <span className="font-medium text-foreground">{exam.totalScore} Poin Max</span>
                                     </div>
                                 </div>
                             </CardContent>
-                            <CardFooter className="pt-0 pb-6">
+
+                            <CardFooter className="pt-2 pb-5 px-5">
                                 {exam.examStatus === "active" && !exam.hasSubmission && (
-                                    <Button onClick={() => handleStartExam(exam.id)} className="w-full shadow-md shadow-green-500/20 hover:shadow-green-500/30 bg-green-600 hover:bg-green-700">
-                                        <Play className="mr-2 h-4 w-4" />
-                                        Mulai Ujian
+                                    <Button
+                                        onClick={() => handleStartExam(exam.id)}
+                                        className="w-full shadow-md shadow-emerald-600/20 bg-emerald-600 hover:bg-emerald-700 text-white font-bold h-10 rounded-xl cursor-pointer"
+                                    >
+                                        <Play className="mr-2 h-4 w-4 fill-current" />
+                                        Mulai Kerjakan
                                     </Button>
                                 )}
                                 {exam.examStatus === "in_progress" && (
-                                    <Button onClick={() => handleContinueExam(exam.id)} className="w-full shadow-md shadow-blue-500/20 hover:shadow-blue-500/30 bg-blue-600 hover:bg-blue-700">
-                                        <Play className="mr-2 h-4 w-4" />
-                                        Lanjutkan
+                                    <Button
+                                        onClick={() => handleContinueExam(exam.id)}
+                                        className="w-full shadow-md shadow-blue-600/20 bg-blue-600 hover:bg-blue-700 text-white font-bold h-10 rounded-xl cursor-pointer"
+                                    >
+                                        <Play className="mr-2 h-4 w-4 fill-current" />
+                                        Lanjutkan Ujian
                                     </Button>
                                 )}
                                 {exam.examStatus === "completed" && (
                                     <Button
                                         variant="outline"
-                                        className="w-full text-primary hover:bg-primary/10 border-primary/30"
+                                        className="w-full text-foreground hover:text-primary hover:bg-primary/5 border-border font-semibold h-10 rounded-xl"
                                         onClick={() => router.push(`/student/exams/${exam.id}/review`)}
                                     >
                                         <Eye className="mr-2 h-4 w-4" />
-                                        Lihat Hasil & Pembahasan
+                                        Lihat Lembar Jawaban
                                     </Button>
                                 )}
                                 {exam.examStatus === "upcoming" && (
-                                    <Button variant="outline" className="w-full" disabled>
+                                    <Button variant="outline" className="w-full h-10 rounded-xl text-muted-foreground" disabled>
                                         <Clock className="mr-2 h-4 w-4" />
-                                        Belum Dimulai
+                                        Ujian Belum Dimulai
                                     </Button>
                                 )}
                                 {exam.examStatus === "expired" && (
-                                    <Button variant="ghost" className="w-full text-destructive hover:text-destructive hover:bg-destructive/10" disabled>
+                                    <Button variant="ghost" className="w-full text-destructive hover:bg-destructive/10 h-10 rounded-xl" disabled>
                                         <XCircle className="mr-2 h-4 w-4" />
-                                        Terlewat
+                                        Waktu Ujian Terlewat
                                     </Button>
                                 )}
                             </CardFooter>
@@ -325,6 +387,7 @@ export default function StudentExamsPage() {
                 </div>
             )}
 
+            {/* Token Prompt Dialog if Required */}
             <TokenInputDialog
                 open={tokenDialogOpen}
                 onCancel={() => {
