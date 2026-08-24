@@ -137,6 +137,41 @@ export function parseAIJson(rawText: string): any {
 }
 
 /**
+ * Clean and normalize LaTeX math expressions in question text or options.
+ * Handles auto-wrapping with $, double backslash cleanup, and missing command backslashes.
+ */
+export function cleanMathFormula(text: string): string {
+    if (!text || typeof text !== 'string') return text;
+
+    let result = text;
+
+    // 1. Fix Form Feed character artifact (\f in \frac)
+    result = result.replace(/\x0crac/g, '\\frac');
+
+    // 2. Fix double backslashes before LaTeX command names (e.g. \\sin -> \sin, \\circ -> \circ)
+    result = result.replace(/\\\\([a-zA-Z]+)/g, '\\$1');
+
+    // 3. Fix missing backslash for common LaTeX keywords inside or outside math
+    result = result.replace(/(?<!\\)frac\{/g, '\\frac{');
+    result = result.replace(/(?<!\\)sqrt\{/g, '\\sqrt{');
+
+    // 4. Fix frac12 or frac 1 2 without braces (e.g. frac12 -> \frac{1}{2})
+    result = result.replace(/(?<!\\)frac\s*([0-9a-zA-Z])\s*([0-9a-zA-Z])/g, '\\frac{$1}{$2}');
+
+    // 5. Auto-wrap in $...$ if string contains LaTeX commands or math patterns but no $
+    // e.g. \sin 30^\circ -> $\sin 30^\circ$
+    // e.g. \frac{1}{2} -> $\frac{1}{2}$
+    if (!result.includes('$')) {
+        const hasLatex = /\\(?:sin|cos|tan|cot|sec|csc|log|ln|lim|frac|sqrt|alpha|beta|gamma|theta|lambda|pi|mu|sigma|omega|Delta|phi|circ|degree|pm|times|div|leq|geq|neq|approx|to|rightarrow|leftarrow|int|sum|prod)\b|(?<!\\)frac\{|(?<!\\)sqrt\{|\^\{?[0-9a-zA-Z]+\}?|_\{?[0-9a-zA-Z]+\}?/i.test(result);
+        if (hasLatex) {
+            result = `$${result.trim()}$`;
+        }
+    }
+
+    return result;
+}
+
+/**
  * Pre-normalize a single raw question object produced by AI before Zod validation.
  * Handles missing 'content' wrappers, string content, top-level options, letter-based answer keys, etc.
  */
@@ -157,7 +192,7 @@ export function normalizeRawQuestion(raw: any, index: number): z.infer<typeof Ge
     if (typeof questionText !== 'string' || !questionText.trim()) {
         questionText = `Soal ${index + 1}`;
     }
-    questionText = questionText.trim();
+    questionText = cleanMathFormula(questionText.trim());
 
     // 2. Determine and normalize question type
     const rawType = (raw.type || "").toString().toLowerCase().trim();
@@ -197,11 +232,12 @@ export function normalizeRawQuestion(raw: any, index: number): z.infer<typeof Ge
     if (Array.isArray(rawOptions)) {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         options = rawOptions.map((opt: any) => {
-            if (typeof opt === 'string') return opt;
+            if (typeof opt === 'string') return cleanMathFormula(opt);
             if (opt && typeof opt === 'object') {
-                return opt.text || opt.option || opt.label || opt.value || opt.content || JSON.stringify(opt);
+                const textVal = opt.text || opt.option || opt.label || opt.value || opt.content || JSON.stringify(opt);
+                return cleanMathFormula(String(textVal));
             }
-            return String(opt ?? "");
+            return cleanMathFormula(String(opt ?? ""));
         }).filter(Boolean);
     }
 
@@ -225,27 +261,27 @@ export function normalizeRawQuestion(raw: any, index: number): z.infer<typeof Ge
         if (Array.isArray(rawLeft)) {
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             leftItems = rawLeft.map((item: any, idx: number) => {
-                if (typeof item === 'string') return { id: `l${idx + 1}`, text: item };
+                if (typeof item === 'string') return { id: `l${idx + 1}`, text: cleanMathFormula(item) };
                 if (item && typeof item === 'object') {
                     return {
                         id: String(item.id || `l${idx + 1}`),
-                        text: String(item.text || item.label || item.value || `Item ${idx + 1}`)
+                        text: cleanMathFormula(String(item.text || item.label || item.value || `Item ${idx + 1}`))
                     };
                 }
-                return { id: `l${idx + 1}`, text: String(item ?? "") };
+                return { id: `l${idx + 1}`, text: cleanMathFormula(String(item ?? "")) };
             });
         }
         if (Array.isArray(rawRight)) {
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             rightItems = rawRight.map((item: any, idx: number) => {
-                if (typeof item === 'string') return { id: `r${idx + 1}`, text: item };
+                if (typeof item === 'string') return { id: `r${idx + 1}`, text: cleanMathFormula(item) };
                 if (item && typeof item === 'object') {
                     return {
                         id: String(item.id || `r${idx + 1}`),
-                        text: String(item.text || item.label || item.value || `Item ${idx + 1}`)
+                        text: cleanMathFormula(String(item.text || item.label || item.value || `Item ${idx + 1}`))
                     };
                 }
-                return { id: `r${idx + 1}`, text: String(item ?? "") };
+                return { id: `r${idx + 1}`, text: cleanMathFormula(String(item ?? "")) };
             });
         }
     }
@@ -338,18 +374,18 @@ export function normalizeRawQuestion(raw: any, index: number): z.infer<typeof Ge
     } else if (type === 'short') {
         const accepted = rawAnswerKey.acceptedAnswers || raw.acceptedAnswers || rawCorrect || raw.answer;
         if (Array.isArray(accepted)) {
-            answerKey.acceptedAnswers = accepted.map(String).filter(Boolean);
+            answerKey.acceptedAnswers = accepted.map(String).map(cleanMathFormula).filter(Boolean);
         } else if (typeof accepted === 'string' && accepted.trim()) {
-            answerKey.acceptedAnswers = [accepted.trim()];
+            answerKey.acceptedAnswers = [cleanMathFormula(accepted.trim())];
         } else {
             answerKey.acceptedAnswers = ["Jawaban"];
         }
     } else if (type === 'essay') {
         const model = rawAnswerKey.modelAnswer || raw.modelAnswer || rawCorrect || raw.answer || raw.rubric;
         if (typeof model === 'string') {
-            answerKey.modelAnswer = model;
+            answerKey.modelAnswer = cleanMathFormula(model);
         } else if (Array.isArray(model)) {
-            answerKey.modelAnswer = model.join("\n");
+            answerKey.modelAnswer = cleanMathFormula(model.join("\n"));
         } else {
             answerKey.modelAnswer = "";
         }
@@ -413,18 +449,15 @@ Topic: ${options?.topic || "Context provided"}.
 IMPORTANT: For "short" type questions, the generated question must be answerable with a single word or a short phrase (1-2 words max). The "acceptedAnswers" in the output MUST NOT be full sentences.
 For "matching" type questions, you CAN generate one-to-many relationships (e.g., one left item matches multiple right items).
 MATH/LATEX FORMATTING (CRITICAL - YOU MUST FOLLOW THIS):
-1. ALL mathematical expressions, formulas, symbols, and equations MUST be wrapped with dollar signs ($...$) for KaTeX/LaTeX rendering.
-2. This applies to EVERYTHING containing math: questions, answer options, model answers, and accepted answers.
-3. Examples of what needs $ wrapping:
-   - Variables: $x$, $y$, $n$
-   - Fractions: $\\\\frac{1}{2}$
-   - Exponents: $x^2$, $e^{-x}$
-   - Greek letters: $\\\\alpha$, $\\\\beta$, $\\\\theta$
-   - Equations: $E = mc^2$, $F = ma$
-   - Expressions in options: "$2x + 3$", "$\\\\frac{a}{b}$", "$\\\\sqrt{16}$"
-4. WRONG: "2x + 3" or "x^2" or "\\\\frac{1}{2}" (without $ signs)
-5. CORRECT: "$2x + 3$" or "$x^2$" or "$\\\\frac{1}{2}$" (with $ signs)
-6. When using LaTeX commands, escape backslashes in JSON: use "$\\\\\\\\frac{1}{2}$" not "$\\\\frac{1}{2}$"
+1. ALL mathematical expressions, formulas, symbols, fractions, powers, Greek letters, and equations MUST be wrapped with single dollar signs ($...$) for KaTeX rendering.
+2. This applies to EVERYTHING containing math: questions, answer options, matching pairs, model answers, and accepted answers.
+3. Use standard LaTeX syntax:
+   - Fractions: "$\\\\frac{1}{2}$"
+   - Trigonometry & Degrees: "$\\\\sin 30^\\\\circ$", "$\\\\cos 60^\\\\circ$", "$\\\\tan 45^\\\\circ$"
+   - Powers & Roots: "$x^2$", "$\\\\sqrt{16}$"
+   - Symbols & Variables: "$\\\\alpha$", "$E = mc^2$", "$2x + 3$"
+4. WRONG: "sin 30" or "\\\\sin 30^\\\\circ" (without $ signs) or "frac12"
+5. CORRECT: "$\\\\sin 30^\\\\circ$", "$\\\\frac{1}{2}$", "$\\\\sqrt{25}$"
 Output valid JSON only.
 
 LANGUAGE INSTRUCTION:

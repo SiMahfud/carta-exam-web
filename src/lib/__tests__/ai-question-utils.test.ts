@@ -4,6 +4,7 @@ import {
     parseAIJson,
     normalizeRawQuestion,
     cleanJson,
+    cleanMathFormula,
 } from "../ai-question-utils";
 
 describe("AI Question Utilities", () => {
@@ -31,6 +32,23 @@ describe("AI Question Utilities", () => {
             const raw = '{\n  "questions": [\n    {\n      "type": "mc",\n      "difficulty": "easy",\n      "content": {\n        "question": "Test?",\n        "options": ["A", "B", "C", "D", "E"],\n      },\n      "answerKey": {\n        "correct": 0,\n      },\n    },\n  ],\n}';
             const parsed = parseAIJson(raw);
             expect(parsed.questions.length).toBe(1);
+        });
+    });
+
+    describe("cleanMathFormula", () => {
+        it("should auto-wrap unwrapped trigonometry and degree LaTeX", () => {
+            const result = cleanMathFormula("\\\\sin 30^\\\\circ");
+            expect(result).toBe("$\\sin 30^\\circ$");
+        });
+
+        it("should clean missing backslashes and format fraction properly", () => {
+            const result = cleanMathFormula("frac12");
+            expect(result).toBe("$\\frac{1}{2}$");
+        });
+
+        it("should preserve already dollar-wrapped formulas and clean double backslashes", () => {
+            const result = cleanMathFormula("$\\\\cos 60^\\\\circ$");
+            expect(result).toBe("$\\cos 60^\\circ$");
         });
     });
 
