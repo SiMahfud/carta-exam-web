@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { useState, useTransition } from 'react'
 import { Button } from "@/components/ui/button"
@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Label } from "@/components/ui/label"
 import { login } from "@/actions/auth"
-import { ShieldCheck, Lock, User, Loader2, AlertCircle, Eye, EyeOff } from "lucide-react"
+import { ShieldCheck, Lock, User, Loader2, AlertCircle, Eye, EyeOff, Rocket } from "lucide-react"
 import Link from "next/link"
 
 export default function LoginPage() {
@@ -38,21 +38,44 @@ export default function LoginPage() {
             <div className="absolute inset-0 -z-10 bg-[linear-gradient(to_right,#8080800a_1px,transparent_1px),linear-gradient(to_bottom,#8080800a_1px,transparent_1px)] bg-[size:14px_24px]"></div>
             <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[1000px] h-[500px] bg-primary/20 rounded-full blur-[120px] -z-10"></div>
 
-            <Card className="w-full max-w-md border-none shadow-2xl bg-background/60 backdrop-blur-xl">
-                <CardHeader className="space-y-1 text-center pb-8">
-                    <div className="flex justify-center mb-4">
-                        <div className="p-3 rounded-full bg-primary/10 ring-1 ring-primary/20">
-                            <ShieldCheck className="h-8 w-8 text-primary" />
+            <Card className="w-full max-w-md border shadow-2xl bg-background/80 backdrop-blur-xl">
+                <CardHeader className="space-y-1 text-center pb-6">
+                    <div className="flex justify-center mb-3">
+                        <div className="p-3 rounded-2xl bg-indigo-500/10 ring-1 ring-indigo-500/20 text-indigo-600 dark:text-indigo-400">
+                            <ShieldCheck className="h-8 w-8" />
                         </div>
                     </div>
-                    <CardTitle className="text-2xl font-bold tracking-tight">Selamat Datang</CardTitle>
+                    <CardTitle className="text-2xl font-bold tracking-tight">Selamat Datang di CartaExam</CardTitle>
                     <CardDescription>
-                        Masuk untuk mengakses sistem ujian <br />
-                        <span className="font-medium text-primary">SMAN 1 Campurdarat</span>
+                        Sistem Ujian & CBT Online <br />
+                        <span className="font-semibold text-primary">SMAN 1 Campurdarat</span>
                     </CardDescription>
                 </CardHeader>
+                
                 <form action={handleSubmit}>
                     <CardContent className="space-y-4">
+                        {/* Tombol Masuk Cepat SSO PortoCarta */}
+                        <div className="p-3.5 rounded-xl bg-indigo-50/70 dark:bg-indigo-950/40 border border-indigo-200/80 dark:border-indigo-800/50 text-center space-y-2">
+                            <p className="text-xs text-indigo-950 dark:text-indigo-200 font-medium">
+                                Sudah punya akun di <strong>PortoCarta</strong>?
+                            </p>
+                            <a
+                                href="https://porto.sman1campurdarat.sch.id/apps/launch/carta-exam"
+                                className="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-xs transition-all shadow-sm active:scale-[0.98]"
+                            >
+                                <Rocket className="h-4 w-4" />
+                                Masuk Cepat lewat Akun PortoCarta (SSO)
+                            </a>
+                        </div>
+
+                        <div className="relative flex py-1 items-center">
+                            <div className="flex-grow border-t border-muted"></div>
+                            <span className="flex-shrink mx-3 text-[11px] text-muted-foreground uppercase font-medium">
+                                atau login mandiri
+                            </span>
+                            <div className="flex-grow border-t border-muted"></div>
+                        </div>
+
                         {/* Error Alert */}
                         {error && (
                             <div className="flex items-center gap-2 p-3 text-sm bg-destructive/10 text-destructive rounded-lg border border-destructive/20" role="alert">
@@ -63,7 +86,7 @@ export default function LoginPage() {
 
                         {/* Username Field */}
                         <div className="space-y-2">
-                            <Label htmlFor="username">Username</Label>
+                            <Label htmlFor="username">Username / NISN / NIP</Label>
                             <div className="relative">
                                 <User className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                                 <Input
@@ -72,7 +95,7 @@ export default function LoginPage() {
                                     type="text"
                                     autoComplete="username"
                                     className={`pl-9 ${fieldErrors.username ? 'border-destructive focus-visible:ring-destructive' : ''}`}
-                                    placeholder="Masukkan username"
+                                    placeholder="Masukkan NISN atau NIP"
                                     required
                                     disabled={isPending}
                                     aria-describedby={fieldErrors.username ? 'username-error' : undefined}
@@ -117,10 +140,10 @@ export default function LoginPage() {
                             )}
                         </div>
                     </CardContent>
-                    <CardFooter className="flex flex-col gap-4 pt-4">
+                    <CardFooter className="flex flex-col gap-4 pt-2">
                         <Button
                             type="submit"
-                            className="w-full h-11 text-base shadow-lg shadow-primary/20 hover:shadow-xl hover:shadow-primary/30 transition-all"
+                            className="w-full h-11 text-sm shadow-md transition-all"
                             disabled={isPending}
                         >
                             {isPending ? (
@@ -129,11 +152,11 @@ export default function LoginPage() {
                                     Memproses...
                                 </>
                             ) : (
-                                'Masuk'
+                                'Masuk ke CartaExam'
                             )}
                         </Button>
                         <p className="text-xs text-center text-muted-foreground">
-                            Lupa password? Hubungi administrator sekolah.
+                            Akun otomatis tersinkronisasi dari portal induk <strong>PortoCarta</strong>.
                         </p>
                         <Link href="/" className="text-xs text-center text-primary hover:underline">
                             Kembali ke Beranda

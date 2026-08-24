@@ -1,7 +1,8 @@
-import { Suspense } from "react";
+﻿import { Suspense } from "react";
 import { getSchoolSettings } from "@/actions/settings";
 import { SettingsForm } from "@/components/admin/settings-form";
 import { BackupRestoreCard } from "@/components/admin/BackupRestoreCard";
+import { PortoCartaSyncCard } from "@/components/admin/PortoCartaSyncCard";
 import { Separator } from "@/components/ui/separator";
 
 export default async function SettingsPage() {
@@ -10,11 +11,13 @@ export default async function SettingsPage() {
     return (
         <div className="space-y-8">
             <div>
-                <h3 className="text-lg font-medium">Pengaturan Sekolah</h3>
+                <h3 className="text-lg font-medium">Pengaturan & Ekosistem Sekolah</h3>
                 <p className="text-sm text-muted-foreground">
-                    Konfigurasi informasi sekolah dan tampilan halaman utama.
+                    Konfigurasi informasi sekolah, integrasi data PortoCarta, dan pencadangan sistem.
                 </p>
             </div>
+            <Separator />
+            <PortoCartaSyncCard />
             <Separator />
             <Suspense fallback={<div>Loading settings...</div>}>
                 <SettingsForm initialSettings={settings} />
