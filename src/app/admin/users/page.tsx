@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
@@ -27,7 +27,7 @@ import {
     SelectValue,
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Pencil, Trash2, Users, Shield, GraduationCap, BookOpen } from "lucide-react";
+import { Plus, Pencil, Trash2, Users, Shield, GraduationCap, BookOpen, RefreshCw } from "lucide-react";
 import { BulkUserManager } from "@/components/bulk-import/BulkUserManager";
 import { useToast } from "@/hooks/use-toast";
 import {
@@ -62,6 +62,36 @@ export default function UsersPage() {
     const [editingUser, setEditingUser] = useState<User | null>(null);
     const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
     const [userToDelete, setUserToDelete] = useState<string | null>(null);
+    const [isSyncing, setIsSyncing] = useState(false);
+
+    const handlePullSync = async () => {
+        setIsSyncing(true);
+        try {
+            const res = await fetch("/api/integration/pull-sync", { method: "POST" });
+            const data = await res.json();
+            if (data.success) {
+                toast({
+                    title: "Sinkronisasi Berhasil!",
+                    description: data.message,
+                });
+                fetchUsers();
+            } else {
+                toast({
+                    title: "Sinkronisasi Gagal",
+                    description: data.message || "Terjadi kesalahan",
+                    variant: "destructive",
+                });
+            }
+        } catch (err: any) {
+            toast({
+                title: "Error",
+                description: err.message || "Gagal menghubungi server",
+                variant: "destructive",
+            });
+        } finally {
+            setIsSyncing(false);
+        }
+    };
     const { toast } = useToast();
 
     const [formData, setFormData] = useState({
@@ -228,6 +258,15 @@ export default function UsersPage() {
                     </p>
                 </div>
                 <div className="flex gap-2">
+                                        <Button
+                        variant="outline"
+                        className="border-indigo-200 dark:border-indigo-800 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-950/50"
+                        disabled={isSyncing}
+                        onClick={handlePullSync}
+                    >
+                        <RefreshCw className={`mr-2 h-4 w-4 ${isSyncing ? "animate-spin" : ""}`} />
+                        {isSyncing ? "Menyinkronkan..." : "Tarik dari PortoCarta"}
+                    </Button>
                     <BulkUserManager onSuccess={fetchUsers} />
                     <Button
                         onClick={() => {
@@ -499,3 +538,4 @@ function UserCard({
         </Card>
     );
 }
+

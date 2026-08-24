@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
@@ -37,7 +37,7 @@ import {
     SelectValue,
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Pencil, Trash2, Users, Search, X } from "lucide-react";
+import { Plus, Pencil, Trash2, Users, Search, X, RefreshCw } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Skeleton } from "@/components/ui/skeleton";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -62,6 +62,36 @@ export default function ClassesPage() {
     const [classes, setClasses] = useState<Class[]>([]);
     const [loading, setLoading] = useState(true);
     const [searchQuery, setSearchQuery] = useState("");
+    const [isSyncing, setIsSyncing] = useState(false);
+
+    const handlePullSync = async () => {
+        setIsSyncing(true);
+        try {
+            const res = await fetch("/api/integration/pull-sync", { method: "POST" });
+            const data = await res.json();
+            if (data.success) {
+                toast({
+                    title: "Sinkronisasi Berhasil!",
+                    description: data.message,
+                });
+                fetchClasses();
+            } else {
+                toast({
+                    title: "Sinkronisasi Gagal",
+                    description: data.message || "Terjadi kesalahan",
+                    variant: "destructive",
+                });
+            }
+        } catch (err: any) {
+            toast({
+                title: "Error",
+                description: err.message || "Gagal menghubungi server",
+                variant: "destructive",
+            });
+        } finally {
+            setIsSyncing(false);
+        }
+    };
     const { toast } = useToast();
 
     // Create/Edit Dialog State
@@ -328,10 +358,21 @@ export default function ClassesPage() {
                         Kelola data kelas dan siswa
                     </p>
                 </div>
-                <Button onClick={() => setIsDialogOpen(true)}>
-                    <Plus className="mr-2 h-4 w-4" />
-                    Tambah Kelas
-                </Button>
+                                <div className="flex items-center gap-2">
+                    <Button
+                        variant="outline"
+                        className="border-indigo-200 dark:border-indigo-800 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-950/50"
+                        disabled={isSyncing}
+                        onClick={handlePullSync}
+                    >
+                        <RefreshCw className={`mr-2 h-4 w-4 ${isSyncing ? "animate-spin" : ""}`} />
+                        {isSyncing ? "Menyinkronkan..." : "Tarik dari PortoCarta"}
+                    </Button>
+                    <Button onClick={() => setIsDialogOpen(true)}>
+                        <Plus className="mr-2 h-4 w-4" />
+                        Tambah Kelas
+                    </Button>
+                </div>
             </div>
 
             <div className="flex items-center space-x-2">
@@ -386,7 +427,7 @@ export default function ClassesPage() {
                                 <div>
                                     <CardTitle className="text-xl">{cls.name}</CardTitle>
                                     <CardDescription>
-                                        Kelas {cls.grade} • {cls.academicYear}
+                                        Kelas {cls.grade} â€¢ {cls.academicYear}
                                     </CardDescription>
                                 </div>
                                 <Badge variant="outline">{cls.studentCount || 0} Siswa</Badge>
@@ -629,3 +670,4 @@ export default function ClassesPage() {
         </div>
     );
 }
+

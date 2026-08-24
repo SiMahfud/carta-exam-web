@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
@@ -20,6 +20,8 @@ import {
     Search,
     HelpCircle,
     Activity,
+    Globe,
+    CheckCircle2
 } from "lucide-react";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
@@ -130,6 +132,19 @@ export default function AdminLayout({
                                 </Link>
                             );
                         })}
+
+                        {/* Tautan Pintas ke PortoCarta */}
+                        <div className="pt-4 mt-4 border-t border-slate-800/80 px-2">
+                            <a
+                                href="https://porto.sman1campurdarat.sch.id/dashboard"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-medium text-indigo-300 hover:text-white bg-indigo-950/40 hover:bg-indigo-900/60 border border-indigo-800/50 transition-all"
+                            >
+                                <Globe className="h-4 w-4 text-indigo-400" />
+                                <span>Portal PortoCarta</span>
+                            </a>
+                        </div>
                     </div>
 
                     <div className="p-4 border-t border-slate-800 bg-slate-900/50">
@@ -140,7 +155,9 @@ export default function AdminLayout({
                             </Avatar>
                             <div className="flex-1 overflow-hidden">
                                 <p className="text-sm font-medium text-white truncate">Administrator</p>
-                                <p className="text-xs text-slate-500 truncate">admin@cartaexam.com</p>
+                                <p className="text-[11px] text-emerald-400 flex items-center gap-1">
+                                    <CheckCircle2 className="h-3 w-3" /> SSO PortoCarta
+                                </p>
                             </div>
                         </div>
                         <form action={logout}>
@@ -175,6 +192,18 @@ export default function AdminLayout({
                     </div>
 
                     <div className="flex items-center gap-2">
+                        {/* Tombol Pintas ke PortoCarta */}
+                        <a
+                            href="https://porto.sman1campurdarat.sch.id/dashboard"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-indigo-200 dark:border-indigo-800/80 bg-indigo-50/50 dark:bg-indigo-950/30 text-indigo-700 dark:text-indigo-300 hover:bg-indigo-100 dark:hover:bg-indigo-900/50 text-xs font-medium transition-all mr-1 shadow-xs"
+                            title="Buka Portal Induk PortoCarta"
+                        >
+                            <Globe className="h-3.5 w-3.5" />
+                            <span>Portal Sekolah</span>
+                        </a>
+
                         {/* Search Button */}
                         <Button
                             data-tour="global-search"
@@ -217,17 +246,23 @@ export default function AdminLayout({
                                 <DropdownMenuLabel className="font-normal">
                                     <div className="flex flex-col space-y-1">
                                         <p className="text-sm font-medium leading-none">Administrator</p>
-                                        <p className="text-xs leading-none text-muted-foreground">
-                                            admin@cartaexam.com
+                                        <p className="text-xs leading-none text-emerald-600 dark:text-emerald-400 font-medium pt-0.5 flex items-center gap-1">
+                                            <CheckCircle2 className="h-3 w-3" /> Terautentikasi SSO
                                         </p>
                                     </div>
                                 </DropdownMenuLabel>
                                 <DropdownMenuSeparator />
-                                <DropdownMenuItem>
-                                    Profile
+                                <DropdownMenuItem asChild>
+                                    <a href="https://porto.sman1campurdarat.sch.id/dashboard" target="_blank" rel="noopener noreferrer" className="cursor-pointer">
+                                        <Globe className="h-4 w-4 mr-2 text-indigo-500" />
+                                        Buka PortoCarta
+                                    </a>
                                 </DropdownMenuItem>
-                                <DropdownMenuItem>
-                                    Settings
+                                <DropdownMenuItem asChild>
+                                    <Link href="/admin/settings" className="cursor-pointer">
+                                        <Settings className="h-4 w-4 mr-2" />
+                                        Pengaturan Sistem
+                                    </Link>
                                 </DropdownMenuItem>
                                 <DropdownMenuSeparator />
                                 <DropdownMenuItem className="text-red-600 focus:text-red-600">
@@ -258,9 +293,6 @@ export default function AdminLayout({
                 onOpenChange={setIsShortcutsHelpOpen}
                 shortcuts={shortcuts}
             />
-
-            {/* Onboarding Tour */}
-            <OnboardingTour />
         </div>
-    )
+    );
 }

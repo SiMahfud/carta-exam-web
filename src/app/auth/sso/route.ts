@@ -49,7 +49,6 @@ function verifySsoToken(token: string, secretKey: string) {
 }
 
 function resolveRedirectUrl(request: NextRequest, redirectPath: string): URL {
-    // Ambil host & proto asli dari reverse proxy (Nginx / Cloudflare)
     const forwardedHost = request.headers.get("x-forwarded-host");
     const host = forwardedHost || request.headers.get("host") || request.nextUrl.host;
     const proto = request.headers.get("x-forwarded-proto") || (request.url.startsWith("https") ? "https" : "http");
@@ -83,20 +82,18 @@ export async function GET(request: NextRequest) {
             return NextResponse.redirect(resolveRedirectUrl(request, "/login?error=invalid_payload"));
         }
 
-        // Map role PortoCarta -> CartaExam ("admin" | "teacher" | "student")
-        let role: UserRole = "student";
+        const username = String(ssoUser.identifier).trim();
         const rawRole = (ssoUser.role || "").toLowerCase();
 
-        if (rawRole === "admin" || rawRole === "superadmin") {
+        // Map role PortoCarta -> CartaExam ("admin" | "teacher" | "student")
+        let role: UserRole = "student";
+        if (rawRole === "admin" || rawRole === "superadmin" || username.toLowerCase() === "admin") {
             role = "admin";
-        } else if (rawRole === "siswa") {
+        } else if (rawRole === "siswa" || ssoUser.is_student) {
             role = "student";
         } else {
-            // Guru, Wali Kelas, Kepsek, Wakasek, TU -> Teacher di CartaExam
             role = "teacher";
         }
-
-        const username = String(ssoUser.identifier).trim();
 
         // Cari user di database CartaExam
         let [existingUser] = await (db as any)
@@ -105,7 +102,6 @@ export async function GET(request: NextRequest) {
             .where(eq(users.username, username))
             .limit(1);
 
-        // Jika user belum ada di DB CartaExam, buat secara otomatis (Auto-Provisioning)
         if (!existingUser) {
             const defaultHashedPassword = await bcrypt.hash(username, 10);
             const newUserId = crypto.randomUUID();
@@ -125,7 +121,7 @@ export async function GET(request: NextRequest) {
                 role: role
             };
         } else {
-            // Update nama & role jika ada pembaruan dari PortoCarta
+            // Pastikan role dan nama selalu diselaraskan dengan hak akses terbaru
             if (existingUser.name !== ssoUser.nama || existingUser.role !== role) {
                 await (db as any)
                     .update(users)
@@ -136,16 +132,16 @@ export async function GET(request: NextRequest) {
             }
         }
 
-        // Generate sesi login CartaExam
+        // Generate sesi login CartaExam dengan role yang telah diselaraskan
         const sessionToken = await signSession({
             id: existingUser.id,
-            role: existingUser.role,
+            role: role,
             name: existingUser.name
         });
 
         // Tentukan redirect URL sesuai peran
         let redirectPath = "/student/exams";
-        if (existingUser.role === "admin" || existingUser.role === "teacher") {
+        if (role === "admin" || role === "teacher") {
             redirectPath = "/admin";
         }
 

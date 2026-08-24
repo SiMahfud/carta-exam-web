@@ -1,10 +1,10 @@
-"use client";
+﻿"use client";
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { logout } from "@/actions/auth";
-import { FileText, User, ShieldCheck, LogOut } from "lucide-react";
+import { FileText, User, ShieldCheck, LogOut, Globe } from "lucide-react";
 import { ModeToggle } from "@/components/ui/mode-toggle";
 import { NotificationDropdown } from "@/components/ui/notification-dropdown";
 
@@ -49,16 +49,26 @@ export default function StudentLayout({
                             </Link>
                         </nav>
                     </div>
-                    <div className="flex items-center gap-3">
-                        <div className="flex items-center gap-2 text-sm bg-secondary/50 px-3 py-1.5 rounded-full border border-border/50">
-                            <User className="h-4 w-4 text-muted-foreground" />
+                    <div className="flex items-center gap-2.5 sm:gap-3">
+                        <a
+                            href="https://porto.sman1campurdarat.sch.id/siswa/dashboard"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-1.5 text-xs text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 bg-indigo-50 dark:bg-indigo-950/40 border border-indigo-200 dark:border-indigo-800/60 px-3 py-1.5 rounded-full transition-colors font-medium shadow-xs"
+                            title="Buka Portal Siswa PortoCarta"
+                        >
+                            <Globe className="h-3.5 w-3.5" />
+                            <span className="hidden md:inline">Portal Siswa</span>
+                        </a>
+                        <div className="flex items-center gap-2 text-xs bg-secondary/50 px-3 py-1.5 rounded-full border border-border/50">
+                            <User className="h-3.5 w-3.5 text-muted-foreground" />
                             <span className="font-medium">Siswa</span>
                         </div>
                         <NotificationDropdown />
                         <ModeToggle />
                         <form action={logout}>
-                            <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-destructive hover:bg-destructive/10">
-                                <LogOut className="h-4 w-4 mr-2" />
+                            <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-destructive hover:bg-destructive/10 text-xs">
+                                <LogOut className="h-4 w-4 mr-1.5" />
                                 <span className="hidden sm:inline">Keluar</span>
                             </Button>
                         </form>
@@ -68,6 +78,6 @@ export default function StudentLayout({
             <main className="flex-1 container mx-auto px-4 py-8">
                 {children}
             </main>
-        </div >
+        </div>
     );
 }
