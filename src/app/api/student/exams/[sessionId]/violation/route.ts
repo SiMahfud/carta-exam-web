@@ -86,8 +86,11 @@ export async function POST(
         // Default to 'strict' if not set, for backward compatibility
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const violationMode = (violationSettings as any)?.mode || 'strict';
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const cooldownSeconds = Math.max(1, Number((violationSettings as any)?.cooldownSeconds) || 5);
+        const cooldownMs = cooldownSeconds * 1000;
 
-        // Update violation log
+        // Parse current violation log
         let currentLog: any[] = [];
         try {
             let parsed = submission.violationLog;
@@ -103,6 +106,26 @@ export async function POST(
         } catch {
             currentLog = [];
         }
+
+        // Server-side Cooldown Check: Ignore burst violations within cooldown period
+        if (currentLog.length > 0) {
+            const lastEntry = currentLog[currentLog.length - 1];
+            if (lastEntry && lastEntry.timestamp) {
+                const lastTime = new Date(lastEntry.timestamp).getTime();
+                const now = Date.now();
+                if (!isNaN(lastTime) && (now - lastTime < cooldownMs)) {
+                    return NextResponse.json({
+                        violationCount: submission.violationCount || 0,
+                        maxViolations,
+                        shouldTerminate: false,
+                        ignored: true,
+                        violationLog: currentLog,
+                        message: `Pelanggaran diabaikan karena masih dalam jeda (${cooldownSeconds} detik).`
+                    });
+                }
+            }
+        }
+
         const newLog = [
             ...currentLog,
             {
@@ -146,6 +169,7 @@ export async function POST(
             violationCount: newViolationCount,
             maxViolations,
             shouldTerminate,
+            violationLog: newLog,
             message: shouldTerminate
                 ? "Batas pelanggaran tercapai. Ujian dihentikan."
                 : `Pelanggaran dicatat. ${newViolationCount}/${maxViolations}`

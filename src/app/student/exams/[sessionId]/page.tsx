@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useToast } from "@/hooks/use-toast";
 import { useFullscreen } from "@/hooks/use-fullscreen";
@@ -17,6 +17,7 @@ import { SecurityWarningBanner } from "@/components/exam/take-exam/SecurityWarni
 import { TerminatedExamView } from "@/components/exam/take-exam/TerminatedExamView";
 import { QuestionCard } from "@/components/exam/take-exam/QuestionCard";
 import { FloatingExamTools } from "@/components/exam/take-exam/FloatingExamTools";
+import { ViolationDetailDialog, ViolationLogItem } from "@/components/exam/take-exam/ViolationDetailDialog";
 
 // Types
 import { Question, Answer } from "@/components/exam/take-exam/types";
@@ -52,6 +53,9 @@ export default function TakeExamPage() {
     const [durationMinutes, setDurationMinutes] = useState<number | undefined>(undefined);
     const [startTime, setStartTime] = useState<Date | null>(null);
     const [violationSettings, setViolationSettings] = useState<any>(null);
+    const [violationLogs, setViolationLogs] = useState<ViolationLogItem[]>([]);
+    const [showViolationDetailDialog, setShowViolationDetailDialog] = useState(false);
+    const [maxViolations, setMaxViolations] = useState<number>(3);
 
     // UI/UX Customization States
     const [fontSize, setFontSize] = useState<"sm" | "base" | "lg" | "xl">("base");
@@ -100,8 +104,23 @@ export default function TakeExamPage() {
         });
     };
 
+    // Track last violation timestamp on client for unified debouncing across all listeners
+    const lastClientViolationTime = useRef<number>(0);
+
     // Log security violations to backend and check for termination
     const logSecurityViolation = useCallback(async (type: string, details?: string) => {
+        const now = Date.now();
+        const cooldownSeconds = Math.max(1, Number(violationSettings?.cooldownSeconds) || 5);
+        const cooldownMs = cooldownSeconds * 1000;
+
+        // Prevent client-side multi-trigger bursts within cooldown window
+        const burstWindow = Math.min(cooldownMs, 2000);
+        if (now - lastClientViolationTime.current < burstWindow) {
+            console.log(`[ExamSecurity] Skipped violation ${type} - within client burst window`);
+            return;
+        }
+        lastClientViolationTime.current = now;
+
         try {
             const response = await fetch(`/api/student/exams/${sessionId}/violation`, {
                 method: "POST",
@@ -114,6 +133,22 @@ export default function TakeExamPage() {
 
                 if (data.violationCount !== undefined) {
                     setViolationCount(data.violationCount);
+                }
+
+                if (data.maxViolations !== undefined) {
+                    setMaxViolations(data.maxViolations);
+                }
+
+                if (data.violationLog && Array.isArray(data.violationLog)) {
+                    setViolationLogs(data.violationLog);
+                } else if (!data.ignored) {
+                    setViolationLogs(prev => [...prev, { type, details, timestamp: new Date().toISOString() }]);
+                }
+
+                if (!data.ignored) {
+                    setLastViolationType(type);
+                    setShowViolationBanner(true);
+                    setTimeout(() => setShowViolationBanner(false), 5000);
                 }
 
                 if (data.shouldTerminate) {
@@ -131,7 +166,7 @@ export default function TakeExamPage() {
         } catch (error) {
             console.error("Failed to log violation:", error);
         }
-    }, [sessionId, studentId, isFullscreen, exitFullscreen, toast]);
+    }, [sessionId, studentId, isFullscreen, exitFullscreen, toast, violationSettings]);
 
     const fetchStudentProfile = useCallback(async () => {
         try {
@@ -187,8 +222,20 @@ export default function TakeExamPage() {
                     setViolationCount(data.violationCount);
                 }
 
+                if (data.maxViolations !== undefined) {
+                    setMaxViolations(data.maxViolations);
+                }
+
+                if (data.violationLog && Array.isArray(data.violationLog)) {
+                    setViolationLogs(data.violationLog);
+                }
+
                 if (data.violationSettings) {
-                    setViolationSettings(data.violationSettings);
+                    let parsedSettings = data.violationSettings;
+                    if (typeof parsedSettings === 'string') {
+                        try { parsedSettings = JSON.parse(parsedSettings); } catch { }
+                    }
+                    setViolationSettings(parsedSettings);
                 }
 
                 if (data.answers) {
@@ -321,10 +368,6 @@ export default function TakeExamPage() {
         detectScreenshot: violationSettings?.detectScreenshot ?? true,
         detectWindowBlur: false,
         onViolation: (violation) => {
-            setViolationCount(prev => prev + 1);
-            setLastViolationType(violation.type);
-            setShowViolationBanner(true);
-            setTimeout(() => setShowViolationBanner(false), 5000);
             logSecurityViolation(violation.type, violation.details);
         }
     });
@@ -333,10 +376,6 @@ export default function TakeExamPage() {
     useWatermark(
         studentName || "Siswa",
         (violation) => {
-            setViolationCount(prev => prev + 1);
-            setLastViolationType(violation.type);
-            setShowViolationBanner(true);
-            setTimeout(() => setShowViolationBanner(false), 5000);
             logSecurityViolation(violation.type, violation.details);
         },
         examStarted && (violationSettings?.watermarkAntiTamper ?? true)
@@ -416,10 +455,6 @@ export default function TakeExamPage() {
                 }, 100);
 
                 logSecurityViolation("FULLSCREEN_EXIT", "User attempted to exit fullscreen");
-                setViolationCount(prev => prev + 1);
-                setLastViolationType("FULLSCREEN_EXIT");
-                setShowViolationBanner(true);
-                setTimeout(() => setShowViolationBanner(false), 5000);
             }
         };
 
@@ -445,10 +480,6 @@ export default function TakeExamPage() {
                     }, 100);
 
                     logSecurityViolation("BACK_BUTTON", "User pressed back button on Android");
-                    setViolationCount(prev => prev + 1);
-                    setLastViolationType("BACK_BUTTON");
-                    setShowViolationBanner(true);
-                    setTimeout(() => setShowViolationBanner(false), 5000);
                 }
             }
         };
@@ -822,13 +853,29 @@ export default function TakeExamPage() {
                     {/* Floating Tools: Mini Calculator, Digital Scratchpad, Keyboard Shortcuts Help */}
                     <FloatingExamTools />
 
-                    {/* Violation count indicator */}
+                    {/* Violation count indicator (Clickable button for details) */}
                     {violationCount > 0 && (
-                        <div className="fixed bottom-4 left-4 bg-red-100 text-red-700 px-3 py-1.5 rounded-full text-xs font-semibold shadow-lg border border-red-200 flex items-center gap-2 z-30">
-                            <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse"></div>
-                            {violationCount} pelanggaran terdeteksi
-                        </div>
+                        <button
+                            type="button"
+                            onClick={() => setShowViolationDetailDialog(true)}
+                            className="fixed bottom-4 left-4 bg-red-50/90 hover:bg-red-100 dark:bg-red-950/90 dark:hover:bg-red-900/90 text-red-700 dark:text-red-300 px-3.5 py-1.5 rounded-full text-xs font-semibold shadow-lg border border-red-200/80 dark:border-red-800/80 flex items-center gap-2 z-30 transition-all hover:scale-105 active:scale-95 cursor-pointer backdrop-blur-sm group"
+                            title="Klik untuk melihat riwayat pelanggaran"
+                        >
+                            <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse group-hover:scale-125 transition-transform shrink-0"></div>
+                            <span>{violationCount} pelanggaran terdeteksi</span>
+                            <span className="text-[10px] text-red-500/80 dark:text-red-400/80 font-normal ml-0.5 underline underline-offset-2">Lihat Detail</span>
+                        </button>
                     )}
+
+                    {/* Violation Detail Dialog */}
+                    <ViolationDetailDialog
+                        open={showViolationDetailDialog}
+                        onOpenChange={setShowViolationDetailDialog}
+                        violationCount={violationCount}
+                        maxViolations={maxViolations}
+                        violationMode={violationSettings?.mode || "strict"}
+                        violationLogs={violationLogs}
+                    />
 
                     {/* Submit Dialog */}
                     <SubmitDialog

@@ -33,22 +33,30 @@ export function useExamSecurity(options: UseExamSecurityOptions = {}) {
 
     const violations = useRef<ViolationLog[]>([]);
     const lastViolationTime = useRef<Record<string, number>>({});
-
-    // For mobile screenshot detection
+    const lastGlobalViolationTime = useRef<number>(0);
     const lastHiddenTime = useRef<number>(0);
     const screenDimensions = useRef({ width: 0, height: 0 });
 
     const logViolation = useCallback((type: string, details?: string) => {
         const now = Date.now();
         const lastTime = lastViolationTime.current[type] || 0;
+        const lastGlobal = lastGlobalViolationTime.current || 0;
 
         // Debounce: Skip if same violation type occurred within cooldown period
         if (now - lastTime < cooldownMs) {
-            console.log(`[Security] Skipped ${type} - within cooldown period`);
+            console.log(`[Security] Skipped ${type} - within per-type cooldown period`);
+            return;
+        }
+
+        // Global cooldown protection to prevent multi-event bursts (e.g., tab switch + window blur)
+        const burstWindow = Math.min(cooldownMs, 2000);
+        if (now - lastGlobal < burstWindow) {
+            console.log(`[Security] Skipped ${type} - within global burst window (${now - lastGlobal}ms < ${burstWindow}ms)`);
             return;
         }
 
         lastViolationTime.current[type] = now;
+        lastGlobalViolationTime.current = now;
 
         const violation: ViolationLog = {
             type,
@@ -68,27 +76,15 @@ export function useExamSecurity(options: UseExamSecurityOptions = {}) {
             height: window.screen.height
         };
 
-        // Detect tab switching and mobile screenshot pattern
+        // Detect tab switching
         const handleVisibilityChange = () => {
-            const now = Date.now();
-
             if (document.hidden) {
-                // Record when page became hidden
-                lastHiddenTime.current = now;
+                lastHiddenTime.current = Date.now();
 
                 if (detectTabSwitch) {
                     logViolation("TAB_SWITCH", "User switched to another tab");
                 }
-            } else if (detectScreenshot && lastHiddenTime.current > 0) {
-                // Page became visible again
-                const hiddenDuration = now - lastHiddenTime.current;
-
-                // Android screenshot pattern: very brief visibility change (< 1500ms)
-                // This happens when power+volume is pressed for screenshot
-                if (hiddenDuration < 1500 && hiddenDuration > 50) {
-                    logViolation("SCREENSHOT", `Screenshot detected (mobile) - pola singkat ${hiddenDuration}ms`);
-                }
-
+            } else {
                 lastHiddenTime.current = 0;
             }
         };
@@ -98,28 +94,6 @@ export function useExamSecurity(options: UseExamSecurityOptions = {}) {
             if (detectWindowBlur) {
                 logViolation("WINDOW_BLUR", "Window lost focus");
             }
-        };
-
-        // Detect touch + visibility pattern (power+volume button on Android)
-        let touchStartTime = 0;
-        const handleTouchStart = () => {
-            touchStartTime = Date.now();
-        };
-
-        const handleTouchEnd = () => {
-            if (detectScreenshot && touchStartTime > 0) {
-                const touchDuration = Date.now() - touchStartTime;
-                // Power+Volume buttons are usually held for 100-500ms for screenshot
-                if (touchDuration >= 100 && touchDuration <= 500) {
-                    // Check if visibility will change soon (screenshot indicator)
-                    setTimeout(() => {
-                        if (document.hidden) {
-                            logViolation("SCREENSHOT", "Screenshot detected (touch pattern)");
-                        }
-                    }, 100);
-                }
-            }
-            touchStartTime = 0;
         };
 
         // Disable right-click
@@ -187,23 +161,12 @@ export function useExamSecurity(options: UseExamSecurityOptions = {}) {
         document.addEventListener("keydown", handleKeyDown);
         document.addEventListener("selectstart", handleSelectStart);
 
-        // Mobile-specific listeners
-        if (detectScreenshot) {
-            document.addEventListener("touchstart", handleTouchStart, { passive: true });
-            document.addEventListener("touchend", handleTouchEnd, { passive: true });
-        }
-
         return () => {
             document.removeEventListener("visibilitychange", handleVisibilityChange);
             window.removeEventListener("blur", handleBlur);
             document.removeEventListener("contextmenu", handleContextMenu);
             document.removeEventListener("keydown", handleKeyDown);
             document.removeEventListener("selectstart", handleSelectStart);
-
-            if (detectScreenshot) {
-                document.removeEventListener("touchstart", handleTouchStart);
-                document.removeEventListener("touchend", handleTouchEnd);
-            }
         };
     }, [enabled, disableCopyPaste, disableRightClick, detectTabSwitch, detectWindowBlur, detectScreenshot, logViolation]);
 
@@ -213,6 +176,7 @@ export function useExamSecurity(options: UseExamSecurityOptions = {}) {
         clearViolations: () => {
             violations.current = [];
             lastViolationTime.current = {};
+            lastGlobalViolationTime.current = 0;
         }
     };
 }

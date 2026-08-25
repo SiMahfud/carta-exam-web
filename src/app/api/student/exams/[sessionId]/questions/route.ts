@@ -297,6 +297,23 @@ export async function GET(
             }
         }
 
+        // Parse violationLog
+        let violationLog: any[] = [];
+        try {
+            let parsed = submission.violationLog;
+            if (typeof parsed === 'string') {
+                try { parsed = JSON.parse(parsed); } catch { }
+            }
+            if (typeof parsed === 'string') {
+                try { parsed = JSON.parse(parsed); } catch { }
+            }
+            if (Array.isArray(parsed)) {
+                violationLog = parsed;
+            }
+        } catch {
+            violationLog = [];
+        }
+
         return NextResponse.json({
             questions: orderedQuestions,
             endTime: effectiveEndTime,
@@ -305,9 +322,10 @@ export async function GET(
             submissionId: submission.id,
             answers: answersMap,
             violationCount: submission.violationCount || 0,
+            violationLog: violationLog,
             // Security settings
             maxViolations: template.maxViolations || 3,
-            violationSettings: template.violationSettings,
+            violationSettings: violationSettings,
             enableLockdown: template.enableLockdown,
         });
     } catch (error) {
