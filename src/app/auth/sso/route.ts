@@ -103,7 +103,9 @@ export async function GET(request: NextRequest) {
             .limit(1);
 
         if (!existingUser) {
-            const defaultHashedPassword = await bcrypt.hash(username, 10);
+            // Gunakan password acak yang kuat agar tidak dapat ditebak dari NIS/Username
+            const randomSecretPassword = crypto.randomBytes(32).toString("hex");
+            const defaultHashedPassword = await bcrypt.hash(randomSecretPassword, 10);
             const newUserId = crypto.randomUUID();
 
             await (db as any).insert(users).values({
