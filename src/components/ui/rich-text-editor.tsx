@@ -17,6 +17,7 @@ import { Toggle } from "@/components/ui/toggle";
 import {
     Dialog,
     DialogContent,
+    DialogDescription,
     DialogHeader,
     DialogTitle,
     DialogTrigger,
@@ -152,6 +153,9 @@ export function RichTextEditor({ value, onChange }: RichTextEditorProps) {
                     <DialogContent>
                         <DialogHeader>
                             <DialogTitle>Insert Image</DialogTitle>
+                            <DialogDescription>
+                                Upload gambar dari perangkat atau masukkan URL gambar.
+                            </DialogDescription>
                         </DialogHeader>
                         <div className="space-y-4 py-4">
                             <div className="space-y-2">

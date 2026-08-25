@@ -5,6 +5,9 @@ import { useRouter } from "next/navigation";
 import {
     Dialog,
     DialogContent,
+    DialogDescription,
+    DialogHeader,
+    DialogTitle,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -160,6 +163,13 @@ export function GlobalSearch({ open, onOpenChange }: GlobalSearchProps) {
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
             <DialogContent className="max-w-2xl p-0 gap-0 overflow-hidden">
+                <DialogHeader className="sr-only">
+                    <DialogTitle>Pencarian Global CartaExam</DialogTitle>
+                    <DialogDescription>
+                        Cari soal, bank soal, sesi ujian, siswa, atau kelas
+                    </DialogDescription>
+                </DialogHeader>
+
                 {/* Search Input */}
                 <div className="flex items-center border-b px-4">
                     <Search className="h-5 w-5 text-muted-foreground shrink-0" />

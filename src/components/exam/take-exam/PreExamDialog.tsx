@@ -4,7 +4,10 @@ import React, { useState } from "react";
 import {
     Dialog,
     DialogContent,
+    DialogDescription,
     DialogFooter,
+    DialogHeader,
+    DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -68,24 +71,24 @@ export function PreExamDialog({
 
     return (
         <Dialog open={open}>
-            <DialogContent className="sm:max-w-xl p-0 overflow-hidden border-2 border-primary/20 shadow-2xl">
+            <DialogContent className="sm:max-w-xl max-h-[90vh] flex flex-col p-0 overflow-hidden border-2 border-primary/20 shadow-2xl">
                 {/* Header with decorative background */}
-                <div className="bg-gradient-to-r from-primary to-indigo-700 p-6 text-primary-foreground text-center relative overflow-hidden">
+                <DialogHeader className="bg-gradient-to-r from-primary to-indigo-700 p-6 text-primary-foreground text-center relative overflow-hidden space-y-0 shrink-0">
                     <div className="relative z-10 space-y-1">
                         <Badge className="bg-white/20 hover:bg-white/30 text-white border-none text-xs px-2.5 py-0.5 mb-1">
                             <Sparkles className="w-3 h-3 mr-1" />
                             Konfirmasi Kesiapan Peserta
                         </Badge>
-                        <h2 className="text-xl sm:text-2xl font-bold tracking-tight text-white">
+                        <DialogTitle className="text-xl sm:text-2xl font-bold tracking-tight text-white">
                             {examName || "Ujian Digital"}
-                        </h2>
-                        <p className="text-xs sm:text-sm text-white/80">
+                        </DialogTitle>
+                        <DialogDescription className="text-xs sm:text-sm text-white/80">
                             SMAN 1 Campurdarat • Platform CBT CartaExam
-                        </p>
+                        </DialogDescription>
                     </div>
-                </div>
+                </DialogHeader>
 
-                <div className="p-6 space-y-5">
+                <div className="p-6 space-y-5 flex-1 overflow-y-auto min-h-0">
                     {/* Student Identity Card */}
                     <div className="p-4 rounded-xl border-2 border-primary/20 bg-primary/5 flex items-center justify-between gap-4">
                         <div className="flex items-center gap-3.5">
@@ -178,7 +181,7 @@ export function PreExamDialog({
                     </div>
                 </div>
 
-                <DialogFooter className="p-4 bg-muted/30 border-t flex flex-col sm:flex-row gap-2">
+                <DialogFooter className="p-4 bg-muted/30 border-t flex flex-col sm:flex-row gap-2 shrink-0">
                     <Button
                         size="lg"
                         className="w-full sm:w-auto flex-1 font-bold shadow-lg shadow-primary/20 cursor-pointer"
