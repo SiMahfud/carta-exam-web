@@ -101,11 +101,14 @@ export async function POST(
             score: totalMax > 0 ? Math.round((totalEarned / totalMax) * 100) : 0,
             requiresManualGrading: hasEssays
         });
-    } catch (error) {
-        console.error("Error submitting exam:", error);
+    } catch (error: any) {
+        const status = error.status || 500;
+        if (status >= 500) {
+            console.error("Error submitting exam:", error);
+        }
         return NextResponse.json(
-            { error: "Failed to submit exam" },
-            { status: 500 }
+            { error: error.message || "Failed to submit exam" },
+            { status }
         );
     }
 }

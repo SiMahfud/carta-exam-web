@@ -128,11 +128,14 @@ export async function POST(
             clockAnomaly,
             violationCount: submission.violationCount || 0,
         });
-    } catch (error) {
-        console.error("Heartbeat error:", error);
+    } catch (error: any) {
+        const status = error.status || 500;
+        if (status >= 500) {
+            console.error("Heartbeat error:", error);
+        }
         return NextResponse.json(
-            { error: "Heartbeat failed" },
-            { status: 500 }
+            { error: error.message || "Heartbeat failed" },
+            { status }
         );
     }
 }

@@ -18,6 +18,7 @@ import { TerminatedExamView } from "@/components/exam/take-exam/TerminatedExamVi
 import { QuestionCard } from "@/components/exam/take-exam/QuestionCard";
 import { FloatingExamTools } from "@/components/exam/take-exam/FloatingExamTools";
 import { ViolationDetailDialog, ViolationLogItem } from "@/components/exam/take-exam/ViolationDetailDialog";
+import { SessionExpiredDialog } from "@/components/exam/take-exam/SessionExpiredDialog";
 
 // Types
 import { Question, Answer } from "@/components/exam/take-exam/types";
@@ -56,6 +57,7 @@ export default function TakeExamPage() {
     const [violationLogs, setViolationLogs] = useState<ViolationLogItem[]>([]);
     const [showViolationDetailDialog, setShowViolationDetailDialog] = useState(false);
     const [maxViolations, setMaxViolations] = useState<number>(3);
+    const [showSessionExpiredDialog, setShowSessionExpiredDialog] = useState(false);
 
     // UI/UX Customization States
     const [fontSize, setFontSize] = useState<"sm" | "base" | "lg" | "xl">("base");
@@ -336,6 +338,14 @@ export default function TakeExamPage() {
                 });
 
                 window.location.href = "/student/exams";
+            } else if (response.status === 401) {
+                setShowSessionExpiredDialog(true);
+                toast({
+                    title: "Sesi Kedaluwarsa",
+                    description: "Sesi login Anda telah habis. Silakan masukkan password untuk melanjutkan pengumpulan ujian.",
+                    variant: "destructive",
+                });
+                setSubmitting(false);
             } else {
                 throw new Error("Failed to submit");
             }
@@ -406,6 +416,8 @@ export default function TakeExamPage() {
                     } else if (data.remainingSeconds !== undefined) {
                         setTimeRemaining(data.remainingSeconds);
                     }
+                } else if (response.status === 401) {
+                    setShowSessionExpiredDialog(true);
                 } else if (response.status === 403) {
                     const data = await response.json();
                     if (data.status === "blocked" || data.error === "DEVICE_MISMATCH") {
@@ -618,11 +630,15 @@ export default function TakeExamPage() {
     const saveAnswer = useCallback(async (questionId: string, answer: any, isFlagged: boolean = false) => {
         setAutoSaving(true);
         try {
-            await fetch(`/api/student/exams/${sessionId}/answer`, {
+            const response = await fetch(`/api/student/exams/${sessionId}/answer`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ studentId, questionId, answer, isFlagged }),
             });
+
+            if (response.status === 401) {
+                setShowSessionExpiredDialog(true);
+            }
         } catch (error) {
             console.error("Error saving answer:", error);
         } finally {
@@ -653,6 +669,27 @@ export default function TakeExamPage() {
         setAnswers(newAnswers);
         saveAnswer(question.id, existing.answer, existing.isFlagged);
     }, [questions, currentQuestionIndex, answers, saveAnswer]);
+
+    const handleReauthSuccess = useCallback(async () => {
+        setShowSessionExpiredDialog(false);
+        toast({
+            title: "Sesi Berhasil Diperbarui",
+            description: "Menyinkronkan kembali jawaban Anda ke server...",
+        });
+
+        // Sync all answers currently in state to server
+        answers.forEach((ans, qId) => {
+            if (ans.answer !== null && ans.answer !== undefined) {
+                saveAnswer(qId, ans.answer, ans.isFlagged);
+            }
+        });
+
+        // If student was in the middle of submitting, retry submission
+        if (showSubmitDialog) {
+            setShowSubmitDialog(false);
+            handleSubmit();
+        }
+    }, [answers, saveAnswer, showSubmitDialog, handleSubmit, toast]);
 
     // KEYBOARD SHORTCUTS INTEGRATION (ala UTBK/UNBK)
     useEffect(() => {
@@ -887,6 +924,14 @@ export default function TakeExamPage() {
                         submitting={submitting}
                         minSubmitMinutes={minSubmitMinutes}
                         elapsedMinutes={startTime ? Math.floor((Date.now() - startTime.getTime()) / 60000) : 0}
+                    />
+
+                    {/* Session Expired Re-Authentication Dialog */}
+                    <SessionExpiredDialog
+                        open={showSessionExpiredDialog}
+                        studentUsername={studentUsername}
+                        studentName={studentName}
+                        onSuccess={handleReauthSuccess}
                     />
                 </div>
             )}

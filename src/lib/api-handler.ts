@@ -34,8 +34,6 @@ export async function apiHandler<T>(
         return NextResponse.json(response, options);
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (error: any) {
-        console.error("API Error:", error);
-
         if (error instanceof ZodError) {
             return NextResponse.json(
                 { error: "Validation Error", details: error.issues },
@@ -45,6 +43,10 @@ export async function apiHandler<T>(
 
         const status = error.status || 500;
         const message = error.message || "Internal Server Error";
+
+        if (status >= 500) {
+            console.error("API Error:", error);
+        }
 
         return NextResponse.json(
             { error: message },

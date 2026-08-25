@@ -4,7 +4,7 @@ import { users, classes, classStudents } from "@/lib/schema";
 import { eq, and } from "drizzle-orm";
 import bcrypt from "bcryptjs";
 import crypto from "crypto";
-import { signSession, UserRole } from "@/lib/session";
+import { signSession, getSessionCookieOptions, DEFAULT_SESSION_MAX_AGE, UserRole } from "@/lib/session";
 
 function base64UrlDecode(str: string): string {
     let base64 = str.replace(/-/g, "+").replace(/_/g, "/");
@@ -197,25 +197,55 @@ export async function GET(request: NextRequest) {
             id: existingUser.id,
             role: role,
             name: existingUser.name
-        });
+        }, DEFAULT_SESSION_MAX_AGE);
+
+        const mode = searchParams.get("mode");
+        const redirectParam = searchParams.get("redirect");
+
+        if (mode === "popup") {
+            const html = `<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>SSO Berhasil</title>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; display: flex; align-items: center; justify-content: center; height: 100vh; margin: 0; background: #f8fafc; color: #1e293b; text-align: center; }
+        .card { background: white; padding: 24px; border-radius: 12px; box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1); max-width: 320px; }
+        .success { color: #16a34a; font-weight: 600; font-size: 16px; margin-bottom: 8px; }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <div class="success">✓ Sesi Berhasil Diperbarui</div>
+        <p style="font-size: 13px; color: #64748b; margin: 0;">Menutup jendela dan melanjutkan ujian...</p>
+    </div>
+    <script>
+        try {
+            if (window.opener) {
+                window.opener.postMessage({ type: "SSO_REAUTH_SUCCESS", user: ${JSON.stringify({ id: existingUser.id, name: existingUser.name, role: existingUser.role })} }, "*");
+                setTimeout(() => window.close(), 600);
+            }
+        } catch (e) {
+            console.error(e);
+        }
+    </script>
+</body>
+</html>`;
+            const popupResponse = new NextResponse(html, {
+                headers: { "Content-Type": "text/html; charset=utf-8" },
+            });
+            popupResponse.cookies.set("user_session", sessionToken, getSessionCookieOptions(DEFAULT_SESSION_MAX_AGE));
+            return popupResponse;
+        }
 
         // Tentukan redirect URL sesuai peran
-        let redirectPath = "/student/exams";
-        if (role === "admin" || role === "teacher") {
-            redirectPath = "/admin";
-        }
+        let redirectPath = redirectParam || (role === "admin" || role === "teacher" ? "/admin" : "/student/exams");
 
         const targetUrl = resolveRedirectUrl(request, redirectPath);
         const response = NextResponse.redirect(targetUrl);
 
         // Pasang session cookie
-        response.cookies.set("user_session", sessionToken, {
-            httpOnly: true,
-            secure: process.env.NODE_ENV === "production",
-            sameSite: "lax",
-            maxAge: 60 * 60 * 24, // 1 day
-            path: "/"
-        });
+        response.cookies.set("user_session", sessionToken, getSessionCookieOptions(DEFAULT_SESSION_MAX_AGE));
 
         return response;
     } catch (err: any) {

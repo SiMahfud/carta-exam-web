@@ -7,7 +7,7 @@ import { cookies, headers } from "next/headers"
 import { redirect } from "next/navigation"
 import bcrypt from "bcryptjs"
 import { z } from "zod"
-import { signSession } from "@/lib/session"
+import { signSession, getSessionCookieOptions, DEFAULT_SESSION_MAX_AGE } from "@/lib/session"
 
 // Login Schema for validation
 const LoginSchema = z.object({
@@ -88,16 +88,10 @@ export async function login(formData: FormData): Promise<LoginResult> {
         id: user.id,
         role: user.role,
         name: user.name
-    })
+    }, DEFAULT_SESSION_MAX_AGE)
 
     const cookieStore = await cookies()
-    cookieStore.set("user_session", token, {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === "production",
-        sameSite: "lax",
-        maxAge: 60 * 60 * 24, // 1 day
-        path: "/",
-    })
+    cookieStore.set("user_session", token, getSessionCookieOptions(DEFAULT_SESSION_MAX_AGE))
 
     // Redirect based on role
     if (user.role === "admin") {

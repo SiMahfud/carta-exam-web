@@ -153,10 +153,13 @@ export async function GET(
             questions: questionDetails,
         });
     } catch (err: any) {
-        console.error("Error in exam review API:", err);
+        const status = err.status || 500;
+        if (status >= 500) {
+            console.error("Error in exam review API:", err);
+        }
         return NextResponse.json(
             { error: err.message || "Gagal memuat review ujian" },
-            { status: err.status || 500 }
+            { status }
         );
     }
 }

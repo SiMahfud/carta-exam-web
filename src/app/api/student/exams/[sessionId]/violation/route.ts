@@ -174,11 +174,14 @@ export async function POST(
                 ? "Batas pelanggaran tercapai. Ujian dihentikan."
                 : `Pelanggaran dicatat. ${newViolationCount}/${maxViolations}`
         });
-    } catch (error) {
-        console.error("Error logging violation:", error);
+    } catch (error: any) {
+        const status = error.status || 500;
+        if (status >= 500) {
+            console.error("Error logging violation:", error);
+        }
         return NextResponse.json(
-            { error: "Failed to log violation" },
-            { status: 500 }
+            { error: error.message || "Failed to log violation" },
+            { status }
         );
     }
 }

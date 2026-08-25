@@ -276,10 +276,13 @@ export async function POST(
             savedAt: new Date().toISOString()
         });
     } catch (error: any) {
-        console.error("Error saving answer:", error);
+        const status = error.status || 500;
+        if (status >= 500) {
+            console.error("Error saving answer:", error);
+        }
         return NextResponse.json(
             { error: error.message || "Failed to save answer" },
-            { status: error.status || 500 }
+            { status }
         );
     }
 }

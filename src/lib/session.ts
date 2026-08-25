@@ -79,13 +79,40 @@ async function getCryptoKey(secret: string): Promise<CryptoKey> {
     );
 }
 
+export const DEFAULT_SESSION_MAX_AGE = 60 * 60 * 24 * 7; // 7 days
+
+/**
+ * Determine if cookie should have secure flag (HTTPS)
+ */
+export function isSecureCookie(): boolean {
+    if (process.env.COOKIE_SECURE === "false") return false;
+    if (process.env.COOKIE_SECURE === "true") return true;
+    if (process.env.APP_URL?.startsWith("https://") || process.env.NEXT_PUBLIC_APP_URL?.startsWith("https://")) {
+        return true;
+    }
+    return process.env.NODE_ENV === "production" && !process.env.APP_URL?.startsWith("http://");
+}
+
+/**
+ * Standard cookie configuration for CartaExam session
+ */
+export function getSessionCookieOptions(maxAge: number = DEFAULT_SESSION_MAX_AGE) {
+    return {
+        httpOnly: true,
+        secure: isSecureCookie(),
+        sameSite: "lax" as const,
+        maxAge,
+        path: "/",
+    };
+}
+
 /**
  * Sign a session payload and return signed token
  * Format: `<base64UrlPayload>.<signatureHex>`
  */
 export async function signSession(
     payload: Omit<SessionPayload, "exp">,
-    maxAgeSeconds: number = 60 * 60 * 24 // 1 day default
+    maxAgeSeconds: number = DEFAULT_SESSION_MAX_AGE
 ): Promise<string> {
     const exp = Math.floor(Date.now() / 1000) + maxAgeSeconds;
     const fullPayload: SessionPayload = { ...payload, exp };
@@ -186,3 +213,4 @@ export async function getCurrentUser(): Promise<SessionPayload | null> {
         return null;
     }
 }
+

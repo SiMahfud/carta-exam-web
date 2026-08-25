@@ -328,11 +328,14 @@ export async function GET(
             violationSettings: violationSettings,
             enableLockdown: template.enableLockdown,
         });
-    } catch (error) {
-        console.error("Error fetching questions:", error);
+    } catch (error: any) {
+        const status = error.status || 500;
+        if (status >= 500) {
+            console.error("Error fetching questions:", error);
+        }
         return NextResponse.json(
-            { error: "Failed to fetch questions" },
-            { status: 500 }
+            { error: error.message || "Failed to fetch questions" },
+            { status }
         );
     }
 }

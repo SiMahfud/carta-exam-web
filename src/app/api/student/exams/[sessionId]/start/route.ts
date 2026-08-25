@@ -253,11 +253,14 @@ export async function POST(
             questionOrder,
             message: "Exam started successfully"
         }, { status: 201 });
-    } catch (error) {
-        console.error("Error starting exam:", error);
+    } catch (error: any) {
+        const status = error.status || 500;
+        if (status >= 500) {
+            console.error("Error starting exam:", error);
+        }
         return NextResponse.json(
-            { error: "Failed to start exam" },
-            { status: 500 }
+            { error: error.message || "Failed to start exam" },
+            { status }
         );
     }
 }
