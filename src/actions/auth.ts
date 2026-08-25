@@ -8,6 +8,7 @@ import { redirect } from "next/navigation"
 import bcrypt from "bcryptjs"
 import { z } from "zod"
 import { signSession, getSessionCookieOptions, DEFAULT_SESSION_MAX_AGE } from "@/lib/session"
+import { verifyUserCredentials } from "@/lib/auth-verify"
 
 // Login Schema for validation
 const LoginSchema = z.object({
@@ -62,26 +63,17 @@ export async function login(formData: FormData): Promise<LoginResult> {
         }
     }
 
-    // Find user
-    const [user] = await (db as any).select().from(users).where(eq(users.username, username)).limit(1)
+    // Verify credentials locally or with PortoCarta Master Hub
+    const verifyResult = await verifyUserCredentials(username, password);
 
-    if (!user) {
-        // Use same error message for security (don't reveal if user exists)
+    if (!verifyResult.success || !verifyResult.user) {
         return {
             success: false,
-            error: "Username atau password salah"
-        }
+            error: verifyResult.error || "Username atau password salah"
+        };
     }
 
-    // Compare password with bcrypt hash
-    const isPasswordValid = await bcrypt.compare(password, user.password)
-
-    if (!isPasswordValid) {
-        return {
-            success: false,
-            error: "Username atau password salah"
-        }
-    }
+    const user = verifyResult.user;
 
     // Set signed session cookie
     const token = await signSession({

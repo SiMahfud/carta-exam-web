@@ -1,9 +1,6 @@
 import { NextResponse } from "next/server";
-import { db } from "@/lib/db";
-import { users } from "@/lib/schema";
-import { eq } from "drizzle-orm";
-import bcrypt from "bcryptjs";
 import { signSession, getSessionCookieOptions, DEFAULT_SESSION_MAX_AGE } from "@/lib/session";
+import { verifyUserCredentials } from "@/lib/auth-verify";
 
 export async function POST(request: Request) {
     try {
@@ -17,26 +14,16 @@ export async function POST(request: Request) {
             );
         }
 
-        const [user] = await (db as any)
-            .select()
-            .from(users)
-            .where(eq(users.username, String(username).trim()))
-            .limit(1);
+        const verifyResult = await verifyUserCredentials(username, password);
 
-        if (!user) {
+        if (!verifyResult.success || !verifyResult.user) {
             return NextResponse.json(
-                { success: false, error: "Username atau password salah." },
+                { success: false, error: verifyResult.error || "Username atau password salah." },
                 { status: 401 }
             );
         }
 
-        const isValid = await bcrypt.compare(String(password), user.password);
-        if (!isValid) {
-            return NextResponse.json(
-                { success: false, error: "Username atau password salah." },
-                { status: 401 }
-            );
-        }
+        const user = verifyResult.user;
 
         const token = await signSession({
             id: user.id,

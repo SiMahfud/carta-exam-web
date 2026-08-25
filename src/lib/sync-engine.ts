@@ -143,7 +143,8 @@ export async function syncMasterDataBundle(bundle: SyncBundlePayload): Promise<S
             teacherMap.set(t.id, existing.id);
             teacherMap.set(username, existing.id);
         } else {
-            const defaultHash = await bcrypt.hash(username, 10);
+            const randomSecretPassword = crypto.randomBytes(32).toString("hex");
+            const defaultHash = await bcrypt.hash(randomSecretPassword, 10);
             const newId = crypto.randomUUID();
             await (db as any).insert(users).values({
                 id: newId,
@@ -226,7 +227,8 @@ export async function syncMasterDataBundle(bundle: SyncBundlePayload): Promise<S
                 .where(eq(users.id, existingStudent.id));
             studentUuid = existingStudent.id;
         } else {
-            const defaultHash = await bcrypt.hash(username, 10);
+            const randomSecretPassword = crypto.randomBytes(32).toString("hex");
+            const defaultHash = await bcrypt.hash(randomSecretPassword, 10);
             studentUuid = crypto.randomUUID();
             await (db as any).insert(users).values({
                 id: studentUuid,

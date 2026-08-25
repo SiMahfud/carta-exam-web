@@ -13,7 +13,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { AlertCircle, Lock, KeyRound, Loader2, CheckCircle2, ExternalLink, Sparkles } from "lucide-react";
-import { Alert, AlertDescription } from "@/components/ui/alert";
 
 interface SessionExpiredDialogProps {
     open: boolean;
@@ -144,17 +143,17 @@ export function SessionExpiredDialog({
                 </DialogHeader>
 
                 {error && (
-                    <Alert variant="destructive" className="py-2.5">
-                        <AlertCircle className="h-4 w-4" />
-                        <AlertDescription className="text-xs">{error}</AlertDescription>
-                    </Alert>
+                    <div className="flex items-center gap-2.5 p-3 rounded-lg border border-destructive/40 bg-destructive/10 text-destructive text-xs">
+                        <AlertCircle className="h-4 w-4 shrink-0" />
+                        <span>{error}</span>
+                    </div>
                 )}
 
                 {success && (
-                    <Alert className="py-2.5 border-emerald-500 bg-emerald-50 text-emerald-900 dark:bg-emerald-950/50 dark:text-emerald-200">
-                        <CheckCircle2 className="h-4 w-4 text-emerald-600" />
-                        <AlertDescription className="text-xs font-medium">Sesi berhasil diperbarui! Melanjutkan ujian...</AlertDescription>
-                    </Alert>
+                    <div className="flex items-center gap-2.5 p-3 rounded-lg border border-emerald-500/50 bg-emerald-50 text-emerald-900 dark:bg-emerald-950/50 dark:text-emerald-200 text-xs font-medium">
+                        <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-600" />
+                        <span>Sesi berhasil diperbarui! Melanjutkan ujian...</span>
+                    </div>
                 )}
 
                 {/* Option 1: PortoCarta SSO One-Click Re-Auth */}
@@ -230,7 +229,7 @@ export function SessionExpiredDialog({
                                 Password
                             </Label>
                             <span className="text-[10.5px] text-muted-foreground">
-                                Default SSO: <code className="bg-muted px-1 py-0.5 rounded text-[10px] font-mono font-semibold">NIS Anda</code>
+                                Gunakan password PortoCarta / CartaExam Anda
                             </span>
                         </div>
                         <div className="relative">
@@ -239,7 +238,7 @@ export function SessionExpiredDialog({
                                 type="password"
                                 value={password}
                                 onChange={(e) => setPassword(e.target.value)}
-                                placeholder="Masukkan password (default: NIS)"
+                                placeholder="Masukkan password akun Anda"
                                 disabled={loading || success || ssoLoading}
                                 className="text-sm pr-9 h-9"
                                 autoFocus
