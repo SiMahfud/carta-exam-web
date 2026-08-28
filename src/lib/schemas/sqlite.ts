@@ -403,11 +403,14 @@ export const schoolSettings = sqliteTable("school_settings", {
 
     // AI Configuration
     aiConfig: text("ai_config", { mode: "json" }).$type<{
-        provider: 'gemini' | 'openrouter';
+        provider: 'gemini' | 'openrouter' | 'openai_compatible';
         geminiApiKey?: string;
         geminiModel?: string;
         openrouterApiKey?: string;
         openrouterModel?: string;
+        openaiApiKey?: string;
+        openaiBaseUrl?: string;
+        openaiModel?: string;
     }>(),
 
     updatedBy: text("updated_by").references(() => users.id, { onDelete: "set null" }),

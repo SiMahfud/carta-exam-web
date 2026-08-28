@@ -5,11 +5,14 @@ import { getSchoolSettings } from "@/actions/settings";
 // ============================================================================
 
 export interface AIConfig {
-    provider: 'gemini' | 'openrouter';
+    provider: 'gemini' | 'openrouter' | 'openai_compatible';
     geminiApiKey?: string;
     geminiModel?: string;
     openrouterApiKey?: string;
     openrouterModel?: string;
+    openaiApiKey?: string;
+    openaiBaseUrl?: string;
+    openaiModel?: string;
 }
 
 export interface AIGenerateRequest {
@@ -39,7 +42,8 @@ async function resolveAIConfig(): Promise<AIConfig> {
 
         if (aiConfig?.provider && (
             (aiConfig.provider === 'gemini' && aiConfig.geminiApiKey) ||
-            (aiConfig.provider === 'openrouter' && aiConfig.openrouterApiKey)
+            (aiConfig.provider === 'openrouter' && aiConfig.openrouterApiKey) ||
+            (aiConfig.provider === 'openai_compatible' && aiConfig.openaiApiKey)
         )) {
             return aiConfig;
         }
@@ -53,6 +57,63 @@ async function resolveAIConfig(): Promise<AIConfig> {
         geminiApiKey: process.env.GOOGLE_GENERATIVE_AI_API_KEY,
         geminiModel: process.env.GOOGLE_GENERATIVE_AI_MODEL || "gemini-2.5-flash",
     };
+}
+
+// ============================================================================
+// URL & Message Formatting Helpers
+// ============================================================================
+
+/**
+ * Normalizes a base URL to ensure it points to the `/chat/completions` endpoint.
+ */
+export function normalizeChatCompletionsUrl(baseUrl?: string): string {
+    let base = (baseUrl || "https://api.openai.com/v1").trim();
+    if (!base) base = "https://api.openai.com/v1";
+
+    // Remove trailing slashes
+    base = base.replace(/\/+$/, "");
+
+    if (base.endsWith("/chat/completions")) {
+        return base;
+    }
+    return `${base}/chat/completions`;
+}
+
+/**
+ * Converts AIGenerateRequest prompt into OpenAI-compatible messages array.
+ */
+function buildOpenAIMessages(prompt: AIGenerateRequest['prompt']): Array<{
+    role: string;
+    content: string | Array<{ type: string; text?: string; image_url?: { url: string } }>;
+}> {
+    const messages: Array<{
+        role: string;
+        content: string | Array<{ type: string; text?: string; image_url?: { url: string } }>;
+    }> = [];
+
+    if (typeof prompt === 'string') {
+        messages.push({ role: "user", content: prompt });
+    } else if (Array.isArray(prompt)) {
+        const contentParts: Array<{ type: string; text?: string; image_url?: { url: string } }> = [];
+
+        for (const part of prompt) {
+            if ('text' in part && part.text) {
+                contentParts.push({ type: "text", text: part.text });
+            }
+            if ('inlineData' in part && part.inlineData) {
+                contentParts.push({
+                    type: "image_url",
+                    image_url: {
+                        url: `data:${part.inlineData.mimeType};base64,${part.inlineData.data}`
+                    }
+                });
+            }
+        }
+
+        messages.push({ role: "user", content: contentParts });
+    }
+
+    return messages;
 }
 
 // ============================================================================
@@ -83,39 +144,18 @@ async function callGemini(
 }
 
 // ============================================================================
-// OpenRouter Provider
+// OpenAI Compatible Generic Provider
 // ============================================================================
 
-async function callOpenRouter(
+async function callOpenAICompatible(
     apiKey: string,
+    baseUrl: string | undefined,
     model: string,
-    request: AIGenerateRequest
+    request: AIGenerateRequest,
+    extraHeaders?: Record<string, string>
 ): Promise<AIGenerateResponse> {
-    // Build messages from the prompt
-    const messages: Array<{ role: string; content: string | Array<{ type: string; text?: string; image_url?: { url: string } }> }> = [];
-
-    if (typeof request.prompt === 'string') {
-        messages.push({ role: "user", content: request.prompt });
-    } else if (Array.isArray(request.prompt)) {
-        // Convert Gemini-style parts to OpenAI-style content array
-        const contentParts: Array<{ type: string; text?: string; image_url?: { url: string } }> = [];
-
-        for (const part of request.prompt) {
-            if ('text' in part && part.text) {
-                contentParts.push({ type: "text", text: part.text });
-            }
-            if ('inlineData' in part && part.inlineData) {
-                contentParts.push({
-                    type: "image_url",
-                    image_url: {
-                        url: `data:${part.inlineData.mimeType};base64,${part.inlineData.data}`
-                    }
-                });
-            }
-        }
-
-        messages.push({ role: "user", content: contentParts });
-    }
+    const messages = buildOpenAIMessages(request.prompt);
+    const endpoint = normalizeChatCompletionsUrl(baseUrl);
 
     const body: Record<string, unknown> = {
         model,
@@ -126,34 +166,56 @@ async function callOpenRouter(
         body.temperature = request.config.temperature;
     }
 
-    // OpenRouter supports response_format for JSON mode
+    // Support response_format for JSON mode
     if (request.config?.responseMimeType === "application/json") {
         body.response_format = { type: "json_object" };
     }
 
-    const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+    const headers: Record<string, string> = {
+        "Authorization": `Bearer ${apiKey}`,
+        "Content-Type": "application/json",
+        ...extraHeaders,
+    };
+
+    const response = await fetch(endpoint, {
         method: "POST",
-        headers: {
-            "Authorization": `Bearer ${apiKey}`,
-            "Content-Type": "application/json",
-            "HTTP-Referer": process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000",
-            "X-Title": "CartaExam",
-        },
+        headers,
         body: JSON.stringify(body),
     });
 
     if (!response.ok) {
         const errorBody = await response.text();
-        console.error("OpenRouter API Error:", response.status, errorBody);
-        throw new Error(`OpenRouter API error: ${response.status} - ${errorBody}`);
+        console.error("OpenAI Compatible API Error:", response.status, errorBody);
+        throw new Error(`OpenAI Compatible API error (${response.status}): ${errorBody}`);
     }
 
     const data = await response.json();
     const text = data.choices?.[0]?.message?.content;
 
-    if (!text) throw new Error("No response from OpenRouter AI");
+    if (!text) throw new Error("No response from AI provider");
 
     return { text };
+}
+
+// ============================================================================
+// OpenRouter Provider (Wrapper over OpenAI Compatible)
+// ============================================================================
+
+async function callOpenRouter(
+    apiKey: string,
+    model: string,
+    request: AIGenerateRequest
+): Promise<AIGenerateResponse> {
+    return callOpenAICompatible(
+        apiKey,
+        "https://openrouter.ai/api/v1",
+        model,
+        request,
+        {
+            "HTTP-Referer": process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000",
+            "X-Title": "CartaExam",
+        }
+    );
 }
 
 // ============================================================================
@@ -186,36 +248,18 @@ async function* callGeminiStream(
 }
 
 // ============================================================================
-// OpenRouter Streaming Provider
+// OpenAI Compatible Streaming Provider
 // ============================================================================
 
-async function* callOpenRouterStream(
+async function* callOpenAICompatibleStream(
     apiKey: string,
+    baseUrl: string | undefined,
     model: string,
-    request: AIGenerateRequest
+    request: AIGenerateRequest,
+    extraHeaders?: Record<string, string>
 ): AsyncGenerator<string, void, unknown> {
-    // Build messages (same as non-streaming)
-    const messages: Array<{ role: string; content: string | Array<{ type: string; text?: string; image_url?: { url: string } }> }> = [];
-
-    if (typeof request.prompt === 'string') {
-        messages.push({ role: "user", content: request.prompt });
-    } else if (Array.isArray(request.prompt)) {
-        const contentParts: Array<{ type: string; text?: string; image_url?: { url: string } }> = [];
-        for (const part of request.prompt) {
-            if ('text' in part && part.text) {
-                contentParts.push({ type: "text", text: part.text });
-            }
-            if ('inlineData' in part && part.inlineData) {
-                contentParts.push({
-                    type: "image_url",
-                    image_url: {
-                        url: `data:${part.inlineData.mimeType};base64,${part.inlineData.data}`
-                    }
-                });
-            }
-        }
-        messages.push({ role: "user", content: contentParts });
-    }
+    const messages = buildOpenAIMessages(request.prompt);
+    const endpoint = normalizeChatCompletionsUrl(baseUrl);
 
     const body: Record<string, unknown> = {
         model,
@@ -230,24 +274,25 @@ async function* callOpenRouterStream(
         body.response_format = { type: "json_object" };
     }
 
-    const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+    const headers: Record<string, string> = {
+        "Authorization": `Bearer ${apiKey}`,
+        "Content-Type": "application/json",
+        ...extraHeaders,
+    };
+
+    const response = await fetch(endpoint, {
         method: "POST",
-        headers: {
-            "Authorization": `Bearer ${apiKey}`,
-            "Content-Type": "application/json",
-            "HTTP-Referer": process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000",
-            "X-Title": "CartaExam",
-        },
+        headers,
         body: JSON.stringify(body),
     });
 
     if (!response.ok) {
         const errorBody = await response.text();
-        throw new Error(`OpenRouter API error: ${response.status} - ${errorBody}`);
+        throw new Error(`OpenAI Compatible API stream error (${response.status}): ${errorBody}`);
     }
 
     const reader = response.body?.getReader();
-    if (!reader) throw new Error("No response body from OpenRouter stream");
+    if (!reader) throw new Error("No response body from stream");
 
     const decoder = new TextDecoder();
     let buffer = "";
@@ -280,6 +325,27 @@ async function* callOpenRouterStream(
 }
 
 // ============================================================================
+// OpenRouter Streaming Provider
+// ============================================================================
+
+async function* callOpenRouterStream(
+    apiKey: string,
+    model: string,
+    request: AIGenerateRequest
+): AsyncGenerator<string, void, unknown> {
+    yield* callOpenAICompatibleStream(
+        apiKey,
+        "https://openrouter.ai/api/v1",
+        model,
+        request,
+        {
+            "HTTP-Referer": process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000",
+            "X-Title": "CartaExam",
+        }
+    );
+}
+
+// ============================================================================
 // Public API
 // ============================================================================
 
@@ -300,6 +366,14 @@ export async function generateAIContent(request: AIGenerateRequest): Promise<AIG
         const model = config.openrouterModel || "google/gemini-2.5-flash";
         if (!apiKey) throw new Error("OpenRouter API Key belum dikonfigurasi.");
         return callOpenRouter(apiKey, model, request);
+    }
+
+    if (config.provider === 'openai_compatible') {
+        const apiKey = config.openaiApiKey;
+        const baseUrl = config.openaiBaseUrl || "https://api.openai.com/v1";
+        const model = config.openaiModel || "gpt-4o-mini";
+        if (!apiKey) throw new Error("OpenAI API Key belum dikonfigurasi.");
+        return callOpenAICompatible(apiKey, baseUrl, model, request);
     }
 
     // Default: Gemini
@@ -326,6 +400,15 @@ export async function* generateAIContentStream(
         return;
     }
 
+    if (config.provider === 'openai_compatible') {
+        const apiKey = config.openaiApiKey;
+        const baseUrl = config.openaiBaseUrl || "https://api.openai.com/v1";
+        const model = config.openaiModel || "gpt-4o-mini";
+        if (!apiKey) throw new Error("OpenAI API Key belum dikonfigurasi.");
+        yield* callOpenAICompatibleStream(apiKey, baseUrl, model, request);
+        return;
+    }
+
     // Default: Gemini
     const apiKey = config.geminiApiKey;
     const model = config.geminiModel || "gemini-2.5-flash";
@@ -341,6 +424,9 @@ export async function getActiveProviderName(): Promise<string> {
     if (config.provider === 'openrouter') {
         return `OpenRouter (${config.openrouterModel || 'google/gemini-2.5-flash'})`;
     }
+    if (config.provider === 'openai_compatible') {
+        return `OpenAI Compatible (${config.openaiModel || 'gpt-4o-mini'})`;
+    }
     return `Gemini (${config.geminiModel || 'gemini-2.5-flash'})`;
 }
 
@@ -348,9 +434,10 @@ export async function getActiveProviderName(): Promise<string> {
  * Test an AI provider connection with a minimal request.
  */
 export async function testAIConnection(
-    provider: 'gemini' | 'openrouter',
+    provider: 'gemini' | 'openrouter' | 'openai_compatible',
     apiKey: string,
-    model: string
+    model: string,
+    baseUrl?: string
 ): Promise<{ success: boolean; message: string; latencyMs?: number }> {
     const start = Date.now();
 
@@ -365,6 +452,8 @@ export async function testAIConnection(
 
         if (provider === 'openrouter') {
             await callOpenRouter(apiKey, model, request);
+        } else if (provider === 'openai_compatible') {
+            await callOpenAICompatible(apiKey, baseUrl, model || "gpt-4o-mini", request);
         } else {
             await callGemini(apiKey, model, request);
         }

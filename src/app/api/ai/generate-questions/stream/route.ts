@@ -1,5 +1,5 @@
 import { NextRequest } from "next/server";
-import { generateAIContentStream, resolveAIConfig } from "@/lib/ai-provider";
+import { generateAIContentStream, getActiveProviderName } from "@/lib/ai-provider";
 import { buildQuestionPrompt, normalizeAndValidateQuestions, type GenerationOptions } from "@/lib/ai-question-utils";
 
 // POST /api/ai/generate-questions/stream
@@ -73,10 +73,7 @@ export async function POST(request: NextRequest) {
                 if (request.signal.aborted) return;
 
                 // 4. Resolve provider info for display
-                const config = await resolveAIConfig();
-                const providerName = config.provider === 'openrouter'
-                    ? `OpenRouter (${config.openrouterModel || 'google/gemini-2.5-flash'})`
-                    : `Gemini (${config.geminiModel || 'gemini-2.5-flash'})`;
+                const providerName = await getActiveProviderName();
 
                 safeEnqueue(sseMessage("status", {
                     step: 2,

@@ -57,11 +57,14 @@ const settingsSchema = z.object({
     footerText: z.string().optional(),
 
     // AI Configuration
-    aiProvider: z.enum(["gemini", "openrouter"]).default("gemini"),
+    aiProvider: z.enum(["gemini", "openrouter", "openai_compatible"]).default("gemini"),
     geminiApiKey: z.string().optional(),
     geminiModel: z.string().optional(),
     openrouterApiKey: z.string().optional(),
     openrouterModel: z.string().optional(),
+    openaiApiKey: z.string().optional(),
+    openaiBaseUrl: z.string().optional(),
+    openaiModel: z.string().optional(),
 });
 
 type SettingsFormValues = z.infer<typeof settingsSchema>;
@@ -74,6 +77,7 @@ export function SettingsForm({ initialSettings }: SettingsFormProps) {
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [showGeminiKey, setShowGeminiKey] = useState(false);
     const [showOpenRouterKey, setShowOpenRouterKey] = useState(false);
+    const [showOpenAIKey, setShowOpenAIKey] = useState(false);
     const [isTesting, setIsTesting] = useState(false);
     const [testResult, setTestResult] = useState<{ success: boolean; message: string } | null>(null);
 
@@ -84,6 +88,9 @@ export function SettingsForm({ initialSettings }: SettingsFormProps) {
         geminiModel?: string;
         openrouterApiKey?: string;
         openrouterModel?: string;
+        openaiApiKey?: string;
+        openaiBaseUrl?: string;
+        openaiModel?: string;
     } | null;
 
     const form = useForm<SettingsFormValues>({
@@ -106,11 +113,14 @@ export function SettingsForm({ initialSettings }: SettingsFormProps) {
             address: initialSettings?.address || "",
             footerText: initialSettings?.footerText || "Built with ❤️ for education.",
             // AI Config
-            aiProvider: (aiConfig?.provider as "gemini" | "openrouter") || "gemini",
+            aiProvider: (aiConfig?.provider as "gemini" | "openrouter" | "openai_compatible") || "gemini",
             geminiApiKey: aiConfig?.geminiApiKey || "",
             geminiModel: aiConfig?.geminiModel || "",
             openrouterApiKey: aiConfig?.openrouterApiKey || "",
             openrouterModel: aiConfig?.openrouterModel || "",
+            openaiApiKey: aiConfig?.openaiApiKey || "",
+            openaiBaseUrl: aiConfig?.openaiBaseUrl || "",
+            openaiModel: aiConfig?.openaiModel || "",
         },
     });
 
@@ -125,10 +135,19 @@ export function SettingsForm({ initialSettings }: SettingsFormProps) {
         const provider = form.getValues("aiProvider");
         const apiKey = provider === "gemini"
             ? form.getValues("geminiApiKey")
-            : form.getValues("openrouterApiKey");
+            : provider === "openrouter"
+            ? form.getValues("openrouterApiKey")
+            : form.getValues("openaiApiKey");
+
         const model = provider === "gemini"
             ? form.getValues("geminiModel")
-            : form.getValues("openrouterModel");
+            : provider === "openrouter"
+            ? form.getValues("openrouterModel")
+            : form.getValues("openaiModel");
+
+        const baseUrl = provider === "openai_compatible"
+            ? form.getValues("openaiBaseUrl")
+            : undefined;
 
         if (!apiKey) {
             setTestResult({ success: false, message: "API Key wajib diisi untuk menguji koneksi." });
@@ -142,7 +161,7 @@ export function SettingsForm({ initialSettings }: SettingsFormProps) {
             const response = await fetch("/api/admin/ai-test", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ provider, apiKey, model }),
+                body: JSON.stringify({ provider, apiKey, model, baseUrl }),
             });
 
             const result = await response.json();
@@ -158,7 +177,18 @@ export function SettingsForm({ initialSettings }: SettingsFormProps) {
         setIsSubmitting(true);
         try {
             // Extract AI config into the JSON column format
-            const { aiProvider, geminiApiKey, geminiModel, openrouterApiKey, openrouterModel, ...rest } = data;
+            const {
+                aiProvider,
+                geminiApiKey,
+                geminiModel,
+                openrouterApiKey,
+                openrouterModel,
+                openaiApiKey,
+                openaiBaseUrl,
+                openaiModel,
+                ...rest
+            } = data;
+
             const payload = {
                 ...rest,
                 aiConfig: {
@@ -167,6 +197,9 @@ export function SettingsForm({ initialSettings }: SettingsFormProps) {
                     geminiModel: geminiModel || undefined,
                     openrouterApiKey: openrouterApiKey || undefined,
                     openrouterModel: openrouterModel || undefined,
+                    openaiApiKey: openaiApiKey || undefined,
+                    openaiBaseUrl: openaiBaseUrl || undefined,
+                    openaiModel: openaiModel || undefined,
                 },
             };
 
@@ -441,13 +474,18 @@ export function SettingsForm({ initialSettings }: SettingsFormProps) {
                                                     <span>OpenRouter</span>
                                                 </div>
                                             </SelectItem>
+                                            <SelectItem value="openai_compatible">
+                                                <div className="flex items-center gap-2">
+                                                    <span>🤖</span>
+                                                    <span>OpenAI Compatible (Custom Base URL)</span>
+                                                </div>
+                                            </SelectItem>
                                         </SelectContent>
                                     </Select>
                                     <FormDescription>
-                                        {selectedProvider === "gemini"
-                                            ? "Gunakan Google Gemini langsung. Dapatkan API Key di: https://aistudio.google.com/apikey"
-                                            : "Gunakan OpenRouter untuk akses ke berbagai model AI (Gemini, Claude, GPT, dll). Dapatkan API Key di: https://openrouter.ai/keys"
-                                        }
+                                        {selectedProvider === "gemini" && "Gunakan Google Gemini langsung. Dapatkan API Key di: https://aistudio.google.com/apikey"}
+                                        {selectedProvider === "openrouter" && "Gunakan OpenRouter untuk akses ke berbagai model AI (Gemini, Claude, GPT, dll). Dapatkan API Key di: https://openrouter.ai/keys"}
+                                        {selectedProvider === "openai_compatible" && "Gunakan endpoint standar OpenAI Chat Completions (seperti OpenAI resmi, Local LLM via Ollama/vLLM/LM Studio, DeepSeek API, Groq, Together AI, dll)."}
                                     </FormDescription>
                                     <FormMessage />
                                 </FormItem>
@@ -456,7 +494,7 @@ export function SettingsForm({ initialSettings }: SettingsFormProps) {
 
                         {/* Provider-specific fields */}
                         <div className="rounded-lg border p-4 bg-muted/30 space-y-4">
-                            {selectedProvider === "gemini" ? (
+                            {selectedProvider === "gemini" && (
                                 <>
                                     <h4 className="font-medium text-sm flex items-center gap-2">
                                         <span>🔷</span> Konfigurasi Google Gemini
@@ -512,7 +550,9 @@ export function SettingsForm({ initialSettings }: SettingsFormProps) {
                                         )}
                                     />
                                 </>
-                            ) : (
+                            )}
+
+                            {selectedProvider === "openrouter" && (
                                 <>
                                     <h4 className="font-medium text-sm flex items-center gap-2">
                                         <span>🌐</span> Konfigurasi OpenRouter
@@ -560,6 +600,83 @@ export function SettingsForm({ initialSettings }: SettingsFormProps) {
                                                 <FormDescription>
                                                     Model dari OpenRouter. Contoh: google/gemini-2.5-flash, anthropic/claude-sonnet-4, openai/gpt-4o, dll.
                                                     Lihat daftar model di: https://openrouter.ai/models
+                                                </FormDescription>
+                                                <FormMessage />
+                                            </FormItem>
+                                        )}
+                                    />
+                                </>
+                            )}
+
+                            {selectedProvider === "openai_compatible" && (
+                                <>
+                                    <h4 className="font-medium text-sm flex items-center gap-2">
+                                        <span>🤖</span> Konfigurasi OpenAI Compatible
+                                    </h4>
+                                    <FormField
+                                        control={form.control}
+                                        name="openaiBaseUrl"
+                                        render={({ field }) => (
+                                            <FormItem>
+                                                <FormLabel>Base URL</FormLabel>
+                                                <FormControl>
+                                                    <Input
+                                                        placeholder="https://api.openai.com/v1 (atau http://localhost:11434/v1)"
+                                                        {...field}
+                                                    />
+                                                </FormControl>
+                                                <FormDescription>
+                                                    Endpoint Base URL (otomatis diarahkan ke /chat/completions). Contoh: <code>https://api.openai.com/v1</code>, <code>https://api.deepseek.com/v1</code>, <code>https://api.groq.com/openai/v1</code>, atau <code>http://localhost:11434/v1</code> (Ollama).
+                                                </FormDescription>
+                                                <FormMessage />
+                                            </FormItem>
+                                        )}
+                                    />
+                                    <FormField
+                                        control={form.control}
+                                        name="openaiApiKey"
+                                        render={({ field }) => (
+                                            <FormItem>
+                                                <FormLabel>API Key</FormLabel>
+                                                <FormControl>
+                                                    <div className="flex gap-2">
+                                                        <div className="relative flex-1">
+                                                            <Input
+                                                                type={showOpenAIKey ? "text" : "password"}
+                                                                placeholder="sk-..."
+                                                                {...field}
+                                                            />
+                                                            <button
+                                                                type="button"
+                                                                className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                                                                onClick={() => setShowOpenAIKey(!showOpenAIKey)}
+                                                            >
+                                                                {showOpenAIKey ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                                                            </button>
+                                                        </div>
+                                                    </div>
+                                                </FormControl>
+                                                <FormDescription>
+                                                    API Key otentikasi. Untuk local LLM tanpa password (seperti Ollama), isi sembarang teks (misal: <code>ollama</code>).
+                                                </FormDescription>
+                                                <FormMessage />
+                                            </FormItem>
+                                        )}
+                                    />
+                                    <FormField
+                                        control={form.control}
+                                        name="openaiModel"
+                                        render={({ field }) => (
+                                            <FormItem>
+                                                <FormLabel>Model</FormLabel>
+                                                <FormControl>
+                                                    <Input
+                                                        placeholder="gpt-4o-mini (default)"
+                                                        {...field}
+                                                    />
+                                                </FormControl>
+                                                <FormDescription>
+                                                    Nama identifier model pada endpoint. Contoh: <code>gpt-4o-mini</code>, <code>deepseek-chat</code>, <code>llama-3.3-70b-versatile</code>, <code>qwen2.5:7b</code>. Default: gpt-4o-mini.
                                                 </FormDescription>
                                                 <FormMessage />
                                             </FormItem>

@@ -403,11 +403,14 @@ export const schoolSettings = pgTable("school_settings", {
 
     // AI Configuration
     aiConfig: json("ai_config").$type<{
-        provider: 'gemini' | 'openrouter';
+        provider: 'gemini' | 'openrouter' | 'openai_compatible';
         geminiApiKey?: string;
         geminiModel?: string;
         openrouterApiKey?: string;
         openrouterModel?: string;
+        openaiApiKey?: string;
+        openaiBaseUrl?: string;
+        openaiModel?: string;
     }>(),
 
     updatedBy: text("updated_by").references(() => users.id, { onDelete: "set null" }),
