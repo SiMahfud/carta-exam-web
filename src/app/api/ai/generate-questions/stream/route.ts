@@ -84,6 +84,7 @@ export async function POST(request: NextRequest) {
                 // 5. Stream tokens from AI
                 let fullText = "";
                 let chunkCount = 0;
+                let thoughtCount = 0;
 
                 const streamGenerator = generateAIContentStream({
                     prompt: parts,
@@ -97,15 +98,23 @@ export async function POST(request: NextRequest) {
                         break;
                     }
 
-                    fullText += chunk;
-                    chunkCount++;
+                    if (chunk.type === 'thought') {
+                        thoughtCount++;
+                        safeEnqueue(sseMessage("thought", {
+                            chunk: chunk.text,
+                            index: thoughtCount,
+                        }));
+                    } else {
+                        fullText += chunk.text;
+                        chunkCount++;
 
-                    // Send token chunk to client
-                    safeEnqueue(sseMessage("token", {
-                        chunk,
-                        totalLength: fullText.length,
-                        chunkIndex: chunkCount,
-                    }));
+                        // Send token chunk to client
+                        safeEnqueue(sseMessage("token", {
+                            chunk: chunk.text,
+                            totalLength: fullText.length,
+                            chunkIndex: chunkCount,
+                        }));
+                    }
                 }
 
                 if (request.signal.aborted || isClosed) return;

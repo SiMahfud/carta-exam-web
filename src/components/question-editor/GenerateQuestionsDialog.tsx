@@ -14,7 +14,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Sparkles, AlertCircle, Save, Terminal, ChevronDown, ChevronUp, Zap, Clock, FileText, CheckCircle2, Cpu, Shield } from "lucide-react";
+import { Loader2, Sparkles, AlertCircle, Save, Terminal, ChevronDown, ChevronUp, Zap, Clock, FileText, CheckCircle2, Cpu, Shield, Brain } from "lucide-react";
 import { QuestionPreviewCard } from "./QuestionPreviewCard";
 
 // ============================================================================
@@ -87,6 +87,70 @@ function StepProgress({ currentStep, stepInfo }: { currentStep: StreamStep; step
                     </div>
                 );
             })}
+        </div>
+    );
+}
+
+// ============================================================================
+// Thinking Process Terminal Component
+// ============================================================================
+
+function ThinkingTerminal({
+    thoughtText,
+    isThinking,
+    isVisible,
+    onToggle,
+}: {
+    thoughtText: string;
+    isThinking: boolean;
+    isVisible: boolean;
+    onToggle: () => void;
+}) {
+    const terminalRef = useRef<HTMLPreElement>(null);
+
+    useEffect(() => {
+        if (terminalRef.current && isVisible) {
+            terminalRef.current.scrollTop = terminalRef.current.scrollHeight;
+        }
+    }, [thoughtText, isVisible]);
+
+    return (
+        <div className="border border-purple-500/30 rounded-lg overflow-hidden bg-slate-950 dark:bg-purple-950/20 shadow-sm">
+            <button
+                type="button"
+                onClick={onToggle}
+                className="w-full flex items-center justify-between px-3 py-1.5 bg-purple-950/40 hover:bg-purple-950/60 text-purple-200 hover:text-white text-xs font-mono transition-colors border-b border-purple-500/20"
+            >
+                <div className="flex items-center gap-2">
+                    <Brain className={`w-3.5 h-3.5 text-purple-400 ${isThinking ? 'animate-pulse' : ''}`} />
+                    <span className="font-semibold">AI Thinking Process</span>
+                    {isThinking ? (
+                        <span className="flex items-center gap-1 text-[10px] text-amber-300 font-sans font-medium px-1.5 py-0.5 rounded bg-amber-500/20 animate-pulse">
+                            <span className="w-1.5 h-1.5 rounded-full bg-amber-400" />
+                            Sedang Berpikir...
+                        </span>
+                    ) : (
+                        <span className="text-[10px] text-emerald-400 font-sans font-medium px-1.5 py-0.5 rounded bg-emerald-500/20">
+                            Selesai Berpikir
+                        </span>
+                    )}
+                    {thoughtText.length > 0 && (
+                        <span className="text-purple-300/70 text-[11px]">({thoughtText.length.toLocaleString()} chars)</span>
+                    )}
+                </div>
+                {isVisible ? <ChevronUp className="w-3.5 h-3.5 text-purple-400" /> : <ChevronDown className="w-3.5 h-3.5 text-purple-400" />}
+            </button>
+            {isVisible && (
+                <pre
+                    ref={terminalRef}
+                    className="p-3 text-[11px] leading-relaxed text-purple-200 font-mono overflow-auto max-h-[180px] whitespace-pre-wrap break-words select-text bg-slate-950/80"
+                >
+                    {thoughtText || <span className="text-purple-400/50 italic">Menunggu proses pemikiran AI...</span>}
+                    {isThinking && (
+                        <span className="inline-block w-1.5 h-3.5 bg-purple-400 ml-0.5 animate-pulse align-middle" />
+                    )}
+                </pre>
+            )}
         </div>
     );
 }
@@ -219,6 +283,9 @@ export function GenerateQuestionsDialog({ bankId, onSuccess }: GenerateQuestions
     const [currentStep, setCurrentStep] = useState<StreamStep>(1);
     const [stepInfo, setStepInfo] = useState<StepInfo | null>(null);
     const [streamText, setStreamText] = useState("");
+    const [thoughtText, setThoughtText] = useState("");
+    const [showThinking, setShowThinking] = useState(true);
+    const [isThinking, setIsThinking] = useState(false);
     const [showTerminal, setShowTerminal] = useState(true);
     const [charCount, setCharCount] = useState(0);
     const [chunkCount, setChunkCount] = useState(0);
@@ -278,6 +345,9 @@ export function GenerateQuestionsDialog({ bankId, onSuccess }: GenerateQuestions
         setError(null);
         setGeneratedQuestions([]);
         setStreamText("");
+        setThoughtText("");
+        setIsThinking(false);
+        setShowThinking(true);
         setCharCount(0);
         setChunkCount(0);
         setProvider(null);
@@ -361,13 +431,20 @@ export function GenerateQuestionsDialog({ bankId, onSuccess }: GenerateQuestions
                             }
                             break;
                         }
+                        case "thought": {
+                            setIsThinking(true);
+                            setThoughtText(prev => prev + (data.chunk || ""));
+                            break;
+                        }
                         case "token": {
+                            setIsThinking(false);
                             setStreamText(prev => prev + (data.chunk || ""));
                             if (data.totalLength !== undefined) setCharCount(data.totalLength);
                             if (data.chunkIndex !== undefined) setChunkCount(data.chunkIndex);
                             break;
                         }
                         case "complete": {
+                            setIsThinking(false);
                             // Post-process questions (add metadata matching ImportQuestionsDialog needs)
                             const getDefaultPoints = (type: string) => {
                                 switch (type) {
@@ -396,11 +473,13 @@ export function GenerateQuestionsDialog({ bankId, onSuccess }: GenerateQuestions
                                 setError("AI generation produced no valid questions. Try adjusting your prompt.");
                             }
 
-                            // Hide terminal on success
+                            // Collapse terminal and thinking on success
                             setShowTerminal(false);
+                            setShowThinking(false);
                             break;
                         }
                         case "error": {
+                            setIsThinking(false);
                             throw new Error(data.message || "Terjadi kesalahan saat generate soal.");
                         }
                     }
@@ -466,6 +545,7 @@ export function GenerateQuestionsDialog({ bankId, onSuccess }: GenerateQuestions
         if (abortControllerRef.current) {
             abortControllerRef.current.abort();
             setIsGenerating(false);
+            setIsThinking(false);
         }
     }, []);
 
@@ -494,6 +574,9 @@ export function GenerateQuestionsDialog({ bankId, onSuccess }: GenerateQuestions
                 setPrompt("");
                 setFile(null);
                 setStreamText("");
+                setThoughtText("");
+                setIsThinking(false);
+                setShowThinking(true);
                 setCurrentStep(1);
                 setStepInfo(null);
                 setReplaceMode(false);
@@ -686,12 +769,37 @@ export function GenerateQuestionsDialog({ bankId, onSuccess }: GenerateQuestions
                     <div className="w-full md:w-2/3 p-4 md:p-6 flex flex-col bg-background md:overflow-hidden min-h-[400px] md:min-h-0">
                         <div className="flex items-center justify-between mb-4">
                             <h3 className="font-semibold text-lg">Preview</h3>
-                            {generatedQuestions.length > 0 && (
-                                <span className="text-sm text-muted-foreground">
-                                    {generatedQuestions.length} questions generated
-                                </span>
-                            )}
+                            <div className="flex items-center gap-2">
+                                {thoughtText.length > 0 && !isGenerating && (
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        className="h-7 text-xs gap-1 border-purple-500/30 text-purple-700 dark:text-purple-300 hover:bg-purple-50 dark:hover:bg-purple-950/30"
+                                        onClick={() => setShowThinking(v => !v)}
+                                    >
+                                        <Brain className="w-3.5 h-3.5" />
+                                        {showThinking ? "Tutup Thinking" : "Lihat Thinking"}
+                                    </Button>
+                                )}
+                                {generatedQuestions.length > 0 && (
+                                    <span className="text-sm text-muted-foreground">
+                                        {generatedQuestions.length} questions generated
+                                    </span>
+                                )}
+                            </div>
                         </div>
+
+                        {/* Post-generation Thinking accordion */}
+                        {!isGenerating && showThinking && thoughtText.length > 0 && (
+                            <div className="mb-4">
+                                <ThinkingTerminal
+                                    thoughtText={thoughtText}
+                                    isThinking={false}
+                                    isVisible={showThinking}
+                                    onToggle={() => setShowThinking(v => !v)}
+                                />
+                            </div>
+                        )}
 
                         {/* Streaming Progress UI */}
                         {isGenerating && (
@@ -706,6 +814,16 @@ export function GenerateQuestionsDialog({ bankId, onSuccess }: GenerateQuestions
                                     chunkCount={chunkCount}
                                     provider={provider}
                                 />
+
+                                {/* Thinking Process Terminal */}
+                                {(thoughtText.length > 0 || isThinking) && (
+                                    <ThinkingTerminal
+                                        thoughtText={thoughtText}
+                                        isThinking={isThinking}
+                                        isVisible={showThinking}
+                                        onToggle={() => setShowThinking(v => !v)}
+                                    />
+                                )}
 
                                 {/* Stream Terminal */}
                                 <StreamTerminal

@@ -27,6 +27,11 @@ export interface AIGenerateResponse {
     text: string;
 }
 
+export interface AIStreamChunk {
+    type: 'content' | 'thought';
+    text: string;
+}
+
 // ============================================================================
 // Config Resolution
 // ============================================================================
@@ -226,23 +231,42 @@ async function* callGeminiStream(
     apiKey: string,
     model: string,
     request: AIGenerateRequest
-): AsyncGenerator<string, void, unknown> {
+): AsyncGenerator<AIStreamChunk, void, unknown> {
     const { GoogleGenAI } = await import("@google/genai");
     const ai = new GoogleGenAI({ apiKey });
+
+    // Enable thinking output if the model supports it
+    const config: Record<string, unknown> = {
+        responseMimeType: request.config?.responseMimeType,
+        temperature: request.config?.temperature,
+        thinkingConfig: {
+            includeThoughts: true,
+        },
+    };
 
     const stream = await ai.models.generateContentStream({
         model,
         contents: request.prompt,
-        config: {
-            responseMimeType: request.config?.responseMimeType,
-            temperature: request.config?.temperature,
-        },
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        config: config as any,
     });
 
     for await (const chunk of stream) {
-        const text = chunk.text;
-        if (text) {
-            yield text;
+        // Inspect candidate parts to extract thoughts vs content
+        const candidate = chunk.candidates?.[0];
+        const parts = candidate?.content?.parts;
+        if (parts && parts.length > 0) {
+            for (const part of parts) {
+                if (part.text) {
+                    if (part.thought) {
+                        yield { type: 'thought', text: part.text };
+                    } else {
+                        yield { type: 'content', text: part.text };
+                    }
+                }
+            }
+        } else if (chunk.text) {
+            yield { type: 'content', text: chunk.text };
         }
     }
 }
@@ -257,7 +281,7 @@ async function* callOpenAICompatibleStream(
     model: string,
     request: AIGenerateRequest,
     extraHeaders?: Record<string, string>
-): AsyncGenerator<string, void, unknown> {
+): AsyncGenerator<AIStreamChunk, void, unknown> {
     const messages = buildOpenAIMessages(request.prompt);
     const endpoint = normalizeChatCompletionsUrl(baseUrl);
 
@@ -313,9 +337,18 @@ async function* callOpenAICompatibleStream(
 
             try {
                 const parsed = JSON.parse(data);
-                const content = parsed.choices?.[0]?.delta?.content;
+                const delta = parsed.choices?.[0]?.delta;
+                if (!delta) continue;
+
+                // Reasoning / thought from DeepSeek-R1, OpenRouter, Groq, Ollama
+                const reasoning = delta.reasoning_content || delta.reasoning;
+                if (reasoning) {
+                    yield { type: 'thought', text: reasoning };
+                }
+
+                const content = delta.content;
                 if (content) {
-                    yield content;
+                    yield { type: 'content', text: content };
                 }
             } catch {
                 // Skip malformed SSE chunks
@@ -332,7 +365,7 @@ async function* callOpenRouterStream(
     apiKey: string,
     model: string,
     request: AIGenerateRequest
-): AsyncGenerator<string, void, unknown> {
+): AsyncGenerator<AIStreamChunk, void, unknown> {
     yield* callOpenAICompatibleStream(
         apiKey,
         "https://openrouter.ai/api/v1",
@@ -385,11 +418,11 @@ export async function generateAIContent(request: AIGenerateRequest): Promise<AIG
 
 /**
  * Generate content as a stream using the configured AI provider.
- * Yields text chunks as they arrive from the model.
+ * Yields typed chunks ({ type: 'content' | 'thought', text: string }) as they arrive from the model.
  */
 export async function* generateAIContentStream(
     request: AIGenerateRequest
-): AsyncGenerator<string, void, unknown> {
+): AsyncGenerator<AIStreamChunk, void, unknown> {
     const config = await resolveAIConfig();
 
     if (config.provider === 'openrouter') {
