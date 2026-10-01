@@ -57,6 +57,17 @@ export default function StudentLayout({
         fetchProfile();
     }, []);
 
+    // Ensure any legacy service workers on students' devices are unregistered
+    useEffect(() => {
+        if (typeof window !== "undefined" && "serviceWorker" in navigator) {
+            navigator.serviceWorker.getRegistrations().then((registrations) => {
+                for (const registration of registrations) {
+                    registration.unregister();
+                }
+            });
+        }
+    }, []);
+
     // Check if currently in an active exam session (taking exam)
     // Path pattern: /student/exams/[sessionId] (not just /student/exams)
     const isInExamSession = pathname?.match(/^\/student\/exams\/[^\/]+$/);
