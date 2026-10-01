@@ -253,6 +253,17 @@ export function GradingItemCard({
             );
         }
 
+        const renderStatusBadge = () => {
+            if (answer.isCorrect) {
+                return <Badge className="bg-green-500"><Check className="h-3 w-3 mr-1" /> Benar</Badge>;
+            }
+            const currentScore = answer.partialPoints ?? answer.score ?? 0;
+            if (currentScore > 0) {
+                return <Badge className="bg-amber-500 text-white"><Check className="h-3 w-3 mr-1" /> Sebagian Benar</Badge>;
+            }
+            return <Badge variant="destructive"><X className="h-3 w-3 mr-1" /> Salah</Badge>;
+        };
+
         if (answer.type === "matching") {
             const leftItems = (answer.questionContent as any)?.leftItems || [];
             const rightItems = (answer.questionContent as any)?.rightItems || [];
@@ -300,13 +311,9 @@ export function GradingItemCard({
             return (
                 <div className="space-y-4">
                     <div className="flex items-center gap-2 mb-2">
-                        {answer.isCorrect ? (
-                            <Badge className="bg-green-500"><Check className="h-3 w-3 mr-1" /> Benar</Badge>
-                        ) : (
-                            <Badge variant="destructive"><X className="h-3 w-3 mr-1" /> Salah</Badge>
-                        )}
+                        {renderStatusBadge()}
                         <span className="text-sm">
-                            Poin: {answer.partialPoints}/{answer.maxPoints}
+                            Poin: {answer.partialPoints ?? answer.score ?? 0}/{answer.maxPoints}
                         </span>
                     </div>
 
@@ -333,11 +340,11 @@ export function GradingItemCard({
                                     const rightText = typeof rightItem === 'object' ? rightItem?.text : rightItem;
                                     return (
                                         <div key={`${idx}-${rIdx}`} className="flex gap-2 py-1">
-                                            <div className="font-medium"><MathHtmlRenderer html={leftText} /></div>
-                                            <span>→</span>
-                                            <div><MathHtmlRenderer html={rightText} /></div>
-                                        </div>
-                                    );
+                                             <div className="font-medium"><MathHtmlRenderer html={leftText} /></div>
+                                             <span>→</span>
+                                             <div><MathHtmlRenderer html={rightText} /></div>
+                                         </div>
+                                     );
                                 });
                             })}
                         </div>
@@ -357,13 +364,9 @@ export function GradingItemCard({
             return (
                 <div className="space-y-4">
                     <div className="flex items-center gap-2 mb-2">
-                        {answer.isCorrect ? (
-                            <Badge className="bg-green-500"><Check className="h-3 w-3 mr-1" /> Benar</Badge>
-                        ) : (
-                            <Badge variant="destructive"><X className="h-3 w-3 mr-1" /> Salah</Badge>
-                        )}
+                        {renderStatusBadge()}
                         <span className="text-sm">
-                            Poin: {answer.partialPoints}/{answer.maxPoints}
+                            Poin: {answer.partialPoints ?? answer.score ?? 0}/{answer.maxPoints}
                         </span>
                     </div>
 
@@ -418,13 +421,9 @@ export function GradingItemCard({
             return (
                 <div className="space-y-4">
                     <div className="flex items-center gap-2 mb-2">
-                        {answer.isCorrect ? (
-                            <Badge className="bg-green-500"><Check className="h-3 w-3 mr-1" /> Benar</Badge>
-                        ) : (
-                            <Badge variant="destructive"><X className="h-3 w-3 mr-1" /> Salah</Badge>
-                        )}
+                        {renderStatusBadge()}
                         <span className="text-sm">
-                            Poin: {answer.partialPoints}/{answer.maxPoints}
+                            Poin: {answer.partialPoints ?? answer.score ?? 0}/{answer.maxPoints}
                         </span>
                     </div>
 
@@ -473,17 +472,98 @@ export function GradingItemCard({
             );
         }
 
+        if (answer.type === "true_false") {
+            const rawStudent = typeof answer.studentAnswer === 'string' ? answer.studentAnswer.toLowerCase().trim() : String(answer.studentAnswer || "");
+            const studentChoice = rawStudent === 'true' || rawStudent === 'benar' || rawStudent === '1' ? 'Benar' : (rawStudent === 'false' || rawStudent === 'salah' || rawStudent === '0' ? 'Salah' : answer.studentAnswer);
+
+            let correctChoice = "-";
+            if (typeof answer.correctAnswer === 'string') {
+                const lower = answer.correctAnswer.toLowerCase().trim();
+                if (lower === 'true' || lower === 'benar' || lower === '1') correctChoice = 'Benar';
+                else if (lower === 'false' || lower === 'salah' || lower === '0') correctChoice = 'Salah';
+                else {
+                    try {
+                        const parsed = JSON.parse(answer.correctAnswer);
+                        const val = typeof parsed === 'object' ? (parsed.value ?? parsed.answer ?? parsed.correct) : parsed;
+                        const vStr = String(val).toLowerCase().trim();
+                        correctChoice = (vStr === 'true' || vStr === 'benar' || vStr === '1') ? 'Benar' : 'Salah';
+                    } catch {
+                        correctChoice = answer.correctAnswer;
+                    }
+                }
+            } else if (typeof answer.correctAnswer === 'boolean') {
+                correctChoice = answer.correctAnswer ? 'Benar' : 'Salah';
+            }
+
+            return (
+                <div className="space-y-4">
+                    <div className="flex items-center gap-2 mb-2">
+                        {renderStatusBadge()}
+                        <span className="text-sm">
+                            Poin: {answer.partialPoints ?? answer.score ?? 0}/{answer.maxPoints}
+                        </span>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-3 max-w-sm">
+                        {["Benar", "Salah"].map((opt) => {
+                            const isStudent = studentChoice === opt;
+                            const isCorrectOpt = correctChoice === opt;
+                            let borderClass = "border-muted";
+                            let bgClass = "bg-background";
+
+                            if (isStudent && isCorrectOpt) {
+                                borderClass = "border-green-500";
+                                bgClass = "bg-green-50 dark:bg-green-900/20";
+                            } else if (isStudent && !isCorrectOpt) {
+                                borderClass = "border-red-500";
+                                bgClass = "bg-red-50 dark:bg-red-900/20";
+                            } else if (isCorrectOpt) {
+                                borderClass = "border-green-500";
+                                bgClass = "bg-green-50/50 dark:bg-green-900/10";
+                            }
+
+                            return (
+                                <div key={opt} className={`p-3 rounded-lg border-2 flex items-center justify-between text-sm ${borderClass} ${bgClass}`}>
+                                    <span className="font-semibold">{opt}</span>
+                                    <div className="flex items-center gap-1">
+                                        {isStudent && <Badge variant="outline" className="text-[10px]">Dijawab</Badge>}
+                                        {isCorrectOpt && <Check className="h-4 w-4 text-green-600" />}
+                                    </div>
+                                </div>
+                            );
+                        })}
+                    </div>
+                </div>
+            );
+        }
+
         // Fallback for short answers
+        let displayCorrect = answer.correctAnswer;
+        if (typeof answer.correctAnswer === 'string') {
+            try {
+                const parsed = JSON.parse(answer.correctAnswer);
+                if (parsed && Array.isArray(parsed.acceptedAnswers)) {
+                    displayCorrect = parsed.acceptedAnswers.join(" / ");
+                } else if (typeof parsed === 'object') {
+                    displayCorrect = JSON.stringify(parsed);
+                }
+            } catch {
+                displayCorrect = answer.correctAnswer;
+            }
+        } else if (answer.correctAnswer && typeof answer.correctAnswer === 'object') {
+            if (Array.isArray(answer.correctAnswer.acceptedAnswers)) {
+                displayCorrect = answer.correctAnswer.acceptedAnswers.join(" / ");
+            } else {
+                displayCorrect = JSON.stringify(answer.correctAnswer);
+            }
+        }
+
         return (
             <div className="space-y-3">
                 <div className="flex items-center gap-2">
-                    {answer.isCorrect ? (
-                        <Badge className="bg-green-500"><Check className="h-3 w-3 mr-1" /> Benar</Badge>
-                    ) : (
-                        <Badge variant="destructive"><X className="h-3 w-3 mr-1" /> Salah</Badge>
-                    )}
+                    {renderStatusBadge()}
                     <span className="text-sm">
-                        Poin: {answer.partialPoints}/{answer.maxPoints}
+                        Poin: {answer.partialPoints ?? answer.score ?? 0}/{answer.maxPoints}
                     </span>
                 </div>
                 <div>
@@ -497,15 +577,14 @@ export function GradingItemCard({
                 {answer.type !== "essay" && (
                     <div>
                         <p className="text-sm font-medium mb-1">Jawaban Benar:</p>
-                        <p className="text-sm text-green-600">
-                            {typeof answer.correctAnswer === 'object'
-                                ? JSON.stringify(answer.correctAnswer)
-                                : answer.correctAnswer || "-"}
+                        <p className="text-sm text-green-600 font-medium">
+                            {displayCorrect || "-"}
                         </p>
                     </div>
                 )}
             </div>
         );
+
     };
 
     return (

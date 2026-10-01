@@ -8,9 +8,10 @@ import {
     bankQuestions,
     subjects,
 } from "@/lib/schema";
-import { eq, and } from "drizzle-orm";
+import { eq, and, inArray } from "drizzle-orm";
 import { requireStudent } from "@/lib/auth-guard";
 import { safeJsonParse } from "@/lib/json-utils";
+import { seededShuffle } from "@/lib/randomization";
 
 // GET /api/student/exams/[sessionId]/review - Student review completed exam
 export async function GET(
@@ -35,6 +36,8 @@ export async function GET(
                 allowReview: examTemplates.allowReview,
                 showResult: examTemplates.showResultImmediately,
                 totalScore: examTemplates.totalScore,
+                randomizeAnswers: examTemplates.randomizeAnswers,
+                randomizationRules: examTemplates.randomizationRules,
             })
             .from(examSessions)
             .innerJoin(examTemplates, eq(examSessions.templateId, examTemplates.id))
@@ -47,6 +50,14 @@ export async function GET(
         }
 
         const session = sessionResult[0];
+
+        let rules: any = {};
+        try {
+            rules = typeof session.randomizationRules === 'string'
+                ? JSON.parse(session.randomizationRules)
+                : (session.randomizationRules || {});
+        } catch { }
+        const shuffleAnswers = session.randomizeAnswers || rules.shuffleAnswers || false;
 
         // 2. Get student's submission
         const submissionResult = await db
@@ -74,15 +85,18 @@ export async function GET(
             .select({
                 id: answers.id,
                 questionId: answers.questionId,
+                bankQuestionId: answers.bankQuestionId,
                 answer: answers.studentAnswer,
                 isCorrect: answers.isCorrect,
                 score: answers.score,
+                partialPoints: answers.partialPoints,
+                maxPoints: answers.maxPoints,
                 feedback: answers.gradingNotes,
             })
             .from(answers)
             .where(eq(answers.submissionId, submission.id));
 
-        const answerMap = new Map(studentAnswers.map((a: any) => [a.questionId, a]));
+        const answerMap = new Map(studentAnswers.map((a: any) => [a.bankQuestionId || a.questionId, a]));
 
         // 4. Retrieve questions in the randomized questionOrder
         const questionIds: string[] = safeJsonParse(submission.questionOrder, []);
@@ -98,7 +112,8 @@ export async function GET(
                     defaultPoints: bankQuestions.defaultPoints,
                     metadata: bankQuestions.metadata,
                 })
-                .from(bankQuestions);
+                .from(bankQuestions)
+                .where(inArray(bankQuestions.id, questionIds));
 
             const questionMap = new Map(fetchedQuestions.map((q: any) => [q.id, q]));
 
@@ -110,19 +125,84 @@ export async function GET(
                     const studentAns: any = answerMap.get(qId);
                     const parsedContent: any = safeJsonParse(q.content, {});
                     const parsedKey: any = safeJsonParse(q.answerKey, {});
-                    const parsedStudentAnswer = studentAns?.answer ? safeJsonParse(studentAns.answer, studentAns.answer) : null;
+                    let parsedStudentAnswer = studentAns?.answer ? safeJsonParse(studentAns.answer, studentAns.answer) : null;
+
+                    let formattedCorrectAnswer: any = parsedKey;
+                    if (formattedCorrectAnswer && typeof formattedCorrectAnswer === 'object' && 'correct' in formattedCorrectAnswer) {
+                        formattedCorrectAnswer = formattedCorrectAnswer.correct;
+                    }
+
+                    if (q.type === 'mc') {
+                        if (typeof formattedCorrectAnswer === 'number') {
+                            formattedCorrectAnswer = String.fromCharCode(65 + formattedCorrectAnswer);
+                        } else if (typeof formattedCorrectAnswer === 'string' && formattedCorrectAnswer.length === 1 && !isNaN(parseInt(formattedCorrectAnswer))) {
+                            formattedCorrectAnswer = String.fromCharCode(65 + parseInt(formattedCorrectAnswer));
+                        }
+
+                        // If legacy answer was stored as shuffled letter, map it to original letter
+                        if (shuffleAnswers && typeof parsedStudentAnswer === 'string' && parsedStudentAnswer.length === 1) {
+                            const options = (parsedContent.options as any[]) || [];
+                            if (options.length > 0) {
+                                const seed = `${submission.id}-${q.id}-options`;
+                                const { mapping } = seededShuffle(options, seed);
+                                const letterIdx = parsedStudentAnswer.toUpperCase().charCodeAt(0) - 65;
+                                const origIdx = mapping[letterIdx];
+
+                                if (origIdx !== undefined && origIdx >= 0) {
+                                    const fixedLetter = String.fromCharCode(65 + origIdx);
+                                    if ((studentAns?.isCorrect === false && parsedStudentAnswer === formattedCorrectAnswer) ||
+                                        (studentAns?.isCorrect === true && parsedStudentAnswer !== formattedCorrectAnswer)) {
+                                        parsedStudentAnswer = fixedLetter;
+                                    }
+                                }
+                            }
+                        }
+                    } else if (q.type === 'complex_mc' && Array.isArray(formattedCorrectAnswer)) {
+                        formattedCorrectAnswer = formattedCorrectAnswer.map((idx: any) =>
+                            typeof idx === 'number' ? String.fromCharCode(65 + idx) : idx
+                        );
+                    } else if (q.type === 'true_false') {
+                        const rawVal = typeof formattedCorrectAnswer === 'object' && formattedCorrectAnswer !== null && 'correct' in formattedCorrectAnswer
+                            ? formattedCorrectAnswer.correct
+                            : formattedCorrectAnswer;
+                        if (rawVal === 0 || rawVal === true || rawVal === 'true' || String(rawVal).toLowerCase() === 'benar' || String(rawVal) === '0' || String(rawVal).toUpperCase() === 'A') {
+                            formattedCorrectAnswer = "Benar";
+                        } else {
+                            formattedCorrectAnswer = "Salah";
+                        }
+
+                        if (parsedStudentAnswer !== null && parsedStudentAnswer !== undefined) {
+                            const normS = String(parsedStudentAnswer).toLowerCase().trim();
+                            if (normS === 'true' || normS === 'benar' || normS === '0' || normS === 'a') {
+                                parsedStudentAnswer = "Benar";
+                            } else if (normS === 'false' || normS === 'salah' || normS === '1' || normS === 'b') {
+                                parsedStudentAnswer = "Salah";
+                            }
+                        }
+                    } else if (q.type === 'short' && formattedCorrectAnswer && typeof formattedCorrectAnswer === 'object') {
+                        if (Array.isArray(formattedCorrectAnswer.acceptedAnswers)) {
+                            formattedCorrectAnswer = formattedCorrectAnswer.acceptedAnswers.join(", ");
+                        } else if (typeof formattedCorrectAnswer.acceptedAnswers === 'string') {
+                            formattedCorrectAnswer = formattedCorrectAnswer.acceptedAnswers;
+                        }
+                    }
+
+                    const pointsEarned = studentAns?.partialPoints !== null && studentAns?.partialPoints !== undefined
+                        ? studentAns.partialPoints
+                        : (studentAns?.score ?? 0);
 
                     return {
                         id: q.id,
                         type: q.type,
                         questionText: parsedContent.question || "",
                         content: parsedContent,
-                        points: q.defaultPoints || 1,
+                        points: studentAns?.maxPoints || q.defaultPoints || 1,
                         studentAnswer: parsedStudentAnswer,
                         isCorrect: studentAns?.isCorrect ?? false,
-                        score: studentAns?.score ?? 0,
+                        score: pointsEarned,
+                        partialPoints: studentAns?.partialPoints ?? null,
                         feedback: studentAns?.feedback || null,
-                        correctAnswer: parsedKey,
+                        correctAnswer: formattedCorrectAnswer,
                         explanation: parsedContent.explanation || (q.metadata as any)?.explanation || null,
                     };
                 })

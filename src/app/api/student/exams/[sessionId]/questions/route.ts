@@ -227,9 +227,9 @@ export async function GET(
                 content = question.content || {};
             }
 
-            // Randomize options deterministically if enabled (for MC, Complex MC, and True/False)
+            // Randomize options deterministically if enabled (for MC and Complex MC)
             let options = content.options || [];
-            if (shuffleAnswers && (question.type === 'mc' || question.type === 'complex_mc' || question.type === 'true_false')) {
+            if (shuffleAnswers && (question.type === 'mc' || question.type === 'complex_mc')) {
                 const seed = `${submission.id}-${question.id}-options`;
                 const { shuffled } = seededShuffle(options, seed);
                 options = shuffled;

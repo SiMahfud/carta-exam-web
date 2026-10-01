@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { EmptyState } from "@/components/ui/empty-state";
 import { MathHtmlRenderer } from "@/components/ui/math-html-renderer";
+import { MatchingResultViewer } from "@/components/exam/MatchingResultViewer";
 import {
     ArrowLeft,
     CheckCircle2,
@@ -128,6 +129,22 @@ export default function StudentExamReviewPage() {
 
     const { session, submission, questions } = data;
 
+    if (session.allowReview === false) {
+        return (
+            <div className="container max-w-4xl mx-auto py-16 px-4">
+                <EmptyState
+                    icon={HelpCircle}
+                    title="Review Tidak Diaktifkan"
+                    description="Guru mengatur agar lembar jawaban dan pembahasan soal tidak dapat dilihat untuk sesi ujian ini."
+                    action={{
+                        label: "Kembali ke Dashboard",
+                        onClick: () => router.push("/student"),
+                    }}
+                />
+            </div>
+        );
+    }
+
     const filteredQuestions = questions.filter((q) => {
         if (filter === "correct") return q.isCorrect;
         if (filter === "incorrect") return !q.isCorrect && q.type !== "essay";
@@ -139,12 +156,26 @@ export default function StudentExamReviewPage() {
     const incorrectCount = questions.filter((q) => !q.isCorrect && q.type !== "essay").length;
     const essayCount = questions.filter((q) => q.type === "essay" || q.type === "short").length;
 
+    const isResultVisible = session.showResult || submission.gradingStatus === "published";
+
     const scoreColor =
         (submission.score ?? 0) >= 80
             ? "text-emerald-600 dark:text-emerald-400"
             : (submission.score ?? 0) >= 65
             ? "text-blue-600 dark:text-blue-400"
             : "text-rose-600 dark:text-rose-400";
+
+    const getTypeLabel = (type: string) => {
+        switch (type) {
+            case "mc": return "Pilihan Ganda";
+            case "complex_mc": return "PG Kompleks";
+            case "true_false": return "Benar / Salah";
+            case "matching": return "Menjodohkan";
+            case "short": return "Isian Singkat";
+            case "essay": return "Uraian";
+            default: return type;
+        }
+    };
 
     return (
         <div className="container max-w-4xl mx-auto py-8 px-4 space-y-6">
@@ -192,13 +223,13 @@ export default function StudentExamReviewPage() {
                         <div className="p-3 bg-card rounded-lg border text-center">
                             <span className="text-xs text-muted-foreground block mb-1 font-medium">Nilai Akhir</span>
                             <span className={`text-3xl font-extrabold font-mono ${scoreColor}`}>
-                                {submission.score ?? "-"}
+                                {isResultVisible ? (submission.score ?? "-") : "Dirahasiakan"}
                             </span>
                         </div>
                         <div className="p-3 bg-card rounded-lg border text-center">
                             <span className="text-xs text-muted-foreground block mb-1 font-medium">Poin Diperoleh</span>
                             <span className="text-xl font-bold text-slate-800 dark:text-slate-100 font-mono">
-                                {submission.earnedPoints ?? 0} / {submission.totalPoints ?? 0}
+                                {isResultVisible ? `${submission.earnedPoints ?? 0} / ${submission.totalPoints ?? 0}` : "Dirahasiakan"}
                             </span>
                         </div>
                         <div className="p-3 bg-card rounded-lg border text-center">
@@ -269,8 +300,7 @@ export default function StudentExamReviewPage() {
                 ) : (
                     filteredQuestions.map((q) => {
                         const questionIndex = questions.findIndex((orig) => orig.id === q.id) + 1;
-                        const isMC = q.type === "mc" || q.type === "true_false";
-                        const isEssay = q.type === "essay" || q.type === "short";
+                        const isEssay = q.type === "essay";
 
                         return (
                             <Card key={q.id} className="border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden">
@@ -280,15 +310,7 @@ export default function StudentExamReviewPage() {
                                             #{questionIndex}
                                         </Badge>
                                         <Badge variant="outline" className="text-xs">
-                                            {q.type === "mc"
-                                                ? "Pilihan Ganda"
-                                                : q.type === "essay"
-                                                ? "Uraian"
-                                                : q.type === "short"
-                                                ? "Isian Singkat"
-                                                : q.type === "matching"
-                                                ? "Menjodohkan"
-                                                : q.type}
+                                            {getTypeLabel(q.type)}
                                         </Badge>
                                     </div>
                                     <div className="flex items-center gap-2">
@@ -296,13 +318,17 @@ export default function StudentExamReviewPage() {
                                             <Badge className="bg-emerald-600 text-xs flex items-center gap-1">
                                                 <CheckCircle2 className="h-3 w-3" /> Benar (+{q.score})
                                             </Badge>
+                                        ) : q.score > 0 ? (
+                                            <Badge variant="secondary" className="bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300 border-amber-300 text-xs font-mono">
+                                                Sebagian Benar ({q.score}/{q.points})
+                                            </Badge>
                                         ) : isEssay ? (
                                             <Badge variant="secondary" className="text-xs font-mono">
                                                 Skor: {q.score} / {q.points}
                                             </Badge>
                                         ) : (
                                             <Badge variant="destructive" className="text-xs flex items-center gap-1">
-                                                <XCircle className="h-3 w-3" /> Salah ({q.score}/{q.points})
+                                                <XCircle className="h-3 w-3" /> Salah (0/{q.points})
                                             </Badge>
                                         )}
                                     </div>
@@ -314,15 +340,13 @@ export default function StudentExamReviewPage() {
                                     </div>
 
                                     {/* MC Options Display */}
-                                    {isMC && q.content?.options && (
+                                    {q.type === "mc" && q.content?.options && (
                                         <div className="space-y-2 pt-2">
                                             {q.content.options.map((opt: any, optIdx: number) => {
                                                 const label = String.fromCharCode(65 + optIdx);
                                                 const optText = typeof opt === "string" ? opt : opt.text || "";
                                                 const isStudent = String(q.studentAnswer) === label;
-                                                const isCorrectOpt =
-                                                    String(q.correctAnswer?.correct) === String(optIdx) ||
-                                                    String(q.correctAnswer?.correct) === label;
+                                                const isCorrectOpt = String(q.correctAnswer) === label;
 
                                                 let styleClass = "border-slate-200 bg-background";
                                                 if (isStudent && isCorrectOpt) {
@@ -351,6 +375,9 @@ export default function StudentExamReviewPage() {
                                                             {isCorrectOpt && (
                                                                 <CheckCircle2 className="h-4 w-4 text-emerald-600" />
                                                             )}
+                                                            {isStudent && !isCorrectOpt && (
+                                                                <XCircle className="h-4 w-4 text-rose-600" />
+                                                            )}
                                                         </div>
                                                     </div>
                                                 );
@@ -358,7 +385,177 @@ export default function StudentExamReviewPage() {
                                         </div>
                                     )}
 
-                                    {/* Essay / Short Answer Display */}
+                                    {/* True / False Display */}
+                                    {q.type === "true_false" && (
+                                        <div className="space-y-2 pt-2 max-w-md">
+                                            {["Benar", "Salah"].map((opt) => {
+                                                const isStudent = q.studentAnswer === opt;
+                                                const isCorrectOpt = q.correctAnswer === opt;
+
+                                                let styleClass = "border-slate-200 bg-background";
+                                                if (isStudent && isCorrectOpt) {
+                                                    styleClass = "border-emerald-500 bg-emerald-50/70 dark:bg-emerald-950/20";
+                                                } else if (isStudent && !isCorrectOpt) {
+                                                    styleClass = "border-rose-500 bg-rose-50/70 dark:bg-rose-950/20";
+                                                } else if (isCorrectOpt) {
+                                                    styleClass = "border-emerald-400 bg-emerald-50/30 dark:bg-emerald-950/10";
+                                                }
+
+                                                return (
+                                                    <div key={opt} className={`p-3 rounded-lg border flex items-center justify-between gap-3 text-xs sm:text-sm ${styleClass}`}>
+                                                        <span className="font-semibold">{opt}</span>
+                                                        <div className="flex items-center gap-1.5 shrink-0">
+                                                            {isStudent && (
+                                                                <Badge variant="outline" className="text-[11px]">
+                                                                    Jawaban Anda
+                                                                </Badge>
+                                                            )}
+                                                            {isCorrectOpt && (
+                                                                <CheckCircle2 className="h-4 w-4 text-emerald-600" />
+                                                            )}
+                                                            {isStudent && !isCorrectOpt && (
+                                                                <XCircle className="h-4 w-4 text-rose-600" />
+                                                            )}
+                                                        </div>
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
+                                    )}
+
+                                    {/* Complex MC Display */}
+                                    {q.type === "complex_mc" && q.content?.options && (
+                                        <div className="space-y-2 pt-2">
+                                            {q.content.options.map((opt: any, optIdx: number) => {
+                                                const isString = typeof opt === 'string';
+                                                const label = isString ? String.fromCharCode(65 + optIdx) : (opt.label || String.fromCharCode(65 + optIdx));
+                                                const text = isString ? opt : (opt.text || opt.html || "");
+
+                                                const studentAnswers = Array.isArray(q.studentAnswer) ? q.studentAnswer : [];
+                                                const correctAnswers = Array.isArray(q.correctAnswer) ? q.correctAnswer : [];
+
+                                                const isStudent = studentAnswers.includes(label);
+                                                const isCorrectOpt = correctAnswers.includes(label) || correctAnswers.includes(optIdx) || correctAnswers.includes(String(optIdx));
+
+                                                let styleClass = "border-slate-200 bg-background";
+                                                if (isStudent && isCorrectOpt) {
+                                                    styleClass = "border-emerald-500 bg-emerald-50/70 dark:bg-emerald-950/20";
+                                                } else if (isStudent && !isCorrectOpt) {
+                                                    styleClass = "border-rose-500 bg-rose-50/70 dark:bg-rose-950/20";
+                                                } else if (isCorrectOpt) {
+                                                    styleClass = "border-yellow-400 bg-yellow-50/40 dark:bg-yellow-950/10";
+                                                }
+
+                                                return (
+                                                    <div key={label} className={`p-3 rounded-lg border flex items-start justify-between gap-3 text-xs sm:text-sm ${styleClass}`}>
+                                                        <div className="flex items-start gap-2.5 flex-1">
+                                                            <span className="font-bold shrink-0">{label}.</span>
+                                                            <MathHtmlRenderer html={text} />
+                                                        </div>
+                                                        <div className="flex items-center gap-1.5 shrink-0">
+                                                            {isStudent && isCorrectOpt && (
+                                                                <Badge className="bg-emerald-600 text-[11px] flex items-center gap-1">
+                                                                    <CheckCircle2 className="h-3 w-3" /> Benar Dipilih
+                                                                </Badge>
+                                                            )}
+                                                            {isStudent && !isCorrectOpt && (
+                                                                <Badge variant="destructive" className="text-[11px] flex items-center gap-1">
+                                                                    <XCircle className="h-3 w-3" /> Salah Dipilih
+                                                                </Badge>
+                                                            )}
+                                                            {!isStudent && isCorrectOpt && (
+                                                                <Badge variant="secondary" className="text-[11px] bg-yellow-100 text-yellow-800 dark:bg-yellow-900/40 dark:text-yellow-300">
+                                                                    Kunci (Dilewatkan)
+                                                                </Badge>
+                                                            )}
+                                                        </div>
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
+                                    )}
+
+                                    {/* Matching Display */}
+                                    {q.type === "matching" && (() => {
+                                        const leftItems = q.content?.leftItems || [];
+                                        const rightItems = q.content?.rightItems || [];
+                                        const leftIdToIndex: Record<string, number> = {};
+                                        const rightIdToIndex: Record<string, number> = {};
+                                        leftItems.forEach((item: any, idx: number) => {
+                                            const id = typeof item === 'object' ? item.id : item;
+                                            leftIdToIndex[id] = idx;
+                                        });
+                                        rightItems.forEach((item: any, idx: number) => {
+                                            const id = typeof item === 'object' ? item.id : item;
+                                            rightIdToIndex[id] = idx;
+                                        });
+
+                                        let studentPairs: any[] = [];
+                                        if (Array.isArray(q.studentAnswer)) {
+                                            studentPairs = q.studentAnswer.map((pair: any) => {
+                                                const leftKey = pair.left ?? pair.leftId;
+                                                const rightKey = pair.right ?? pair.rightId;
+                                                return {
+                                                    left: leftIdToIndex[leftKey] ?? leftKey,
+                                                    right: rightIdToIndex[rightKey] ?? rightKey
+                                                };
+                                            });
+                                        }
+
+                                        let correctPairsIndexed: Record<number, number> = {};
+                                        if (q.correctAnswer?.matches && Array.isArray(q.correctAnswer.matches)) {
+                                            q.correctAnswer.matches.forEach((match: any) => {
+                                                const leftIdx = leftIdToIndex[match.leftId];
+                                                const rightIdx = rightIdToIndex[match.rightId];
+                                                if (leftIdx !== undefined && rightIdx !== undefined) {
+                                                    correctPairsIndexed[leftIdx] = rightIdx;
+                                                }
+                                            });
+                                        } else if (q.correctAnswer?.pairs) {
+                                            correctPairsIndexed = q.correctAnswer.pairs;
+                                        } else if (typeof q.correctAnswer === 'object' && !Array.isArray(q.correctAnswer)) {
+                                            correctPairsIndexed = q.correctAnswer;
+                                        }
+
+                                        return (
+                                            <div className="pt-2">
+                                                <MatchingResultViewer
+                                                    question={{
+                                                        id: q.id,
+                                                        questionText: q.questionText,
+                                                        leftItems,
+                                                        rightItems,
+                                                    }}
+                                                    studentPairs={studentPairs}
+                                                    correctPairs={correctPairsIndexed}
+                                                />
+                                            </div>
+                                        );
+                                    })()}
+
+                                    {/* Short Answer Display */}
+                                    {q.type === "short" && (
+                                        <div className="grid gap-3 sm:grid-cols-2 pt-2">
+                                            <div className={`p-3 rounded-lg border text-xs sm:text-sm ${q.isCorrect ? "bg-emerald-50 dark:bg-emerald-950/20 border-emerald-300" : "bg-rose-50 dark:bg-rose-950/20 border-rose-300"}`}>
+                                                <span className="font-semibold text-muted-foreground block text-xs mb-1">
+                                                    Jawaban Anda:
+                                                </span>
+                                                <p className="font-medium text-slate-900 dark:text-white">
+                                                    {typeof q.studentAnswer === "string" ? q.studentAnswer : JSON.stringify(q.studentAnswer || "-")}
+                                                </p>
+                                            </div>
+                                            <div className="p-3 bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-300 rounded-lg text-xs sm:text-sm">
+                                                <span className="font-semibold text-emerald-800 dark:text-emerald-300 block text-xs mb-1">
+                                                    Jawaban Benar:
+                                                </span>
+                                                <p className="font-medium text-emerald-950 dark:text-emerald-100">
+                                                    {typeof q.correctAnswer === "string" ? q.correctAnswer : JSON.stringify(q.correctAnswer || "-")}
+                                                </p>
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {/* Essay Display */}
                                     {isEssay && (
                                         <div className="space-y-3 pt-2">
                                             <div className="p-3 bg-muted/60 rounded-lg text-xs sm:text-sm space-y-1">

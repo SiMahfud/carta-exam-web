@@ -91,8 +91,9 @@ export async function POST(
         let isCorrect = false;
         let earnedPoints = 0;
         const maxPoints = question.defaultPoints;
+        let answerToStore: any = answer;
 
-        if (question.type === 'mc' || question.type === 'true_false') {
+        if (question.type === 'mc') {
             const options = content.options || [];
             let chosenOrigIndex = -1;
 
@@ -122,6 +123,38 @@ export async function POST(
 
             isCorrect = chosenOrigIndex !== -1 && chosenOrigIndex === correctOrigIndex;
             earnedPoints = isCorrect ? maxPoints : 0;
+
+            // Store student answer as the original option letter so it aligns with bank questions in review/results
+            if (chosenOrigIndex >= 0) {
+                answerToStore = String.fromCharCode(65 + chosenOrigIndex);
+            }
+        } else if (question.type === 'true_false') {
+            let chosenIdx = -1;
+            const normAns = String(answer).toLowerCase().trim();
+            if (normAns === 'true' || normAns === 'benar' || normAns === '0' || normAns === 'a') {
+                chosenIdx = 0; // Benar
+            } else if (normAns === 'false' || normAns === 'salah' || normAns === '1' || normAns === 'b') {
+                chosenIdx = 1; // Salah
+            }
+
+            let correctIdx = -1;
+            const correctVal = answerKey.correct !== undefined ? answerKey.correct : answerKey.correctAnswer;
+            if (typeof correctVal === 'boolean') {
+                correctIdx = correctVal ? 0 : 1;
+            } else if (typeof correctVal === 'number') {
+                correctIdx = correctVal;
+            } else {
+                const normKey = String(correctVal).toLowerCase().trim();
+                if (normKey === 'true' || normKey === 'benar' || normKey === '0' || normKey === 'a') {
+                    correctIdx = 0;
+                } else if (normKey === 'false' || normKey === 'salah' || normKey === '1' || normKey === 'b') {
+                    correctIdx = 1;
+                }
+            }
+
+            isCorrect = chosenIdx !== -1 && chosenIdx === correctIdx;
+            earnedPoints = isCorrect ? maxPoints : 0;
+            answerToStore = chosenIdx === 0 ? 'Benar' : (chosenIdx === 1 ? 'Salah' : answer);
         } else if (question.type === 'complex_mc') {
             const options = content.options || [];
             let correctOrigIndices: number[] = [];
@@ -161,6 +194,11 @@ export async function POST(
             } else if (correctOrigIndices.length > 0) {
                 earnedPoints = Math.max(0, Math.round((correctCount - incorrectCount) / correctOrigIndices.length * maxPoints * 100) / 100);
             }
+
+            // Store student answers mapped to original option letters
+            if (chosenOrigIndices.length > 0) {
+                answerToStore = chosenOrigIndices.map(idx => String.fromCharCode(65 + idx));
+            }
         } else if (question.type === 'short') {
             const acceptedAnswers = answerKey.acceptedAnswers || [];
             const studentAnswer = (answer || '').trim().toLowerCase();
@@ -169,13 +207,6 @@ export async function POST(
         } else if (question.type === 'matching') {
             const leftItems = content.leftItems || [];
             const rightItems = content.rightItems || [];
-
-            let rightMapping: number[] = rightItems.map((_: any, i: number) => i);
-            if (shuffleAnswers && rightItems.length > 0) {
-                const seed = `${submission.id}-${question.id}-matching`;
-                const result = seededShuffle(rightItems, seed);
-                rightMapping = result.mapping;
-            }
 
             const leftIdToIndex: { [id: string]: number } = {};
             const rightIdToIndex: { [id: string]: number } = {};
@@ -208,22 +239,19 @@ export async function POST(
 
             const studentPairs = answer || [];
             const studentPairsIndexed = studentPairs.map((sp: any) => {
-                const leftIdx = typeof sp.left === 'string' && leftIdToIndex[sp.left] !== undefined
-                    ? leftIdToIndex[sp.left]
-                    : (typeof sp.left === 'number' ? sp.left : parseInt(sp.left) || -1);
+                const leftKey = sp.left ?? sp.leftId;
+                const rightKey = sp.right ?? sp.rightId;
 
-                const rawRightIdx = typeof sp.right === 'string' && rightIdToIndex[sp.right] !== undefined
-                    ? rightIdToIndex[sp.right]
-                    : (typeof sp.right === 'number' ? sp.right : parseInt(sp.right) || -1);
+                const leftIdx = typeof leftKey === 'string' && leftIdToIndex[leftKey] !== undefined
+                    ? leftIdToIndex[leftKey]
+                    : (typeof leftKey === 'number' ? leftKey : parseInt(leftKey) || -1);
 
-                // Map shuffled right index back to original
-                const rightIdx = (shuffleAnswers && rightMapping[rawRightIdx] !== undefined)
-                    ? rightMapping[rawRightIdx]
-                    : rawRightIdx;
+                const rightIdx = typeof rightKey === 'string' && rightIdToIndex[rightKey] !== undefined
+                    ? rightIdToIndex[rightKey]
+                    : (typeof rightKey === 'number' ? rightKey : parseInt(rightKey) || -1);
 
                 return { leftIdx, rightIdx };
             });
-
 
             const correctCount = studentPairsIndexed.filter((sp: any) =>
                 correctPairsList.some((cp: any) => cp.leftIdx === sp.leftIdx && cp.rightIdx === sp.rightIdx)
@@ -249,7 +277,7 @@ export async function POST(
         if (existingAnswer.length > 0) {
             await db.update(answers)
                 .set({
-                    studentAnswer: answer,
+                    studentAnswer: answerToStore,
                     isFlagged: isFlagged || false,
                     isCorrect,
                     score: earnedPoints,
@@ -261,7 +289,7 @@ export async function POST(
             await db.insert(answers).values({
                 submissionId: submission.id,
                 bankQuestionId: questionId,
-                studentAnswer: answer,
+                studentAnswer: answerToStore,
                 isFlagged: isFlagged || false,
                 isCorrect,
                 score: earnedPoints,

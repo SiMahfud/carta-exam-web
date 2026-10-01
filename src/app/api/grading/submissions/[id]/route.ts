@@ -1,9 +1,10 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { submissions, answers, bankQuestions, users, examSessions } from "@/lib/schema";
+import { submissions, answers, bankQuestions, users, examSessions, examTemplates } from "@/lib/schema";
 import { eq, inArray } from "drizzle-orm";
 import { requireAuth } from "@/lib/auth-guard";
 import { safeJsonParse } from "@/lib/json-utils";
+import { seededShuffle } from "@/lib/randomization";
 
 // GET /api/grading/submissions/[id] - Get submission details for grading
 export async function GET(
@@ -44,6 +45,35 @@ export async function GET(
 
         const submission = submissionData[0];
 
+        // Check if session has answer randomization enabled
+        let shuffleAnswers = false;
+        if (submission.sessionId) {
+            const sessionData = await db.select({ templateId: examSessions.templateId })
+                .from(examSessions)
+                .where(eq(examSessions.id, submission.sessionId))
+                .limit(1);
+
+            if (sessionData.length > 0) {
+                const templateData = await db.select({
+                    randomizeAnswers: examTemplates.randomizeAnswers,
+                    randomizationRules: examTemplates.randomizationRules
+                })
+                    .from(examTemplates)
+                    .where(eq(examTemplates.id, sessionData[0].templateId))
+                    .limit(1);
+
+                if (templateData.length > 0) {
+                    let rules: any = {};
+                    try {
+                        rules = typeof templateData[0].randomizationRules === 'string'
+                            ? JSON.parse(templateData[0].randomizationRules)
+                            : (templateData[0].randomizationRules || {});
+                    } catch { }
+                    shuffleAnswers = templateData[0].randomizeAnswers || rules.shuffleAnswers || false;
+                }
+            }
+        }
+
         // 1. Get ordered question IDs
         const questionIds: string[] = safeJsonParse<string[]>(submission.questionOrder, []);
 
@@ -60,10 +90,12 @@ export async function GET(
             .from(answers)
             .where(eq(answers.submissionId, params.id));
 
+        let hasScoreUpdates = false;
+
         // 4. Map questions to answers (combining them)
         const combinedAnswers = questionIds.map(qId => {
             const question = assignedQuestions.find((q: typeof assignedQuestions[0]) => q.id === qId);
-            const answer = existingAnswers.find((a: typeof existingAnswers[0]) => a.bankQuestionId === qId);
+            const answer = existingAnswers.find((a: typeof existingAnswers[0]) => a.bankQuestionId === qId || a.questionId === qId);
 
             if (!question) return null; // Should not happen if integrity is maintained
 
@@ -72,20 +104,146 @@ export async function GET(
             const parsedAnswerKey = safeJsonParse<Record<string, unknown>>(question.answerKey, {});
 
             // Parse student answer
-            const parsedStudentAnswer = answer?.studentAnswer ? safeJsonParse<unknown>(answer.studentAnswer, answer.studentAnswer) : null;
+            let parsedStudentAnswer = answer?.studentAnswer ? safeJsonParse<unknown>(answer.studentAnswer, answer.studentAnswer) : null;
 
             // Improve correct answer format for frontend
             let correctAnswer: any = parsedAnswerKey;
             if (correctAnswer && typeof correctAnswer === 'object' && 'correct' in correctAnswer) {
                 correctAnswer = correctAnswer.correct;
             }
-            if (question.type === 'mc' && typeof correctAnswer === 'number') {
-                correctAnswer = String.fromCharCode(65 + correctAnswer);
-            }
-            if (question.type === 'complex_mc' && Array.isArray(correctAnswer)) {
+            if (question.type === 'mc') {
+                if (typeof correctAnswer === 'number') {
+                    correctAnswer = String.fromCharCode(65 + correctAnswer);
+                } else if (typeof correctAnswer === 'string' && correctAnswer.length === 1 && !isNaN(parseInt(correctAnswer))) {
+                    correctAnswer = String.fromCharCode(65 + parseInt(correctAnswer));
+                }
+
+                // If legacy student answer was stored as shuffled letter, map it to the original option letter
+                if (shuffleAnswers && typeof parsedStudentAnswer === 'string' && parsedStudentAnswer.length === 1) {
+                    const options = (parsedContent.options as any[]) || [];
+                    if (options.length > 0) {
+                        const seed = `${submission.id}-${question.id}-options`;
+                        const { mapping } = seededShuffle(options, seed);
+                        const letterIdx = parsedStudentAnswer.toUpperCase().charCodeAt(0) - 65;
+                        const origIdx = mapping[letterIdx];
+
+                        if (origIdx !== undefined && origIdx >= 0) {
+                            const fixedLetter = String.fromCharCode(65 + origIdx);
+                            // If marked incorrect but studentAnswer equals correctAnswer, or marked correct but studentAnswer doesn't equal correctAnswer
+                            if ((answer?.isCorrect === false && parsedStudentAnswer === correctAnswer) ||
+                                (answer?.isCorrect === true && parsedStudentAnswer !== correctAnswer)) {
+                                parsedStudentAnswer = fixedLetter;
+                                if (answer?.id) {
+                                    db.update(answers).set({ studentAnswer: fixedLetter }).where(eq(answers.id, answer.id)).catch(() => {});
+                                }
+                            }
+                        }
+                    }
+                }
+            } else if (question.type === 'complex_mc' && Array.isArray(correctAnswer)) {
                 correctAnswer = correctAnswer.map((idx: any) =>
                     typeof idx === 'number' ? String.fromCharCode(65 + idx) : idx
                 );
+            } else if (question.type === 'true_false') {
+                const rawVal = typeof correctAnswer === 'object' && correctAnswer !== null && 'correct' in correctAnswer
+                    ? correctAnswer.correct
+                    : correctAnswer;
+                if (rawVal === 0 || rawVal === true || rawVal === 'true' || String(rawVal).toLowerCase() === 'benar' || String(rawVal) === '0' || String(rawVal).toUpperCase() === 'A') {
+                    correctAnswer = "Benar";
+                } else {
+                    correctAnswer = "Salah";
+                }
+
+                if (parsedStudentAnswer !== null && parsedStudentAnswer !== undefined) {
+                    const normS = String(parsedStudentAnswer).toLowerCase().trim();
+                    if (normS === 'true' || normS === 'benar' || normS === '0' || normS === 'a') {
+                        parsedStudentAnswer = "Benar";
+                    } else if (normS === 'false' || normS === 'salah' || normS === '1' || normS === 'b') {
+                        parsedStudentAnswer = "Salah";
+                    }
+                }
+            } else if (question.type === 'short' && correctAnswer && typeof correctAnswer === 'object') {
+                if (Array.isArray(correctAnswer.acceptedAnswers)) {
+                    correctAnswer = correctAnswer.acceptedAnswers.join(", ");
+                } else if (typeof correctAnswer.acceptedAnswers === 'string') {
+                    correctAnswer = correctAnswer.acceptedAnswers;
+                }
+            }
+
+            let currentScore = answer?.score || 0;
+            let currentPartialPoints = answer?.partialPoints !== null && answer?.partialPoints !== undefined ? answer.partialPoints : currentScore;
+            let currentIsCorrect = answer?.isCorrect || false;
+
+            // Recalculate matching score if affected by legacy shuffle bug
+            if (question.type === 'matching' && answer) {
+                const leftItems = (parsedContent.leftItems as any[]) || [];
+                const rightItems = (parsedContent.rightItems as any[]) || [];
+
+                const leftIdToIndex: Record<string, number> = {};
+                const rightIdToIndex: Record<string, number> = {};
+                leftItems.forEach((item: any, idx: number) => {
+                    const id = typeof item === 'object' ? item.id : item;
+                    leftIdToIndex[id] = idx;
+                });
+                rightItems.forEach((item: any, idx: number) => {
+                    const id = typeof item === 'object' ? item.id : item;
+                    rightIdToIndex[id] = idx;
+                });
+
+                const correctPairsList: { leftIdx: number; rightIdx: number }[] = [];
+                if (parsedAnswerKey.matches && Array.isArray(parsedAnswerKey.matches)) {
+                    parsedAnswerKey.matches.forEach((match: any) => {
+                        const leftIdx = leftIdToIndex[match.leftId];
+                        const rightIdx = rightIdToIndex[match.rightId];
+                        if (leftIdx !== undefined && rightIdx !== undefined) {
+                            correctPairsList.push({ leftIdx, rightIdx });
+                        }
+                    });
+                } else if (parsedAnswerKey.pairs) {
+                    Object.entries(parsedAnswerKey.pairs).forEach(([leftIdx, rightValue]) => {
+                        const rightIndices = Array.isArray(rightValue) ? rightValue : [rightValue];
+                        rightIndices.forEach((rIdx: any) => {
+                            correctPairsList.push({ leftIdx: parseInt(leftIdx), rightIdx: rIdx as number });
+                        });
+                    });
+                }
+
+                const studentPairs = parsedStudentAnswer || [];
+                let correctCount = 0;
+                if (Array.isArray(studentPairs)) {
+                    const studentPairsIndexed = studentPairs.map((sp: any) => {
+                        const leftKey = sp.left ?? sp.leftId;
+                        const rightKey = sp.right ?? sp.rightId;
+                        const leftIdx = typeof leftKey === 'string' && leftIdToIndex[leftKey] !== undefined
+                            ? leftIdToIndex[leftKey]
+                            : (typeof leftKey === 'number' ? leftKey : parseInt(leftKey) || -1);
+                        const rightIdx = typeof rightKey === 'string' && rightIdToIndex[rightKey] !== undefined
+                            ? rightIdToIndex[rightKey]
+                            : (typeof rightKey === 'number' ? rightKey : parseInt(rightKey) || -1);
+                        return { leftIdx, rightIdx };
+                    });
+
+                    correctCount = studentPairsIndexed.filter((sp: any) =>
+                        correctPairsList.some((cp: any) => cp.leftIdx === sp.leftIdx && cp.rightIdx === sp.rightIdx)
+                    ).length;
+                }
+
+                const totalPairs = correctPairsList.length;
+                const maxPoints = question.defaultPoints || 1;
+                const recalculatedPoints = totalPairs > 0 ? Math.round((correctCount / totalPairs) * maxPoints * 100) / 100 : 0;
+                const recalculatedIsCorrect = correctCount === totalPairs && totalPairs > 0;
+
+                if (currentPartialPoints === 0 && recalculatedPoints > 0) {
+                    currentScore = recalculatedPoints;
+                    currentPartialPoints = recalculatedPoints;
+                    currentIsCorrect = recalculatedIsCorrect;
+                    hasScoreUpdates = true;
+                    db.update(answers).set({
+                        score: recalculatedPoints,
+                        partialPoints: recalculatedPoints,
+                        isCorrect: recalculatedIsCorrect
+                    }).where(eq(answers.id, answer.id)).catch(() => {});
+                }
             }
 
             return {
@@ -97,15 +255,27 @@ export async function GET(
                 studentAnswer: parsedStudentAnswer,
                 correctAnswer: correctAnswer,
                 isFlagged: answer?.isFlagged || false,
-                isCorrect: answer?.isCorrect || false,
-                score: answer?.score || 0,
+                isCorrect: currentIsCorrect,
+                score: currentScore,
                 maxPoints: answer?.maxPoints || question.defaultPoints,
-                partialPoints: answer?.partialPoints || 0,
+                partialPoints: currentPartialPoints,
                 gradingStatus: answer?.gradingStatus || (answer ? "auto" : "not_answered"),
                 gradingNotes: answer?.gradingNotes || null,
                 defaultPoints: question.defaultPoints,
             };
         }).filter(Boolean);
+
+        if (hasScoreUpdates) {
+            const updatedTotalEarned = combinedAnswers.reduce((sum, a: any) => sum + (a.partialPoints || 0), 0);
+            const totalMax = submission.totalPoints || 1;
+            const recalculatedScore = Math.round((updatedTotalEarned / totalMax) * 100);
+            submission.earnedPoints = updatedTotalEarned;
+            submission.score = recalculatedScore;
+            db.update(submissions).set({
+                earnedPoints: updatedTotalEarned,
+                score: recalculatedScore
+            }).where(eq(submissions.id, submission.id)).catch(() => {});
+        }
 
 
         return NextResponse.json({

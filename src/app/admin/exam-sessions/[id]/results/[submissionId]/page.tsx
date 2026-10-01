@@ -324,9 +324,25 @@ export default function SubmissionDetailPage() {
                 );
             }
 
-            case "short":
+            case "short": {
                 const studentAns = typeof answer.studentAnswer === 'string' ? answer.studentAnswer : JSON.stringify(answer.studentAnswer);
-                const correctAns = typeof answer.correctAnswer === 'string' ? answer.correctAnswer : JSON.stringify(answer.correctAnswer);
+                let displayCorrect = answer.correctAnswer;
+                if (typeof displayCorrect === 'string') {
+                    try {
+                        const parsed = JSON.parse(displayCorrect);
+                        if (parsed?.acceptedAnswers && Array.isArray(parsed.acceptedAnswers)) {
+                            displayCorrect = parsed.acceptedAnswers.join(" / ");
+                        }
+                    } catch {}
+                } else if (typeof displayCorrect === 'object' && displayCorrect !== null) {
+                    if (Array.isArray(displayCorrect.acceptedAnswers)) {
+                        displayCorrect = displayCorrect.acceptedAnswers.join(" / ");
+                    } else if (typeof displayCorrect.acceptedAnswers === 'string') {
+                        displayCorrect = displayCorrect.acceptedAnswers;
+                    } else {
+                        displayCorrect = JSON.stringify(displayCorrect);
+                    }
+                }
 
                 return (
                     <div className="space-y-3">
@@ -338,11 +354,75 @@ export default function SubmissionDetailPage() {
                             </div>
                             <div className="p-4 rounded-lg border bg-green-50 dark:bg-green-900/30 border-green-300 dark:border-green-600">
                                 <p className="text-sm text-muted-foreground mb-1">Jawaban Benar:</p>
-                                <div className="font-medium"><MathHtmlRenderer html={correctAns} /></div>
+                                <div className="font-medium"><MathHtmlRenderer html={String(displayCorrect || "")} /></div>
                             </div>
                         </div>
                     </div>
                 );
+            }
+
+            case "true_false": {
+                const normalizeTF = (val: any) => {
+                    if (val === null || val === undefined) return null;
+                    const str = String(val).toLowerCase().trim();
+                    if (str === "true" || str === "0" || str === "benar" || str === "b") return "Benar";
+                    if (str === "false" || str === "1" || str === "salah" || str === "s") return "Salah";
+                    return str;
+                };
+
+                const studentTF = normalizeTF(answer.studentAnswer);
+                let correctTF: string | null = null;
+                const rawCorrect = typeof answer.correctAnswer === 'object' && answer.correctAnswer !== null && 'correct' in answer.correctAnswer
+                    ? answer.correctAnswer.correct
+                    : answer.correctAnswer;
+                correctTF = normalizeTF(rawCorrect);
+
+                const tfOptions = ["Benar", "Salah"];
+
+                return (
+                    <div className="space-y-3">
+                        <div className="font-medium mb-2"><MathHtmlRenderer html={answer.questionText} /></div>
+                        <div className="space-y-2 max-w-md">
+                            {tfOptions.map((opt) => {
+                                const isStudentAnswer = studentTF === opt;
+                                const isCorrectAnswer = correctTF === opt;
+
+                                return (
+                                    <div
+                                        key={opt}
+                                        className={`p-3 rounded-lg border ${isCorrectAnswer
+                                            ? "bg-green-50 dark:bg-green-900/30 border-green-300 dark:border-green-600"
+                                            : isStudentAnswer
+                                                ? "bg-red-50 dark:bg-red-900/30 border-red-300 dark:border-red-600"
+                                                : "bg-muted/30"
+                                            }`}
+                                    >
+                                        <div className="flex items-center gap-2">
+                                            <span className="font-semibold">{opt}</span>
+                                            {isCorrectAnswer && (
+                                                <CheckCircle className="h-4 w-4 text-green-600 dark:text-green-400 ml-auto" />
+                                            )}
+                                            {isStudentAnswer && !isCorrectAnswer && (
+                                                <XCircle className="h-4 w-4 text-red-600 dark:text-red-400 ml-auto" />
+                                            )}
+                                        </div>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                        <div className="flex items-center gap-2 text-sm">
+                            <span className="font-medium">Jawaban Siswa:</span>
+                            <Badge variant={answer.isCorrect ? "default" : "destructive"}>
+                                {studentTF || "Tidak dijawab"}
+                            </Badge>
+                        </div>
+                        <div className="flex items-center gap-2 text-sm">
+                            <span className="font-medium">Jawaban Benar:</span>
+                            <Badge className="bg-green-600">{correctTF || "-"}</Badge>
+                        </div>
+                    </div>
+                );
+            }
 
             case "essay":
                 return (
@@ -375,6 +455,7 @@ export default function SubmissionDetailPage() {
             matching: "Menjodohkan",
             short: "Isian Singkat",
             essay: "Essay/Uraian",
+            true_false: "Benar / Salah",
         };
         return labels[type] || type;
     };
@@ -474,12 +555,16 @@ export default function SubmissionDetailPage() {
                                     <div className="flex items-center gap-2">
                                         <span className="text-sm text-muted-foreground">Skor:</span>
                                         <span className="text-lg font-bold">
-                                            {answer.partialPoints || answer.score} / {answer.maxPoints}
+                                            {answer.partialPoints !== null && answer.partialPoints !== undefined ? answer.partialPoints : answer.score} / {answer.maxPoints}
                                         </span>
                                     </div>
                                     {answer.isCorrect !== null && (
                                         answer.isCorrect ? (
-                                            <Badge variant="default">Benar</Badge>
+                                            <Badge variant="default" className="bg-green-600">Benar</Badge>
+                                        ) : (answer.partialPoints || answer.score) > 0 ? (
+                                            <Badge variant="secondary" className="bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300 border-amber-300">
+                                                Sebagian Benar
+                                            </Badge>
                                         ) : (
                                             <Badge variant="destructive">Salah</Badge>
                                         )
