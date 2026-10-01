@@ -150,17 +150,44 @@ export async function GET(
 
                                 if (origIdx !== undefined && origIdx >= 0) {
                                     const fixedLetter = String.fromCharCode(65 + origIdx);
-                                    if ((studentAns?.isCorrect === false && parsedStudentAnswer === formattedCorrectAnswer) ||
-                                        (studentAns?.isCorrect === true && parsedStudentAnswer !== formattedCorrectAnswer)) {
+                                    const isCorrectInDB = Boolean(studentAns?.isCorrect);
+                                    if ((!isCorrectInDB && parsedStudentAnswer === formattedCorrectAnswer && fixedLetter !== formattedCorrectAnswer) ||
+                                        (isCorrectInDB && parsedStudentAnswer !== formattedCorrectAnswer && fixedLetter === formattedCorrectAnswer)) {
                                         parsedStudentAnswer = fixedLetter;
                                     }
                                 }
                             }
                         }
-                    } else if (q.type === 'complex_mc' && Array.isArray(formattedCorrectAnswer)) {
-                        formattedCorrectAnswer = formattedCorrectAnswer.map((idx: any) =>
-                            typeof idx === 'number' ? String.fromCharCode(65 + idx) : idx
-                        );
+                    } else if (q.type === 'complex_mc') {
+                        if (Array.isArray(formattedCorrectAnswer)) {
+                            formattedCorrectAnswer = formattedCorrectAnswer.map((idx: any) =>
+                                typeof idx === 'number' ? String.fromCharCode(65 + idx) : idx
+                            );
+                        }
+
+                        if (shuffleAnswers && Array.isArray(parsedStudentAnswer) && parsedStudentAnswer.length > 0) {
+                            const options = (parsedContent.options as any[]) || [];
+                            if (options.length > 0) {
+                                const seed = `${submission.id}-${q.id}-options`;
+                                const { mapping } = seededShuffle(options, seed);
+                                const fixedLetters = parsedStudentAnswer.map((l: any) => {
+                                    if (typeof l === 'string' && l.length === 1) {
+                                        const idx = l.toUpperCase().charCodeAt(0) - 65;
+                                        return mapping[idx] !== undefined ? String.fromCharCode(65 + mapping[idx]) : l;
+                                    }
+                                    return l;
+                                }).sort();
+
+                                const isCorrectInDB = Boolean(studentAns?.isCorrect);
+                                const correctLetters = (Array.isArray(formattedCorrectAnswer) ? formattedCorrectAnswer : []).sort();
+                                const fixedMatches = JSON.stringify(fixedLetters) === JSON.stringify(correctLetters);
+                                const rawMatches = JSON.stringify([...parsedStudentAnswer].sort()) === JSON.stringify(correctLetters);
+
+                                if ((isCorrectInDB && !rawMatches && fixedMatches) || (!isCorrectInDB && rawMatches && !fixedMatches)) {
+                                    parsedStudentAnswer = fixedLetters;
+                                }
+                            }
+                        }
                     } else if (q.type === 'true_false') {
                         const rawVal = typeof formattedCorrectAnswer === 'object' && formattedCorrectAnswer !== null && 'correct' in formattedCorrectAnswer
                             ? formattedCorrectAnswer.correct

@@ -129,9 +129,9 @@ export async function GET(
 
                         if (origIdx !== undefined && origIdx >= 0) {
                             const fixedLetter = String.fromCharCode(65 + origIdx);
-                            // If marked incorrect but studentAnswer equals correctAnswer, or marked correct but studentAnswer doesn't equal correctAnswer
-                            if ((answer?.isCorrect === false && parsedStudentAnswer === correctAnswer) ||
-                                (answer?.isCorrect === true && parsedStudentAnswer !== correctAnswer)) {
+                            const isCorrectInDB = Boolean(answer?.isCorrect);
+                            if ((!isCorrectInDB && parsedStudentAnswer === correctAnswer && fixedLetter !== correctAnswer) ||
+                                (isCorrectInDB && parsedStudentAnswer !== correctAnswer && fixedLetter === correctAnswer)) {
                                 parsedStudentAnswer = fixedLetter;
                                 if (answer?.id) {
                                     db.update(answers).set({ studentAnswer: fixedLetter }).where(eq(answers.id, answer.id)).catch(() => {});
@@ -140,10 +140,40 @@ export async function GET(
                         }
                     }
                 }
-            } else if (question.type === 'complex_mc' && Array.isArray(correctAnswer)) {
-                correctAnswer = correctAnswer.map((idx: any) =>
-                    typeof idx === 'number' ? String.fromCharCode(65 + idx) : idx
-                );
+            } else if (question.type === 'complex_mc') {
+                if (Array.isArray(correctAnswer)) {
+                    correctAnswer = correctAnswer.map((idx: any) =>
+                        typeof idx === 'number' ? String.fromCharCode(65 + idx) : idx
+                    );
+                }
+
+                // If legacy complex_mc student answer was stored as shuffled letters, map it
+                if (shuffleAnswers && Array.isArray(parsedStudentAnswer) && parsedStudentAnswer.length > 0) {
+                    const options = (parsedContent.options as any[]) || [];
+                    if (options.length > 0) {
+                        const seed = `${submission.id}-${question.id}-options`;
+                        const { mapping } = seededShuffle(options, seed);
+                        const fixedLetters = parsedStudentAnswer.map((l: any) => {
+                            if (typeof l === 'string' && l.length === 1) {
+                                const idx = l.toUpperCase().charCodeAt(0) - 65;
+                                return mapping[idx] !== undefined ? String.fromCharCode(65 + mapping[idx]) : l;
+                            }
+                            return l;
+                        }).sort();
+
+                        const isCorrectInDB = Boolean(answer?.isCorrect);
+                        const correctLetters = (Array.isArray(correctAnswer) ? correctAnswer : []).sort();
+                        const fixedMatches = JSON.stringify(fixedLetters) === JSON.stringify(correctLetters);
+                        const rawMatches = JSON.stringify([...parsedStudentAnswer].sort()) === JSON.stringify(correctLetters);
+
+                        if ((isCorrectInDB && !rawMatches && fixedMatches) || (!isCorrectInDB && rawMatches && !fixedMatches)) {
+                            parsedStudentAnswer = fixedLetters;
+                            if (answer?.id) {
+                                db.update(answers).set({ studentAnswer: JSON.stringify(fixedLetters) }).where(eq(answers.id, answer.id)).catch(() => {});
+                            }
+                        }
+                    }
+                }
             } else if (question.type === 'true_false') {
                 const rawVal = typeof correctAnswer === 'object' && correctAnswer !== null && 'correct' in correctAnswer
                     ? correctAnswer.correct
@@ -170,9 +200,9 @@ export async function GET(
                 }
             }
 
-            let currentScore = answer?.score || 0;
-            let currentPartialPoints = answer?.partialPoints !== null && answer?.partialPoints !== undefined ? answer.partialPoints : currentScore;
-            let currentIsCorrect = answer?.isCorrect || false;
+            let currentScore = answer?.score !== null && answer?.score !== undefined ? Number(answer.score) : 0;
+            let currentPartialPoints = answer?.partialPoints !== null && answer?.partialPoints !== undefined ? Number(answer.partialPoints) : currentScore;
+            let currentIsCorrect = Boolean(answer?.isCorrect);
 
             // Recalculate matching score if affected by legacy shuffle bug
             if (question.type === 'matching' && answer) {
@@ -233,7 +263,7 @@ export async function GET(
                 const recalculatedPoints = totalPairs > 0 ? Math.round((correctCount / totalPairs) * maxPoints * 100) / 100 : 0;
                 const recalculatedIsCorrect = correctCount === totalPairs && totalPairs > 0;
 
-                if (currentPartialPoints === 0 && recalculatedPoints > 0) {
+                if (recalculatedPoints !== currentScore || recalculatedIsCorrect !== currentIsCorrect) {
                     currentScore = recalculatedPoints;
                     currentPartialPoints = recalculatedPoints;
                     currentIsCorrect = recalculatedIsCorrect;
@@ -241,10 +271,11 @@ export async function GET(
                     db.update(answers).set({
                         score: recalculatedPoints,
                         partialPoints: recalculatedPoints,
-                        isCorrect: recalculatedIsCorrect
+                        isCorrect: recalculatedIsCorrect ? (1 as any) : (0 as any)
                     }).where(eq(answers.id, answer.id)).catch(() => {});
                 }
             }
+
 
             return {
                 answerId: answer?.id || `missing-${qId}`, // Virtual ID for missing answers
