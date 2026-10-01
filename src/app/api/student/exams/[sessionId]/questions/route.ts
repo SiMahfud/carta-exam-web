@@ -273,8 +273,20 @@ export async function GET(
             // Use bankQuestionId if available, otherwise fallback to questionId (legacy)
             const qId = ans.bankQuestionId || ans.questionId;
             if (qId) {
+                let parsedAnswer = ans.studentAnswer;
+                if (typeof parsedAnswer === "string") {
+                    try {
+                        parsedAnswer = JSON.parse(parsedAnswer);
+                    } catch { }
+                }
+                if (typeof parsedAnswer === "string") {
+                    try {
+                        parsedAnswer = JSON.parse(parsedAnswer);
+                    } catch { }
+                }
+
                 answersMap[qId] = {
-                    answer: ans.studentAnswer,
+                    answer: parsedAnswer,
                     isFlagged: ans.isFlagged
                 };
             }

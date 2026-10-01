@@ -81,6 +81,7 @@ export async function POST(
                 .update(submissions)
                 .set({
                     status: "in_progress",
+                    endTime: null,
                     violationCount: Math.min(sub.violationCount || 0, 1),
                 })
                 .where(eq(submissions.id, sub.id));

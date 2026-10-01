@@ -19,8 +19,32 @@ export function MatchingResultViewer({ question, studentPairs, correctPairs }: M
     const containerRef = useRef<HTMLDivElement>(null);
     const [lines, setLines] = useState<{ x1: number; y1: number; x2: number; y2: number; color: string; isCorrect: boolean }[]>([]);
 
-    const leftItems = useMemo(() => question.leftItems || [], [question.leftItems]);
-    const rightItems = useMemo(() => question.rightItems || [], [question.rightItems]);
+    const leftItems = useMemo(() => {
+        let items: any = question.leftItems;
+        if (typeof items === 'string') {
+            try { items = JSON.parse(items); } catch { }
+        }
+        return Array.isArray(items) ? items : [];
+    }, [question.leftItems]);
+
+    const rightItems = useMemo(() => {
+        let items: any = question.rightItems;
+        if (typeof items === 'string') {
+            try { items = JSON.parse(items); } catch { }
+        }
+        return Array.isArray(items) ? items : [];
+    }, [question.rightItems]);
+
+    const safeStudentPairs = useMemo(() => {
+        let val: any = studentPairs;
+        if (typeof val === 'string') {
+            try { val = JSON.parse(val); } catch { }
+        }
+        if (typeof val === 'string') {
+            try { val = JSON.parse(val); } catch { }
+        }
+        return Array.isArray(val) ? val : [];
+    }, [studentPairs]);
 
     // Colors for connections to make them distinct (matching student view)
     const colors = [
@@ -61,7 +85,7 @@ export function MatchingResultViewer({ question, studentPairs, correctPairs }: M
             if (!containerRect) return;
 
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            studentPairs.forEach((pair: any) => {
+            safeStudentPairs.forEach((pair: any) => {
                 // Determine if pair uses indices or values
                 let leftIndex = -1;
                 let rightIndex = -1;
@@ -138,7 +162,7 @@ export function MatchingResultViewer({ question, studentPairs, correctPairs }: M
             window.removeEventListener("resize", calculateLines);
             clearTimeout(timeout);
         };
-    }, [studentPairs, correctPairs, question.id, leftItems, rightItems]);
+    }, [safeStudentPairs, correctPairs, question.id, leftItems, rightItems]);
 
     return (
         <div className="space-y-6 select-none">
@@ -186,7 +210,7 @@ export function MatchingResultViewer({ question, studentPairs, correctPairs }: M
                     {leftItems.map((item, idx) => {
                         // Check if this item has any student connections
                         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                        const hasConnection = studentPairs.some((p: any) => {
+                        const hasConnection = safeStudentPairs.some((p: any) => {
                             if (typeof p.left === 'number') return p.left === idx;
 
                             const itemText = getItemText(item);
@@ -225,7 +249,7 @@ export function MatchingResultViewer({ question, studentPairs, correctPairs }: M
                     <h3 className="font-semibold text-center mb-4 text-muted-foreground text-sm uppercase tracking-wider">Pasangan</h3>
                     {rightItems.map((item, idx) => {
                         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                        const hasConnection = studentPairs.some((p: any) => {
+                        const hasConnection = safeStudentPairs.some((p: any) => {
                             if (typeof p.right === 'number') return p.right === idx;
 
                             const itemText = getItemText(item);

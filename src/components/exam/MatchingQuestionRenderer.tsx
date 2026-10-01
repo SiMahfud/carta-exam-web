@@ -30,10 +30,33 @@ export function MatchingQuestionRenderer({ question, answer, onChange }: Matchin
     const [lines, setLines] = useState<{ x1: number; y1: number; x2: number; y2: number; color: string }[]>([]);
 
     // Memoize these arrays to prevent infinite loops in useEffect
-    // When answer is null/undefined, 'answer || []' creates a new array reference every render
-    const connections = useMemo(() => answer || [], [answer]);
-    const leftItems = useMemo(() => question.leftItems || [], [question.leftItems]);
-    const rightItems = useMemo(() => question.rightItems || [], [question.rightItems]);
+    // Ensure connections is always an Array even if answer is passed as a string or object
+    const connections = useMemo(() => {
+        let val: any = answer;
+        if (typeof val === 'string') {
+            try { val = JSON.parse(val); } catch { }
+        }
+        if (typeof val === 'string') {
+            try { val = JSON.parse(val); } catch { }
+        }
+        return Array.isArray(val) ? val : [];
+    }, [answer]);
+
+    const leftItems = useMemo(() => {
+        let items: any = question.leftItems;
+        if (typeof items === 'string') {
+            try { items = JSON.parse(items); } catch { }
+        }
+        return Array.isArray(items) ? items : [];
+    }, [question.leftItems]);
+
+    const rightItems = useMemo(() => {
+        let items: any = question.rightItems;
+        if (typeof items === 'string') {
+            try { items = JSON.parse(items); } catch { }
+        }
+        return Array.isArray(items) ? items : [];
+    }, [question.rightItems]);
 
 
 

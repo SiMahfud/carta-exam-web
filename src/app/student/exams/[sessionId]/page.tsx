@@ -240,13 +240,21 @@ export default function TakeExamPage() {
                     setViolationSettings(parsedSettings);
                 }
 
+                setIsTerminated(false);
                 if (data.answers) {
                     const restoredAnswers = new Map<string, Answer>();
                     // eslint-disable-next-line @typescript-eslint/no-explicit-any
                     Object.entries(data.answers).forEach(([qId, ans]: [string, any]) => {
+                        let parsedAnswer = ans.answer;
+                        if (typeof parsedAnswer === 'string') {
+                            try { parsedAnswer = JSON.parse(parsedAnswer); } catch { }
+                        }
+                        if (typeof parsedAnswer === 'string') {
+                            try { parsedAnswer = JSON.parse(parsedAnswer); } catch { }
+                        }
                         restoredAnswers.set(qId, {
                             questionId: qId,
-                            answer: ans.answer,
+                            answer: parsedAnswer,
                             isFlagged: ans.isFlagged
                         });
                     });
@@ -789,6 +797,15 @@ export default function TakeExamPage() {
             <TerminatedExamView
                 violationCount={violationCount}
                 onReturn={() => router.push("/student/exams")}
+                onRetry={async () => {
+                    setLoading(true);
+                    let storedToken: string | undefined;
+                    try {
+                        storedToken = sessionStorage.getItem(`exam_token_${sessionId}`) || undefined;
+                    } catch { }
+                    await fetchQuestions(storedToken);
+                    setLoading(false);
+                }}
             />
         );
     }

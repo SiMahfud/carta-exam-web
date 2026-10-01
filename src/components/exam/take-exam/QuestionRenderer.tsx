@@ -33,12 +33,19 @@ export function QuestionRenderer({
         xl: "text-xl",
     }[fontSize];
 
+    // Helper to unwrap string JSON if answer was double-stringified or JSON-encoded
+    let safeAnswer = answer;
+    if (typeof safeAnswer === 'string' && safeAnswer.startsWith('"') && safeAnswer.endsWith('"')) {
+        try { safeAnswer = JSON.parse(safeAnswer); } catch { }
+    }
+
     if (question.type === "mc") {
+        const selectedValue = typeof safeAnswer === 'string' ? safeAnswer : (typeof answer === 'string' ? answer : "");
         return (
             <div className="space-y-3 max-w-3xl">
                 {question.options?.map((option) => {
                     const isEliminated = eliminatedLabels.includes(option.label);
-                    const isSelected = answer === option.label;
+                    const isSelected = selectedValue === option.label;
 
                     return (
                         <div
@@ -131,7 +138,18 @@ export function QuestionRenderer({
     }
 
     if (question.type === "complex_mc") {
-        const selectedAnswers = answer || [];
+        let selectedAnswers: string[] = [];
+        if (Array.isArray(answer)) {
+            selectedAnswers = answer;
+        } else if (typeof answer === 'string') {
+            try {
+                let parsed = JSON.parse(answer);
+                if (typeof parsed === 'string') {
+                    try { parsed = JSON.parse(parsed); } catch { }
+                }
+                if (Array.isArray(parsed)) selectedAnswers = parsed;
+            } catch { }
+        }
         return (
             <div className="space-y-3.5 max-w-3xl">
                 <div className="flex items-center gap-2 text-xs text-primary font-medium bg-primary/10 border border-primary/20 px-3 py-1.5 rounded-lg w-fit">
@@ -223,11 +241,12 @@ export function QuestionRenderer({
     }
 
     if (question.type === "short") {
+        const textValue = typeof safeAnswer === 'string' ? safeAnswer : (answer ? String(answer) : "");
         return (
             <div className="max-w-xl space-y-2">
                 <input
                     type="text"
-                    value={answer || ""}
+                    value={textValue}
                     onChange={(e) => onChange(e.target.value)}
                     className="w-full p-4 text-base sm:text-lg border-2 border-border/80 rounded-xl focus:border-primary focus:ring-4 focus:ring-primary/10 focus:outline-none transition-all bg-card font-medium shadow-xs"
                     placeholder="Ketik jawaban singkat Anda di sini..."
@@ -240,10 +259,11 @@ export function QuestionRenderer({
     }
 
     if (question.type === "essay") {
+        const textValue = typeof safeAnswer === 'string' ? safeAnswer : (answer ? String(answer) : "");
         return (
             <div className="max-w-3xl space-y-2">
                 <textarea
-                    value={answer || ""}
+                    value={textValue}
                     onChange={(e) => onChange(e.target.value)}
                     rows={10}
                     className="w-full p-4 text-base sm:text-lg border-2 border-border/80 rounded-xl focus:border-primary focus:ring-4 focus:ring-primary/10 focus:outline-none resize-y transition-all bg-card leading-relaxed shadow-xs"
@@ -252,7 +272,7 @@ export function QuestionRenderer({
                 <div className="flex justify-between items-center text-xs text-muted-foreground">
                     <span>Gunakan tanda baca dan paragraf yang rapi</span>
                     <span className="bg-muted px-2.5 py-1 rounded-md font-mono font-medium">
-                        {answer ? answer.length : 0} karakter
+                        {textValue ? textValue.length : 0} karakter
                     </span>
                 </div>
             </div>
@@ -270,6 +290,7 @@ export function QuestionRenderer({
     }
 
     if (question.type === "true_false") {
+        const selectedValue = typeof safeAnswer === 'string' ? safeAnswer : (typeof answer === 'string' ? answer : "");
         return (
             <div className="space-y-3 max-w-xl">
                 {[
@@ -280,7 +301,7 @@ export function QuestionRenderer({
                         key={option.value}
                         className={`
                             flex items-center gap-4 p-4 rounded-xl border-2 cursor-pointer transition-all duration-200 group
-                            ${answer === option.value
+                            ${selectedValue === option.value
                                 ? "border-primary bg-primary/5 shadow-xs ring-1 ring-primary/20"
                                 : "border-border/80 bg-card hover:border-primary/40 hover:bg-muted/20"}
                         `}
@@ -288,12 +309,12 @@ export function QuestionRenderer({
                         <div
                             className={`
                                 flex items-center justify-center w-8 h-8 rounded-full border-2 shrink-0 transition-colors
-                                ${answer === option.value
+                                ${selectedValue === option.value
                                     ? "border-primary bg-primary text-primary-foreground font-bold"
                                     : "border-muted-foreground/30 text-muted-foreground group-hover:border-primary/50 bg-background"}
                             `}
                         >
-                            {answer === option.value ? (
+                            {selectedValue === option.value ? (
                                 <div className="w-2.5 h-2.5 bg-white rounded-full" />
                             ) : (
                                 <span className="text-xs font-bold">{optIdx + 1}</span>
@@ -304,7 +325,7 @@ export function QuestionRenderer({
                             type="radio"
                             name="true_false_answer"
                             value={option.value}
-                            checked={answer === option.value}
+                            checked={selectedValue === option.value}
                             onChange={(e) => onChange(e.target.value)}
                             className="sr-only"
                         />
