@@ -107,13 +107,18 @@ export async function POST(
             currentLog = [];
         }
 
-        // Server-side Cooldown Check: Ignore burst violations within cooldown period
+        // Server-side Cooldown Check: Ignore repeat violations of the same type within cooldown period,
+        // or rapid micro-bursts of different types within 500ms
         if (currentLog.length > 0) {
             const lastEntry = currentLog[currentLog.length - 1];
             if (lastEntry && lastEntry.timestamp) {
                 const lastTime = new Date(lastEntry.timestamp).getTime();
                 const now = Date.now();
-                if (!isNaN(lastTime) && (now - lastTime < cooldownMs)) {
+                const isSameType = lastEntry.type === type;
+                const isRepeatWithinCooldown = isSameType && (now - lastTime < cooldownMs);
+                const isMicroBurst = !isSameType && (now - lastTime < 500);
+
+                if (!isNaN(lastTime) && (isRepeatWithinCooldown || isMicroBurst)) {
                     return NextResponse.json({
                         violationCount: submission.violationCount || 0,
                         maxViolations,

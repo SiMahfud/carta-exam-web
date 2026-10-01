@@ -7,6 +7,7 @@ import { useFullscreen } from "@/hooks/use-fullscreen";
 import { useExamSecurity } from "@/hooks/use-exam-security";
 import { getDeviceId } from "@/lib/device";
 import { useWatermark } from "@/lib/lockdown";
+import { checkSplitOrFloatingScreen } from "@/lib/mobile-security";
 
 // Components
 import { ExamHeader } from "@/components/exam/take-exam/ExamHeader";
@@ -14,6 +15,7 @@ import { ExamSidebar } from "@/components/exam/take-exam/ExamSidebar";
 import { SubmitDialog } from "@/components/exam/take-exam/SubmitDialog";
 import { PreExamDialog } from "@/components/exam/take-exam/PreExamDialog";
 import { SecurityWarningBanner } from "@/components/exam/take-exam/SecurityWarningBanner";
+import { FullscreenLockoutOverlay } from "@/components/exam/take-exam/FullscreenLockoutOverlay";
 import { TerminatedExamView } from "@/components/exam/take-exam/TerminatedExamView";
 import { QuestionCard } from "@/components/exam/take-exam/QuestionCard";
 import { FloatingExamTools } from "@/components/exam/take-exam/FloatingExamTools";
@@ -58,6 +60,11 @@ export default function TakeExamPage() {
     const [showViolationDetailDialog, setShowViolationDetailDialog] = useState(false);
     const [maxViolations, setMaxViolations] = useState<number>(3);
     const [showSessionExpiredDialog, setShowSessionExpiredDialog] = useState(false);
+    const [lockoutState, setLockoutState] = useState<{
+        isOpen: boolean;
+        reason?: "FULLSCREEN_EXIT" | "SPLIT_SCREEN" | "FLOATING_WINDOW" | string;
+        details?: string;
+    }>({ isOpen: false });
 
     // UI/UX Customization States
     const [fontSize, setFontSize] = useState<"sm" | "base" | "lg" | "xl">("base");
@@ -384,9 +391,18 @@ export default function TakeExamPage() {
         disableRightClick: violationSettings?.detectRightClick ?? true,
         detectTabSwitch: violationSettings?.detectTabSwitch ?? true,
         detectScreenshot: violationSettings?.detectScreenshot ?? true,
+        detectSplitScreen: true,
+        detectFloatingWindow: true,
         detectWindowBlur: false,
         onViolation: (violation) => {
             logSecurityViolation(violation.type, violation.details);
+            if (violation.type === "SPLIT_SCREEN" || violation.type === "FLOATING_WINDOW") {
+                setLockoutState({
+                    isOpen: true,
+                    reason: violation.type,
+                    details: violation.details,
+                });
+            }
         }
     });
 
@@ -465,16 +481,31 @@ export default function TakeExamPage() {
             );
 
             if (!isCurrentlyFullscreen && examStarted && !submitting) {
-                toast({
-                    title: "Mode Layar Penuh Diperlukan",
-                    description: "Anda tidak dapat keluar dari layar penuh selama ujian berlangsung.",
-                    variant: "destructive",
+                logSecurityViolation("FULLSCREEN_EXIT", "Keluar dari mode layar penuh");
+                setLockoutState({
+                    isOpen: true,
+                    reason: "FULLSCREEN_EXIT",
+                    details: "Keluar dari mode layar penuh",
                 });
-                setTimeout(() => {
-                    enterFullscreen();
-                }, 100);
-
-                logSecurityViolation("FULLSCREEN_EXIT", "User attempted to exit fullscreen");
+            } else if (isCurrentlyFullscreen) {
+                const splitRes = checkSplitOrFloatingScreen();
+                if (splitRes.isSplitScreen) {
+                    logSecurityViolation("SPLIT_SCREEN", splitRes.details);
+                    setLockoutState({
+                        isOpen: true,
+                        reason: "SPLIT_SCREEN",
+                        details: splitRes.details,
+                    });
+                } else if (splitRes.isFloatingWindow) {
+                    logSecurityViolation("FLOATING_WINDOW", splitRes.details);
+                    setLockoutState({
+                        isOpen: true,
+                        reason: "FLOATING_WINDOW",
+                        details: splitRes.details,
+                    });
+                } else {
+                    setLockoutState({ isOpen: false });
+                }
             }
         };
 
@@ -489,33 +520,39 @@ export default function TakeExamPage() {
                 );
 
                 if (!isCurrentlyFullscreen) {
-                    toast({
-                        title: "Mode Layar Penuh Diperlukan",
-                        description: "Tekan tombol 'Kumpulkan' untuk mengakhiri ujian.",
-                        variant: "destructive",
-                    });
-
-                    setTimeout(() => {
-                        enterFullscreen();
-                    }, 100);
-
                     logSecurityViolation("BACK_BUTTON", "User pressed back button on Android");
+                    setLockoutState({
+                        isOpen: true,
+                        reason: "FULLSCREEN_EXIT",
+                        details: "Tombol kembali ditekan",
+                    });
                 }
             }
         };
 
         const handleVisibilityChange = () => {
             if (document.visibilityState === 'visible' && examStarted && !submitting) {
-                setTimeout(() => {
-                    const isCurrentlyFullscreen = !!(
-                        document.fullscreenElement ||
-                        (document as unknown as { webkitFullscreenElement?: Element }).webkitFullscreenElement
-                    );
+                const splitRes = checkSplitOrFloatingScreen();
+                const isCurrentlyFullscreen = !!(
+                    document.fullscreenElement ||
+                    (document as unknown as { webkitFullscreenElement?: Element }).webkitFullscreenElement
+                );
 
-                    if (!isCurrentlyFullscreen) {
-                        enterFullscreen();
-                    }
-                }, 200);
+                if (!isCurrentlyFullscreen) {
+                    logSecurityViolation("FULLSCREEN_EXIT", "Keluar dari mode layar penuh");
+                    setLockoutState({
+                        isOpen: true,
+                        reason: "FULLSCREEN_EXIT",
+                        details: "Keluar dari layar penuh saat beralih aplikasi",
+                    });
+                } else if (splitRes.isSplitScreen) {
+                    logSecurityViolation("SPLIT_SCREEN", splitRes.details);
+                    setLockoutState({
+                        isOpen: true,
+                        reason: "SPLIT_SCREEN",
+                        details: splitRes.details,
+                    });
+                }
             }
         };
 
@@ -532,10 +569,20 @@ export default function TakeExamPage() {
             window.removeEventListener("popstate", handlePopState);
             document.removeEventListener("visibilitychange", handleVisibilityChange);
         };
-    }, [examStarted, submitting, enterFullscreen, toast, logSecurityViolation]);
+    }, [examStarted, submitting, logSecurityViolation]);
 
     // Handle Start from PreExamDialog
     const handleStartExam = async (token?: string) => {
+        const splitRes = checkSplitOrFloatingScreen();
+        if (splitRes.isSplitScreen || splitRes.isFloatingWindow) {
+            toast({
+                title: "Layar Terbelah Terdeteksi",
+                description: "Harap tutup aplikasi sebelah dan gunakan 1 layar penuh sebelum memulai ujian.",
+                variant: "destructive",
+            });
+            return;
+        }
+
         if (tokenRequired && !token) {
             setTokenError("Token harus diisi");
             return;
@@ -567,6 +614,49 @@ export default function TakeExamPage() {
         }
     };
 
+    const handleRestoreFullscreen = async (): Promise<{ success: boolean; message?: string }> => {
+        const splitRes = checkSplitOrFloatingScreen();
+        if (splitRes.isSplitScreen) {
+            return {
+                success: false,
+                message: "Layar ponsel masih terbelah! Tutup aplikasi sebelah dan penuhi seluruh layar terlebih dahulu.",
+            };
+        }
+        if (splitRes.isFloatingWindow) {
+            return {
+                success: false,
+                message: "Jendela browser masih mengambang! Perbesar jendela ke layar penuh terlebih dahulu.",
+            };
+        }
+
+        try {
+            await enterFullscreen();
+            await new Promise((r) => setTimeout(r, 250));
+
+            const isNowFullscreen = !!(
+                document.fullscreenElement ||
+                (document as unknown as { webkitFullscreenElement?: Element }).webkitFullscreenElement ||
+                (document as unknown as { mozFullScreenElement?: Element }).mozFullScreenElement
+            );
+
+            if (isNowFullscreen) {
+                setLockoutState({ isOpen: false });
+                return { success: true };
+            } else {
+                return {
+                    success: false,
+                    message: "Gagal masuk mode layar penuh. Ketuk tombol sekali lagi.",
+                };
+            }
+        } catch (err) {
+            console.error("Failed to restore fullscreen:", err);
+            return {
+                success: false,
+                message: "Browser menolak permintaan layar penuh. Silakan coba lagi.",
+            };
+        }
+    };
+
     const ensureFullscreen = useCallback(() => {
         if (!examStarted || submitting || !fullscreenSupported) return;
 
@@ -576,10 +666,31 @@ export default function TakeExamPage() {
             (document as unknown as { mozFullScreenElement?: Element }).mozFullScreenElement
         );
 
+        const splitRes = checkSplitOrFloatingScreen();
+
         if (!isCurrentlyFullscreen) {
-            enterFullscreen();
+            logSecurityViolation("FULLSCREEN_EXIT", "Mode layar penuh tidak aktif");
+            setLockoutState({
+                isOpen: true,
+                reason: "FULLSCREEN_EXIT",
+                details: "Mode layar penuh tidak aktif",
+            });
+        } else if (splitRes.isSplitScreen) {
+            logSecurityViolation("SPLIT_SCREEN", splitRes.details);
+            setLockoutState({
+                isOpen: true,
+                reason: "SPLIT_SCREEN",
+                details: splitRes.details,
+            });
+        } else if (splitRes.isFloatingWindow) {
+            logSecurityViolation("FLOATING_WINDOW", splitRes.details);
+            setLockoutState({
+                isOpen: true,
+                reason: "FLOATING_WINDOW",
+                details: splitRes.details,
+            });
         }
-    }, [examStarted, submitting, fullscreenSupported, enterFullscreen]);
+    }, [examStarted, submitting, fullscreenSupported, logSecurityViolation]);
 
     // Periodic fullscreen check
     useEffect(() => {
@@ -829,6 +940,14 @@ export default function TakeExamPage() {
                 tokenError={tokenError}
                 onStartExam={handleStartExam}
                 loading={verifyingToken}
+            />
+
+            {/* Fullscreen & Split-Screen Lockout Overlay */}
+            <FullscreenLockoutOverlay
+                isOpen={lockoutState.isOpen && examStarted && !isTerminated}
+                reason={lockoutState.reason}
+                details={lockoutState.details}
+                onRestoreFullscreen={handleRestoreFullscreen}
             />
 
             {/* Security Warning Banner */}

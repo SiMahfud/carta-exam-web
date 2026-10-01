@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useCallback, useRef } from "react";
+import { checkSplitOrFloatingScreen } from "@/lib/mobile-security";
 
 interface ViolationLog {
     type: string;
@@ -15,6 +16,8 @@ interface UseExamSecurityOptions {
     detectTabSwitch?: boolean;
     detectWindowBlur?: boolean;
     detectScreenshot?: boolean;
+    detectSplitScreen?: boolean;
+    detectFloatingWindow?: boolean;
     enabled?: boolean;
     cooldownMs?: number;
 }
@@ -27,6 +30,8 @@ export function useExamSecurity(options: UseExamSecurityOptions = {}) {
         detectTabSwitch = true,
         detectWindowBlur = false, // Disabled by default to avoid double counting
         detectScreenshot = true, // Enable mobile screenshot detection by default
+        detectSplitScreen = true, // Enable mobile split-screen detection
+        detectFloatingWindow = true, // Enable mobile floating window / focus loss detection
         enabled = true,
         cooldownMs = 5000 // 5 second cooldown between same violation types
     } = options;
@@ -76,6 +81,21 @@ export function useExamSecurity(options: UseExamSecurityOptions = {}) {
             height: window.screen.height
         };
 
+        // Check for split screen or floating windows on mobile
+        const runDimensionCheck = () => {
+            if (!detectSplitScreen && !detectFloatingWindow) return;
+            const result = checkSplitOrFloatingScreen();
+            if (result.isSplitScreen && detectSplitScreen) {
+                logViolation("SPLIT_SCREEN", result.details || "Layar terbelah (Split Screen) terdeteksi");
+            } else if (result.isFloatingWindow && detectFloatingWindow) {
+                logViolation("FLOATING_WINDOW", result.details || "Jendela mengambang (Floating Window) terdeteksi");
+            }
+        };
+
+        // Run dimension check immediately on mount
+        runDimensionCheck();
+        const dimensionInterval = setInterval(runDimensionCheck, 1500);
+
         // Detect tab switching
         const handleVisibilityChange = () => {
             if (document.hidden) {
@@ -89,9 +109,12 @@ export function useExamSecurity(options: UseExamSecurityOptions = {}) {
             }
         };
 
-        // Detect window blur (optional - can cause double counting)
+        // Detect window blur or floating window interaction
         const handleBlur = () => {
-            if (detectWindowBlur) {
+            // When document is NOT hidden, but window lost focus, user is interacting with an external floating app or companion split window
+            if (!document.hidden && detectFloatingWindow) {
+                logViolation("FLOATING_WINDOW", "Jendela mengambang (Floating Window) atau aplikasi luar mengambil fokus");
+            } else if (detectWindowBlur) {
                 logViolation("WINDOW_BLUR", "Window lost focus");
             }
         };
@@ -157,6 +180,7 @@ export function useExamSecurity(options: UseExamSecurityOptions = {}) {
 
         document.addEventListener("visibilitychange", handleVisibilityChange);
         window.addEventListener("blur", handleBlur);
+        window.addEventListener("resize", runDimensionCheck);
         document.addEventListener("contextmenu", handleContextMenu);
         document.addEventListener("keydown", handleKeyDown);
         document.addEventListener("selectstart", handleSelectStart);
@@ -164,11 +188,13 @@ export function useExamSecurity(options: UseExamSecurityOptions = {}) {
         return () => {
             document.removeEventListener("visibilitychange", handleVisibilityChange);
             window.removeEventListener("blur", handleBlur);
+            window.removeEventListener("resize", runDimensionCheck);
+            clearInterval(dimensionInterval);
             document.removeEventListener("contextmenu", handleContextMenu);
             document.removeEventListener("keydown", handleKeyDown);
             document.removeEventListener("selectstart", handleSelectStart);
         };
-    }, [enabled, disableCopyPaste, disableRightClick, detectTabSwitch, detectWindowBlur, detectScreenshot, logViolation]);
+    }, [enabled, disableCopyPaste, disableRightClick, detectTabSwitch, detectWindowBlur, detectScreenshot, detectSplitScreen, detectFloatingWindow, logViolation]);
 
     return {
         violations: violations.current,

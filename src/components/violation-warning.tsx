@@ -34,6 +34,15 @@ export function ViolationWarning({
                 return 'Anda terdeteksi berpindah tab atau aplikasi'
             case 'window_blur':
                 return 'Anda terdeteksi keluar dari jendela ujian'
+            case 'split_screen':
+            case 'SPLIT_SCREEN':
+                return 'Anda terdeteksi menggunakan layar terbelah (Split Screen)'
+            case 'floating_window':
+            case 'FLOATING_WINDOW':
+                return 'Anda terdeteksi menggunakan jendela mengambang (Floating Window)'
+            case 'fullscreen_exit':
+            case 'FULLSCREEN_EXIT':
+                return 'Anda terdeteksi keluar dari mode layar penuh'
             case 'copy':
                 return 'Anda mencoba menyalin teks'
             case 'paste':

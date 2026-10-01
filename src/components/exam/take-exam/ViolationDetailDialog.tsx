@@ -45,6 +45,8 @@ function getViolationIcon(type: string) {
     const lower = type.toLowerCase();
     if (lower.includes("tab")) return <ExternalLink className="h-4 w-4 text-amber-500" />;
     if (lower.includes("fullscreen")) return <Maximize2 className="h-4 w-4 text-red-500" />;
+    if (lower.includes("split")) return <Smartphone className="h-4 w-4 text-rose-500" />;
+    if (lower.includes("floating")) return <Smartphone className="h-4 w-4 text-amber-500" />;
     if (lower.includes("keyboard") || lower.includes("copy") || lower.includes("paste")) return <Keyboard className="h-4 w-4 text-orange-500" />;
     if (lower.includes("screenshot")) return <Camera className="h-4 w-4 text-purple-500" />;
     if (lower.includes("right_click") || lower.includes("context_menu")) return <MousePointer className="h-4 w-4 text-blue-500" />;
@@ -64,12 +66,16 @@ function getViolationLabel(type: string): string {
         DEVTOOLS: "Membuka Developer Tools",
         SCREENSHOT: "Mencoba Screenshot",
         FULLSCREEN_EXIT: "Keluar dari Layar Penuh",
+        SPLIT_SCREEN: "Layar Terbelah (Split Screen)",
+        FLOATING_WINDOW: "Jendela Mengambang (Floating Window)",
         BACK_BUTTON: "Menekan Tombol Kembali (HP)",
         WATERMARK_TAMPERING: "Manipulasi Watermark Keamanan",
         DEVICE_MISMATCH: "Perangkat Tidak Cocok",
         // Lowercase variant
         tab_switch: "Pindah Tab Browser",
         window_blur: "Keluar dari Jendela Ujian",
+        split_screen: "Layar Terbelah (Split Screen)",
+        floating_window: "Jendela Mengambang (Floating Window)",
         context_menu: "Klik Kanan Diblokir",
         copy: "Mencoba Copy Teks",
         paste: "Mencoba Paste Teks",

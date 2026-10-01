@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import { checkSplitOrFloatingScreen } from "@/lib/mobile-security";
 import {
     Dialog,
     DialogContent,
@@ -21,6 +22,7 @@ import {
     Sparkles,
     Maximize2,
     Lock,
+    Smartphone,
 } from "lucide-react";
 
 interface PreExamDialogProps {
@@ -51,6 +53,30 @@ export function PreExamDialog({
     loading = false,
 }: PreExamDialogProps) {
     const [token, setToken] = useState("");
+    const [splitWarning, setSplitWarning] = useState<string | null>(null);
+
+    useEffect(() => {
+        if (!open) return;
+
+        const check = () => {
+            const res = checkSplitOrFloatingScreen();
+            if (res.isSplitScreen) {
+                setSplitWarning("Layar ponsel Anda terbelah (Split Screen). Harap tutup aplikasi sebelah dan gunakan 1 layar penuh utuh sebelum memulai ujian.");
+            } else if (res.isFloatingWindow) {
+                setSplitWarning("Jendela browser terlalu kecil / mengambang (Floating Window). Harap perbesar jendela ke satu layar penuh sebelum memulai ujian.");
+            } else {
+                setSplitWarning(null);
+            }
+        };
+
+        check();
+        window.addEventListener("resize", check);
+        const interval = setInterval(check, 1000);
+        return () => {
+            window.removeEventListener("resize", check);
+            clearInterval(interval);
+        };
+    }, [open]);
 
     const initials = studentName
         ? studentName
@@ -62,6 +88,16 @@ export function PreExamDialog({
         : "SW";
 
     const handleConfirm = () => {
+        const res = checkSplitOrFloatingScreen();
+        if (res.isSplitScreen || res.isFloatingWindow) {
+            setSplitWarning(
+                res.isSplitScreen
+                    ? "Layar ponsel masih terbelah! Harap tutup aplikasi sebelah terlebih dahulu."
+                    : "Jendela browser masih mengambang! Harap perbesar ke satu layar penuh."
+            );
+            return;
+        }
+
         if (requireToken) {
             onStartExam(token.trim().toUpperCase());
         } else {
@@ -163,6 +199,19 @@ export function PreExamDialog({
                         </div>
                     )}
 
+                    {/* Split Screen / Floating Window Warning Banner */}
+                    {splitWarning && (
+                        <div className="p-4 rounded-xl border-2 border-destructive bg-destructive/10 text-destructive space-y-2 animate-in fade-in duration-200">
+                            <div className="flex items-center gap-2 text-sm font-bold">
+                                <Smartphone className="w-5 h-5 shrink-0 animate-bounce" />
+                                <span>Layar Terbelah Terdeteksi!</span>
+                            </div>
+                            <p className="text-xs leading-relaxed text-destructive/90">
+                                {splitWarning}
+                            </p>
+                        </div>
+                    )}
+
                     {/* Rules & Motivation Reminder */}
                     <div className="text-xs text-muted-foreground space-y-1.5 p-3 rounded-lg bg-muted/20 border border-border/60">
                         <div className="font-semibold text-foreground flex items-center gap-1.5">
@@ -171,6 +220,7 @@ export function PreExamDialog({
                         </div>
                         <ul className="list-disc list-inside space-y-1 text-[11.5px] leading-relaxed text-foreground/80">
                             <li>Ujian wajib dikerjakan dalam mode <strong>Layar Penuh (Fullscreen)</strong>.</li>
+                            <li>Dilarang menggunakan <strong>Split Screen</strong> atau <strong>Floating Window</strong>.</li>
                             <li>Dilarang berpindah tab browser, membuka aplikasi lain, atau mengambil screenshot.</li>
                             <li>Jawaban Anda otomatis tersimpan ke server secara berkala.</li>
                         </ul>
@@ -184,12 +234,18 @@ export function PreExamDialog({
                 <DialogFooter className="p-4 bg-muted/30 border-t flex flex-col sm:flex-row gap-2 shrink-0">
                     <Button
                         size="lg"
-                        className="w-full sm:w-auto flex-1 font-bold shadow-lg shadow-primary/20 cursor-pointer"
+                        className={`w-full sm:w-auto flex-1 font-bold shadow-lg shadow-primary/20 cursor-pointer ${
+                            splitWarning ? "bg-destructive hover:bg-destructive text-destructive-foreground opacity-90" : ""
+                        }`}
                         onClick={handleConfirm}
-                        disabled={loading || (requireToken && !token.trim())}
+                        disabled={loading || !!splitWarning || (requireToken && !token.trim())}
                     >
                         <Maximize2 className="w-4 h-4 mr-2" />
-                        {loading ? "Menyiapkan Ujian..." : "Masuk & Mulai Ujian"}
+                        {splitWarning
+                            ? "Tutup Split Screen untuk Memulai"
+                            : loading
+                            ? "Menyiapkan Ujian..."
+                            : "Masuk & Mulai Ujian"}
                     </Button>
                 </DialogFooter>
             </DialogContent>

@@ -90,4 +90,49 @@ describe('useExamSecurity', () => {
             details: 'PrintScreen attempted'
         }));
     });
+
+    it('should trigger FLOATING_WINDOW when window loses focus while document is still visible', () => {
+        const onViolation = vi.fn();
+        renderHook(() => useExamSecurity({ onViolation, detectFloatingWindow: true }));
+
+        // Document is visible (not hidden), but window blurs (e.g. user taps floating WhatsApp window)
+        Object.defineProperty(document, 'hidden', { value: false, writable: true, configurable: true });
+        act(() => {
+            window.dispatchEvent(new Event('blur'));
+        });
+
+        expect(onViolation).toHaveBeenCalledTimes(1);
+        expect(onViolation).toHaveBeenCalledWith(expect.objectContaining({
+            type: 'FLOATING_WINDOW',
+        }));
+    });
+
+    it('should trigger SPLIT_SCREEN on mobile when viewport height is halved', () => {
+        const onViolation = vi.fn();
+
+        // Mock mobile user agent
+        Object.defineProperty(navigator, 'userAgent', {
+            value: 'Mozilla/5.0 (Linux; Android 13; SM-G991B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/112.0.0.0 Mobile Safari/537.36',
+            writable: true,
+            configurable: true
+        });
+
+        // Set screen dimensions: 400x800, but innerHeight only 350 (< 70% of 800)
+        Object.defineProperty(window.screen, 'height', { value: 800, writable: true, configurable: true });
+        Object.defineProperty(window.screen, 'width', { value: 400, writable: true, configurable: true });
+        Object.defineProperty(window.screen, 'availHeight', { value: 800, writable: true, configurable: true });
+        Object.defineProperty(window.screen, 'availWidth', { value: 400, writable: true, configurable: true });
+        Object.defineProperty(window, 'innerHeight', { value: 350, writable: true, configurable: true });
+        Object.defineProperty(window, 'innerWidth', { value: 400, writable: true, configurable: true });
+
+        renderHook(() => useExamSecurity({ onViolation, detectSplitScreen: true }));
+
+        act(() => {
+            window.dispatchEvent(new Event('resize'));
+        });
+
+        expect(onViolation).toHaveBeenCalledWith(expect.objectContaining({
+            type: 'SPLIT_SCREEN',
+        }));
+    });
 });
