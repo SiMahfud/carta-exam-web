@@ -520,18 +520,22 @@ export default function TakeExamPage() {
                 e.preventDefault();
                 pushDummyState();
 
-                const isCurrentlyFullscreen = !!(
-                    document.fullscreenElement ||
-                    (document as unknown as { webkitFullscreenElement?: Element }).webkitFullscreenElement
-                );
+                // Only lock out on back-button if fullscreen is supported (Android/Desktop).
+                // On iPhone Safari, fullscreen API is not available, so skip this check.
+                if (fullscreenSupported) {
+                    const isCurrentlyFullscreen = !!(
+                        document.fullscreenElement ||
+                        (document as unknown as { webkitFullscreenElement?: Element }).webkitFullscreenElement
+                    );
 
-                if (!isCurrentlyFullscreen) {
-                    logSecurityViolation("BACK_BUTTON", "User pressed back button on Android");
-                    setLockoutState({
-                        isOpen: true,
-                        reason: "FULLSCREEN_EXIT",
-                        details: "Tombol kembali ditekan",
-                    });
+                    if (!isCurrentlyFullscreen) {
+                        logSecurityViolation("BACK_BUTTON", "User pressed back button on Android");
+                        setLockoutState({
+                            isOpen: true,
+                            reason: "FULLSCREEN_EXIT",
+                            details: "Tombol kembali ditekan",
+                        });
+                    }
                 }
             }
         };
@@ -539,23 +543,38 @@ export default function TakeExamPage() {
         const handleVisibilityChange = () => {
             if (document.visibilityState === 'visible' && examStarted && !submitting) {
                 const splitRes = checkSplitOrFloatingScreen();
-                const isCurrentlyFullscreen = !!(
-                    document.fullscreenElement ||
-                    (document as unknown as { webkitFullscreenElement?: Element }).webkitFullscreenElement
-                );
 
-                if (!isCurrentlyFullscreen) {
-                    logSecurityViolation("FULLSCREEN_EXIT", "Keluar dari mode layar penuh");
-                    setLockoutState({
-                        isOpen: true,
-                        reason: "FULLSCREEN_EXIT",
-                        details: "Keluar dari layar penuh saat beralih aplikasi",
-                    });
-                } else if (splitRes.isSplitScreen) {
+                // On devices that support fullscreen (Android/Desktop), check fullscreen state
+                if (fullscreenSupported) {
+                    const isCurrentlyFullscreen = !!(
+                        document.fullscreenElement ||
+                        (document as unknown as { webkitFullscreenElement?: Element }).webkitFullscreenElement
+                    );
+
+                    if (!isCurrentlyFullscreen) {
+                        logSecurityViolation("FULLSCREEN_EXIT", "Keluar dari mode layar penuh");
+                        setLockoutState({
+                            isOpen: true,
+                            reason: "FULLSCREEN_EXIT",
+                            details: "Keluar dari layar penuh saat beralih aplikasi",
+                        });
+                        return;
+                    }
+                }
+
+                // On all devices (including iPhone without fullscreen), still check split/floating
+                if (splitRes.isSplitScreen) {
                     logSecurityViolation("SPLIT_SCREEN", splitRes.details);
                     setLockoutState({
                         isOpen: true,
                         reason: "SPLIT_SCREEN",
+                        details: splitRes.details,
+                    });
+                } else if (splitRes.isFloatingWindow) {
+                    logSecurityViolation("FLOATING_WINDOW", splitRes.details);
+                    setLockoutState({
+                        isOpen: true,
+                        reason: "FLOATING_WINDOW",
                         details: splitRes.details,
                     });
                 }
@@ -575,7 +594,7 @@ export default function TakeExamPage() {
             window.removeEventListener("popstate", handlePopState);
             document.removeEventListener("visibilitychange", handleVisibilityChange);
         };
-    }, [examStarted, submitting, logSecurityViolation]);
+    }, [examStarted, submitting, fullscreenSupported, logSecurityViolation]);
 
     // Handle Start from PreExamDialog
     const handleStartExam = async (token?: string) => {
@@ -636,6 +655,14 @@ export default function TakeExamPage() {
                 success: false,
                 message: "Jendela browser masih mengambang! Perbesar jendela ke layar penuh terlebih dahulu.",
             };
+        }
+
+        // On devices without fullscreen support (iPhone Safari), allow unlock
+        // as long as no split/floating window is detected (checked above).
+        if (!fullscreenSupported) {
+            await requestWakeLock();
+            setLockoutState({ isOpen: false });
+            return { success: true };
         }
 
         try {

@@ -5,19 +5,38 @@
 
 export function isMobileDevice(): boolean {
     if (typeof window === "undefined" || typeof navigator === "undefined") return false;
-    return /android|iphone|ipad|ipod|mobile/i.test(navigator.userAgent) ||
-        (navigator.maxTouchPoints > 1 && window.screen.width < 1024);
+    const ua = navigator.userAgent;
+    const isMobileUa = /android|iphone|ipad|ipod|mobile/i.test(ua);
+    // Modern iPadOS (13+) reports userAgent as Macintosh with touch points
+    const isIPadOS = navigator.maxTouchPoints > 1 && /macintosh/i.test(ua);
+    const isTouchTabletOrMobile = navigator.maxTouchPoints > 1 &&
+        (typeof window.screen !== "undefined" && Math.min(window.screen.width, window.screen.height) <= 1024);
+    return isMobileUa || isIPadOS || isTouchTabletOrMobile;
 }
 
 export function isTypingActive(): boolean {
     if (typeof document === "undefined") return false;
     const activeEl = document.activeElement;
-    if (!activeEl) return false;
-    const tagName = activeEl.tagName.toUpperCase();
-    return tagName === "INPUT" ||
-        tagName === "TEXTAREA" ||
-        activeEl.getAttribute("contenteditable") === "true" ||
-        (activeEl as HTMLElement).isContentEditable === true;
+    if (activeEl) {
+        const tagName = activeEl.tagName.toUpperCase();
+        if (
+            tagName === "INPUT" ||
+            tagName === "TEXTAREA" ||
+            activeEl.getAttribute("contenteditable") === "true" ||
+            (activeEl as HTMLElement).isContentEditable === true
+        ) {
+            return true;
+        }
+    }
+
+    // Check visualViewport vs innerHeight for active virtual keyboard (especially during iOS Safari transitions)
+    if (typeof window !== "undefined" && window.visualViewport) {
+        if (window.visualViewport.height < window.innerHeight * 0.8) {
+            return true;
+        }
+    }
+
+    return false;
 }
 
 export interface ScreenCheckResult {
@@ -50,6 +69,11 @@ export function checkSplitOrFloatingScreen(): ScreenCheckResult {
     const widthRatio = innerW / screenW;
     const typing = isTypingActive();
 
+    // Check device physical orientation (screen orientation, not just viewport)
+    const isDeviceLandscape = (typeof window.screen !== "undefined" && window.screen.orientation)
+        ? window.screen.orientation.type.includes("landscape")
+        : screenW > screenH;
+
     // Floating Window / Pop-up box: both dimensions significantly constrained
     if (!typing && heightRatio < 0.75 && widthRatio < 0.75) {
         return {
@@ -61,13 +85,16 @@ export function checkSplitOrFloatingScreen(): ScreenCheckResult {
         };
     }
 
-    // Split Screen:
+    // Split Screen / Slide Over:
     // - In portrait: height is constrained (< 70%). Ignored while soft-keyboard is open.
-    // - In landscape: width is constrained (< 70%). Soft-keyboard never constrains width.
-    const isPortraitSplit = !typing && heightRatio < 0.70;
-    const isLandscapeSplit = widthRatio < 0.70;
+    // - In portrait & landscape: width is constrained (< 70%) when running in split-screen or iPad Slide Over.
+    // - On iPhone in landscape, Safari UI + safe area insets reduce height naturally,
+    //   so heightRatio < 0.70 only applies in portrait mode.
+    const isPortraitSplit = !isDeviceLandscape && !typing && heightRatio < 0.70;
+    const isWidthConstrained = widthRatio < 0.70;
+    const isLandscapeHeightSplit = isDeviceLandscape && !typing && heightRatio < 0.50;
 
-    if (isPortraitSplit || isLandscapeSplit) {
+    if (isPortraitSplit || isWidthConstrained || isLandscapeHeightSplit) {
         return {
             isSplitScreen: true,
             isFloatingWindow: false,
