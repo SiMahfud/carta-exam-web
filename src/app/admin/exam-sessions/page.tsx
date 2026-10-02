@@ -7,7 +7,7 @@ import {
     CardContent,
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Calendar, Clock, Users, Monitor, MoreVertical, Trash2, Edit } from "lucide-react";
+import { Plus, Calendar, Clock, Users, Monitor, MoreVertical, Trash2, Edit, User } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Pagination } from "@/components/ui/pagination";
 import {
@@ -42,6 +42,8 @@ interface ExamSession {
     templateName: string;
     durationMinutes: number;
     createdAt: string;
+    creatorName?: string;
+    createdBy?: string;
 }
 
 import {
@@ -337,6 +339,12 @@ export default function ExamSessionsPage() {
                                                 <Users className="h-4 w-4" />
                                                 {session.targetType === 'class' ? `${session.targetIds.length} Kelas` : `${session.targetIds.length} Siswa`}
                                             </div>
+                                            {session.creatorName && (
+                                                <div className="flex items-center gap-1 text-muted-foreground">
+                                                    <User className="h-4 w-4" />
+                                                    Oleh: {session.creatorName}
+                                                </div>
+                                            )}
                                         </div>
                                     </div>
 

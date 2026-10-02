@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { examSessions, users, classStudents, submissions, classes } from "@/lib/schema";
 import { eq, inArray } from "drizzle-orm";
+import { requireAuth } from "@/lib/auth-guard";
 
 // GET /api/exam-sessions/[id]/monitor - Get monitoring data
 export async function GET(
@@ -9,6 +10,8 @@ export async function GET(
     { params }: { params: { id: string } }
 ) {
     try {
+        const user = await requireAuth(["admin", "teacher"]);
+
         // 1. Get session info
         const sessionResult = await db.select()
             .from(examSessions)
@@ -19,6 +22,13 @@ export async function GET(
             return NextResponse.json({ error: "Session not found" }, { status: 404 });
         }
         const session = sessionResult[0];
+
+        if (user.role === "teacher" && session.createdBy !== user.id) {
+            return NextResponse.json(
+                { error: "Akses ditolak. Anda hanya dapat memantau sesi ujian yang Anda buat sendiri." },
+                { status: 403 }
+            );
+        }
 
         // 2. Get assigned students
         let students: any[] = [];

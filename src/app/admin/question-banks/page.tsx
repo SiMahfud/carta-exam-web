@@ -27,7 +27,8 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@/components/ui/select";
-import { Plus, Database, ArrowRight, Trash2, Search } from "lucide-react";
+import { Plus, Database, ArrowRight, Trash2, Search, Copy, User, Loader2, Globe, Sparkles } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import {
     AlertDialog,
@@ -63,6 +64,8 @@ interface QuestionBank {
     creatorName: string | null;
     createdAt: Date;
     updatedAt: Date;
+    canEdit?: boolean;
+    isOwner?: boolean;
 }
 
 export default function QuestionBanksPage() {
@@ -72,6 +75,8 @@ export default function QuestionBanksPage() {
     const [dialogOpen, setDialogOpen] = useState(false);
 
     // Filter State
+    const [scopeTab, setScopeTab] = useState<"mine" | "all">("mine");
+    const [duplicatingId, setDuplicatingId] = useState<string | null>(null);
     const [selectedSubject, setSelectedSubject] = useState<string>("all");
     const [searchQuery, setSearchQuery] = useState("");
     const [dateRange, setDateRange] = useState<DateRange | undefined>();
@@ -93,8 +98,6 @@ export default function QuestionBanksPage() {
         subjectId: "",
     });
 
-
-
     const fetchSubjects = useCallback(async () => {
         try {
             const response = await fetch("/api/subjects");
@@ -111,6 +114,7 @@ export default function QuestionBanksPage() {
         try {
             setLoading(true);
             const params = new URLSearchParams();
+            params.append("scope", scopeTab);
             if (selectedSubject !== "all") params.append("subjectId", selectedSubject);
             if (searchQuery) params.append("search", searchQuery);
             if (dateRange?.from) params.append("startDate", dateRange.from.toISOString());
@@ -131,7 +135,39 @@ export default function QuestionBanksPage() {
         } finally {
             setLoading(false);
         }
-    }, [selectedSubject, searchQuery, dateRange, toast]);
+    }, [scopeTab, selectedSubject, searchQuery, dateRange, toast]);
+
+    const handleDuplicate = async (bankId: string) => {
+        try {
+            setDuplicatingId(bankId);
+            const response = await fetch(`/api/question-banks/${bankId}/duplicate`, {
+                method: "POST",
+            });
+            if (response.ok) {
+                toast({
+                    title: "Berhasil Duplikasi",
+                    description: "Bank soal telah disalin ke daftar Bank Soal Saya",
+                });
+                setScopeTab("mine");
+                fetchQuestionBanks();
+            } else {
+                const err = await response.json();
+                toast({
+                    title: "Gagal Duplikasi",
+                    description: err.error || "Gagal menyalin bank soal",
+                    variant: "destructive",
+                });
+            }
+        } catch {
+            toast({
+                title: "Error",
+                description: "Terjadi kesalahan saat menyalin bank soal",
+                variant: "destructive",
+            });
+        } finally {
+            setDuplicatingId(null);
+        }
+    };
 
     useEffect(() => {
         fetchSubjects();
@@ -139,7 +175,7 @@ export default function QuestionBanksPage() {
 
     useEffect(() => {
         fetchQuestionBanks();
-    }, [selectedSubject, searchQuery, dateRange, fetchQuestionBanks]);
+    }, [fetchQuestionBanks]);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -267,6 +303,28 @@ export default function QuestionBanksPage() {
                 </Button>
             </div>
 
+            {/* Scope Tabs */}
+            <div className="flex items-center gap-2 mb-6 border-b pb-3">
+                <Button
+                    variant={scopeTab === "mine" ? "default" : "ghost"}
+                    size="sm"
+                    className="font-medium rounded-full px-4"
+                    onClick={() => setScopeTab("mine")}
+                >
+                    <User className="mr-2 h-4 w-4" />
+                    Bank Soal Saya
+                </Button>
+                <Button
+                    variant={scopeTab === "all" ? "default" : "ghost"}
+                    size="sm"
+                    className="font-medium rounded-full px-4"
+                    onClick={() => setScopeTab("all")}
+                >
+                    <Globe className="mr-2 h-4 w-4" />
+                    Semua Bank Soal (Sekolah)
+                </Button>
+            </div>
+
             {/* Filters */}
             <div className="mb-6 space-y-4 bg-muted/30 p-4 rounded-lg border">
                 <div className="flex flex-wrap items-center gap-4">
@@ -340,11 +398,11 @@ export default function QuestionBanksPage() {
             ) : questionBanks.length === 0 ? (
                 <EmptyState
                     icon={Database}
-                    title="Belum ada bank soal"
+                    title={scopeTab === "mine" ? "Belum ada bank soal milik Anda" : "Belum ada bank soal sekolah"}
                     description={
-                        selectedSubject === "all"
-                            ? "Belum ada bank soal yang dibuat. Mulai dengan membuat bank soal baru."
-                            : "Tidak ada bank soal untuk mata pelajaran ini."
+                        scopeTab === "mine"
+                            ? "Mulai dengan membuat bank soal baru untuk ulangan harian Anda, atau salin dari bank soal sekolah."
+                            : "Belum ada bank soal yang tersedia di sekolah."
                     }
                     action={{
                         label: "Buat Bank Soal",
@@ -357,40 +415,93 @@ export default function QuestionBanksPage() {
             ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                     {questionBanks.map((bank) => (
-                        <Card key={bank.id} className="hover:shadow-lg transition-shadow">
+                        <Card key={bank.id} className="hover:shadow-lg transition-shadow flex flex-col justify-between">
                             <CardHeader>
-                                <div className="flex justify-between items-start">
+                                <div className="flex justify-between items-start gap-2">
                                     <div className="flex-1">
-                                        <CardTitle className="text-lg">{bank.name}</CardTitle>
-                                        <CardDescription className="mt-1">
-                                            {bank.subjectName}
-                                        </CardDescription>
+                                        <CardTitle className="text-lg line-clamp-1 mb-1.5" title={bank.name}>{bank.name}</CardTitle>
+                                        <div className="flex flex-wrap items-center gap-1.5">
+                                            <Badge variant="secondary" className="text-xs font-normal">
+                                                {bank.subjectName}
+                                            </Badge>
+                                            {bank.isOwner ? (
+                                                <Badge variant="outline" className="text-[10px] text-green-700 bg-green-50 border-green-200">
+                                                    Milik Saya
+                                                </Badge>
+                                            ) : (
+                                                <Badge variant="outline" className="text-[10px] text-blue-700 bg-blue-50 border-blue-200">
+                                                    {bank.creatorName || "Guru"}
+                                                </Badge>
+                                            )}
+                                        </div>
                                     </div>
-                                    <Button
-                                        variant="ghost"
-                                        size="icon"
-                                        onClick={() => handleDeleteClick(bank.id)}
-                                    >
-                                        <Trash2 className="h-4 w-4 text-destructive" />
-                                    </Button>
+                                    {bank.canEdit && (
+                                        <Button
+                                            variant="ghost"
+                                            size="icon"
+                                            className="text-muted-foreground hover:text-destructive shrink-0"
+                                            onClick={() => handleDeleteClick(bank.id)}
+                                            title="Hapus Bank Soal"
+                                        >
+                                            <Trash2 className="h-4 w-4" />
+                                        </Button>
+                                    )}
                                 </div>
                             </CardHeader>
-                            <CardContent>
+                            <CardContent className="space-y-4">
                                 {bank.description && (
-                                    <p className="text-sm text-muted-foreground mb-4">
+                                    <p className="text-sm text-muted-foreground line-clamp-2">
                                         {bank.description}
                                     </p>
                                 )}
-                                <div className="flex justify-between items-center">
-                                    <span className="text-xs text-muted-foreground">
-                                        By: {bank.creatorName || "System"}
-                                    </span>
-                                    <Link href={`/admin/question-banks/${bank.id}`}>
-                                        <Button variant="outline" size="sm">
-                                            Kelola Soal
-                                            <ArrowRight className="ml-2 h-4 w-4" />
-                                        </Button>
-                                    </Link>
+                                
+                                <div className="pt-2 border-t flex items-center justify-between gap-2">
+                                    {bank.canEdit ? (
+                                        <>
+                                            <Button
+                                                variant="outline"
+                                                size="sm"
+                                                disabled={duplicatingId === bank.id}
+                                                onClick={() => handleDuplicate(bank.id)}
+                                                title="Duplikat Bank Soal"
+                                            >
+                                                {duplicatingId === bank.id ? (
+                                                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                                                ) : (
+                                                    <Copy className="h-3.5 w-3.5" />
+                                                )}
+                                            </Button>
+                                            <Link href={`/admin/question-banks/${bank.id}`} className="flex-1">
+                                                <Button variant="default" size="sm" className="w-full">
+                                                    Kelola Soal
+                                                    <ArrowRight className="ml-2 h-4 w-4" />
+                                                </Button>
+                                            </Link>
+                                        </>
+                                    ) : (
+                                        <>
+                                            <Button
+                                                variant="outline"
+                                                size="sm"
+                                                className="flex-1 text-xs"
+                                                disabled={duplicatingId === bank.id}
+                                                onClick={() => handleDuplicate(bank.id)}
+                                            >
+                                                {duplicatingId === bank.id ? (
+                                                    <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
+                                                ) : (
+                                                    <Copy className="mr-1.5 h-3.5 w-3.5" />
+                                                )}
+                                                Duplikat ke Soal Saya
+                                            </Button>
+                                            <Link href={`/admin/question-banks/${bank.id}`}>
+                                                <Button variant="ghost" size="sm" className="text-xs">
+                                                    Lihat Soal
+                                                    <ArrowRight className="ml-1 h-3.5 w-3.5" />
+                                                </Button>
+                                            </Link>
+                                        </>
+                                    )}
                                 </div>
                             </CardContent>
                         </Card>

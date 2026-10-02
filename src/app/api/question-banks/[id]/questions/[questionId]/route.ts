@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { bankQuestions } from "@/lib/schema";
+import { bankQuestions, questionBanks } from "@/lib/schema";
 import { eq } from "drizzle-orm";
 import { requireAuth } from "@/lib/auth-guard";
 
@@ -40,8 +40,20 @@ export async function PUT(
     context: { params: Promise<{ id: string; questionId: string }> }
 ) {
     try {
-        await requireAuth(["admin", "teacher"]);
+        const user = await requireAuth(["admin", "teacher"]);
         const params = await context.params;
+
+        const bank = await db.select().from(questionBanks).where(eq(questionBanks.id, params.id)).limit(1);
+        if (bank.length === 0) {
+            return NextResponse.json({ error: "Question bank not found" }, { status: 404 });
+        }
+        if (user.role === "teacher" && bank[0].createdBy !== user.id) {
+            return NextResponse.json(
+                { error: "Akses ditolak. Anda hanya dapat mengubah soal pada bank soal milik Anda sendiri." },
+                { status: 403 }
+            );
+        }
+
         const body = await request.json();
         const {
             type,
@@ -91,8 +103,20 @@ export async function DELETE(
     context: { params: Promise<{ id: string; questionId: string }> }
 ) {
     try {
-        await requireAuth(["admin", "teacher"]);
+        const user = await requireAuth(["admin", "teacher"]);
         const params = await context.params;
+
+        const bank = await db.select().from(questionBanks).where(eq(questionBanks.id, params.id)).limit(1);
+        if (bank.length === 0) {
+            return NextResponse.json({ error: "Question bank not found" }, { status: 404 });
+        }
+        if (user.role === "teacher" && bank[0].createdBy !== user.id) {
+            return NextResponse.json(
+                { error: "Akses ditolak. Anda hanya dapat menghapus soal pada bank soal milik Anda sendiri." },
+                { status: 403 }
+            );
+        }
+
         const deleted = await db.select().from(bankQuestions).where(eq(bankQuestions.id, params.questionId)).limit(1);
 
         if (deleted.length === 0) {

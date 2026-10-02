@@ -76,6 +76,22 @@ export async function PUT(
 ) {
     try {
         const user = await requireAuth(["admin", "teacher"]);
+
+        const existing = await db.select().from(examTemplates).where(eq(examTemplates.id, params.id)).limit(1);
+        if (existing.length === 0) {
+            return NextResponse.json(
+                { error: "Template not found" },
+                { status: 404 }
+            );
+        }
+
+        if (user.role === "teacher" && existing[0].createdBy !== user.id) {
+            return NextResponse.json(
+                { error: "Akses ditolak. Anda hanya dapat mengubah template yang Anda buat sendiri." },
+                { status: 403 }
+            );
+        }
+
         const body = await request.json();
         const {
             name,
@@ -143,13 +159,6 @@ export async function PUT(
 
         const updated = await db.select().from(examTemplates).where(eq(examTemplates.id, params.id)).limit(1);
 
-        if (updated.length === 0) {
-            return NextResponse.json(
-                { error: "Template not found" },
-                { status: 404 }
-            );
-        }
-
         // Log activity
         await ActivityLogger.examTemplate.updated(user.id, params.id, updated[0].name);
 
@@ -176,6 +185,13 @@ export async function DELETE(
             return NextResponse.json(
                 { error: "Template not found" },
                 { status: 404 }
+            );
+        }
+
+        if (user.role === "teacher" && deleted[0].createdBy !== user.id) {
+            return NextResponse.json(
+                { error: "Akses ditolak. Anda hanya dapat menghapus template yang Anda buat sendiri." },
+                { status: 403 }
             );
         }
 

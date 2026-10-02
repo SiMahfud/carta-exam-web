@@ -1,6 +1,6 @@
 
 import { db } from "@/lib/db";
-import { examSessions, examTemplates } from "@/lib/schema";
+import { examSessions, examTemplates, users } from "@/lib/schema";
 import { eq, desc, and, sql } from "drizzle-orm";
 import { fromDateTimeLocalString } from "@/lib/date-utils";
 import { ActivityLogger } from "@/lib/activity-logger";
@@ -9,18 +9,29 @@ import { requireAuth } from "@/lib/auth-guard";
 
 // GET /api/exam-sessions - List all sessions
 export const GET = (req: Request) => apiHandler(async () => {
-    await requireAuth(["admin", "teacher"]);
+    const user = await requireAuth(["admin", "teacher"]);
     const { searchParams } = new URL(req.url);
     const page = parseInt(searchParams.get("page") || "1");
     const limit = parseInt(searchParams.get("limit") || "10");
     const status = searchParams.get("status");
     const startDate = searchParams.get("startDate");
     const endDate = searchParams.get("endDate");
+    const createdByFilter = searchParams.get("createdBy");
 
     const offset = (page - 1) * limit;
 
     // Build where conditions
     const conditions = [];
+
+    // Isolation: Teachers strictly see only sessions they created
+    if (user.role === "teacher") {
+        conditions.push(eq(examSessions.createdBy, user.id));
+    } else if (user.role === "admin") {
+        if (createdByFilter) {
+            conditions.push(eq(examSessions.createdBy, createdByFilter));
+        }
+    }
+
     if (status && status !== "all") {
         conditions.push(eq(examSessions.status, status as any));
     }
@@ -42,7 +53,7 @@ export const GET = (req: Request) => apiHandler(async () => {
         .where(whereClause);
     const total = Number(totalResult[0]?.count || 0);
 
-    // Fetch sessions with template info
+    // Fetch sessions with template and creator info
     const sessions = await db.select({
         id: examSessions.id,
         sessionName: examSessions.sessionName,
@@ -54,9 +65,12 @@ export const GET = (req: Request) => apiHandler(async () => {
         templateName: examTemplates.name,
         durationMinutes: examTemplates.durationMinutes,
         createdAt: examSessions.createdAt,
+        createdBy: examSessions.createdBy,
+        creatorName: users.name,
     })
         .from(examSessions)
         .innerJoin(examTemplates, eq(examSessions.templateId, examTemplates.id))
+        .leftJoin(users, eq(examSessions.createdBy, users.id))
         .where(whereClause)
         .orderBy(desc(examSessions.createdAt))
         .limit(limit)

@@ -7,7 +7,7 @@ import { requireAuth } from "@/lib/auth-guard";
 // GET /api/grading/submissions - List submissions needing grading
 export async function GET(request: Request) {
     try {
-        await requireAuth(["admin", "teacher"]);
+        const user = await requireAuth(["admin", "teacher"]);
         const { searchParams } = new URL(request.url);
         const page = parseInt(searchParams.get("page") || "1");
         const limit = parseInt(searchParams.get("limit") || "20");
@@ -22,6 +22,11 @@ export async function GET(request: Request) {
 
         // Build where conditions
         const conditions = [];
+
+        // If teacher, only show submissions for exam sessions created by this teacher
+        if (user.role === "teacher") {
+            conditions.push(eq(examSessions.createdBy, user.id));
+        }
 
         if (status && status !== "all") {
             conditions.push(eq(submissions.gradingStatus, status as any));

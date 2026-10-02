@@ -14,12 +14,16 @@ import { eq, inArray } from "drizzle-orm";
 import * as XLSX from 'xlsx';
 import { safeJsonParse } from "@/lib/json-utils";
 
+import { requireAuth } from "@/lib/auth-guard";
+
 // GET /api/exam-sessions/[id]/export - Export exam results to Excel
 export async function GET(
     request: Request,
     { params }: { params: { id: string } }
 ) {
     try {
+        const user = await requireAuth(["admin", "teacher"]);
+
         // 1. Get session info
         const sessionResult = await db.select({
             id: examSessions.id,
@@ -29,6 +33,7 @@ export async function GET(
             endTime: examSessions.endTime,
             templateName: examTemplates.name,
             totalScore: examTemplates.totalScore,
+            createdBy: examSessions.createdBy,
         })
             .from(examSessions)
             .innerJoin(examTemplates, eq(examSessions.templateId, examTemplates.id))
@@ -43,6 +48,13 @@ export async function GET(
         }
 
         const session = sessionResult[0];
+
+        if (user.role === "teacher" && session.createdBy !== user.id) {
+            return NextResponse.json(
+                { error: "Akses ditolak. Anda hanya dapat mengekspor hasil sesi ujian yang Anda buat sendiri." },
+                { status: 403 }
+            );
+        }
 
         // 2. Get all submissions for this session
         const submissionsData = await db.select({

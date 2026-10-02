@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { bankQuestions } from "../../../../../lib/schema";
+import { bankQuestions, questionBanks } from "@/lib/schema";
 import { eq, and, sql } from "drizzle-orm";
 import { processContentImages } from "@/lib/image-processor";
 import { BankQuestionSchema } from "@/lib/validations/questions";
@@ -127,7 +127,18 @@ export async function POST(
     { params }: { params: { id: string } }
 ) {
     try {
-        await requireAuth(["admin", "teacher"]);
+        const user = await requireAuth(["admin", "teacher"]);
+        const targetBank = await db.select().from(questionBanks).where(eq(questionBanks.id, params.id)).limit(1);
+        if (targetBank.length === 0) {
+            return NextResponse.json({ error: "Bank soal tidak ditemukan" }, { status: 404 });
+        }
+        if (user.role === "teacher" && targetBank[0].createdBy !== user.id) {
+            return NextResponse.json(
+                { error: "Akses ditolak. Anda hanya dapat menambahkan soal ke bank soal milik Anda sendiri." },
+                { status: 403 }
+            );
+        }
+
         const { searchParams } = new URL(request.url);
         const mode = searchParams.get("mode");
         const body = await request.json();

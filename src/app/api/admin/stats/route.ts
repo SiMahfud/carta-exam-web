@@ -3,9 +3,14 @@ import { db } from "@/lib/db";
 import { users, submissions, examSessions } from "@/lib/schema";
 import { eq, and, sql } from "drizzle-orm";
 
+import { getCurrentUser } from "@/lib/session";
+
 // GET /api/admin/stats - Get dashboard statistics
 export async function GET() {
     try {
+        const currentUser = await getCurrentUser();
+        const isTeacher = currentUser?.role === "teacher";
+
         const now = new Date();
         const firstDayOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
         const firstDayOfLastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
@@ -20,40 +25,80 @@ export async function GET() {
             .from(users)
             .where(eq(users.role, "student"));
 
-        // Completed exams (submissions with status 'completed')
-        const completedExamsTotal = await db
-            .select({ count: sql<number>`count(*)` })
-            .from(submissions)
-            .where(eq(submissions.status, "completed"));
+        // Completed exams and active sessions
+        let completedExamsTotal: { count: number }[];
+        let completedExamsThisMonth: { count: number }[];
+        let completedExamsLastMonth: { count: number }[];
+        let activeSessions: { count: number }[];
 
-        // Completed exams this month
-        const completedExamsThisMonth = await db
-            .select({ count: sql<number>`count(*)` })
-            .from(submissions)
-            .where(
-                and(
-                    eq(submissions.status, "completed"),
-                    sql`${submissions.endTime} >= ${firstDayOfMonthTimestamp}`
-                )
-            );
+        if (isTeacher && currentUser) {
+            completedExamsTotal = await db
+                .select({ count: sql<number>`count(*)` })
+                .from(submissions)
+                .innerJoin(examSessions, eq(submissions.sessionId, examSessions.id))
+                .where(and(eq(submissions.status, "completed"), eq(examSessions.createdBy, currentUser.id)));
 
-        // Completed exams last month
-        const completedExamsLastMonth = await db
-            .select({ count: sql<number>`count(*)` })
-            .from(submissions)
-            .where(
-                and(
-                    eq(submissions.status, "completed"),
-                    sql`${submissions.endTime} >= ${firstDayOfLastMonthTimestamp}`,
-                    sql`${submissions.endTime} < ${firstDayOfMonthTimestamp}`
-                )
-            );
+            completedExamsThisMonth = await db
+                .select({ count: sql<number>`count(*)` })
+                .from(submissions)
+                .innerJoin(examSessions, eq(submissions.sessionId, examSessions.id))
+                .where(
+                    and(
+                        eq(submissions.status, "completed"),
+                        eq(examSessions.createdBy, currentUser.id),
+                        sql`${submissions.endTime} >= ${firstDayOfMonthTimestamp}`
+                    )
+                );
 
-        // Active exam sessions
-        const activeSessions = await db
-            .select({ count: sql<number>`count(*)` })
-            .from(examSessions)
-            .where(eq(examSessions.status, "active"));
+            completedExamsLastMonth = await db
+                .select({ count: sql<number>`count(*)` })
+                .from(submissions)
+                .innerJoin(examSessions, eq(submissions.sessionId, examSessions.id))
+                .where(
+                    and(
+                        eq(submissions.status, "completed"),
+                        eq(examSessions.createdBy, currentUser.id),
+                        sql`${submissions.endTime} >= ${firstDayOfLastMonthTimestamp}`,
+                        sql`${submissions.endTime} < ${firstDayOfMonthTimestamp}`
+                    )
+                );
+
+            activeSessions = await db
+                .select({ count: sql<number>`count(*)` })
+                .from(examSessions)
+                .where(and(eq(examSessions.status, "active"), eq(examSessions.createdBy, currentUser.id)));
+        } else {
+            completedExamsTotal = await db
+                .select({ count: sql<number>`count(*)` })
+                .from(submissions)
+                .where(eq(submissions.status, "completed"));
+
+            completedExamsThisMonth = await db
+                .select({ count: sql<number>`count(*)` })
+                .from(submissions)
+                .where(
+                    and(
+                        eq(submissions.status, "completed"),
+                        sql`${submissions.endTime} >= ${firstDayOfMonthTimestamp}`
+                    )
+                );
+
+            completedExamsLastMonth = await db
+                .select({ count: sql<number>`count(*)` })
+                .from(submissions)
+                .where(
+                    and(
+                        eq(submissions.status, "completed"),
+                        sql`${submissions.endTime} >= ${firstDayOfLastMonthTimestamp}`,
+                        sql`${submissions.endTime} < ${firstDayOfMonthTimestamp}`
+                    )
+                );
+
+            activeSessions = await db
+                .select({ count: sql<number>`count(*)` })
+                .from(examSessions)
+                .where(eq(examSessions.status, "active"));
+        }
 
         // Calculate percentage changes
         const calculateChange = (current: number, previous: number): string => {

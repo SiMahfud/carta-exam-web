@@ -55,12 +55,32 @@ export async function GET(
     }
 }
 
+import { requireAuth } from "@/lib/auth-guard";
+
 // POST /api/exam-sessions/[id]/token - Generate new token
 export async function POST(
     request: Request,
     { params }: { params: { id: string } }
 ) {
     try {
+        const user = await requireAuth(["admin", "teacher"]);
+
+        const session = await db.select({ createdBy: examSessions.createdBy })
+            .from(examSessions)
+            .where(eq(examSessions.id, params.id))
+            .limit(1);
+
+        if (session.length === 0) {
+            return NextResponse.json({ error: "Session not found" }, { status: 404 });
+        }
+
+        if (user.role === "teacher" && session[0].createdBy !== user.id) {
+            return NextResponse.json(
+                { error: "Akses ditolak. Anda hanya dapat mengelola token sesi ujian yang Anda buat." },
+                { status: 403 }
+            );
+        }
+
         const newToken = generateToken();
 
         await db.update(examSessions)
@@ -71,11 +91,11 @@ export async function POST(
             accessToken: newToken,
             message: "Token generated successfully"
         });
-    } catch (error) {
+    } catch (error: any) {
         console.error("Error generating token:", error);
         return NextResponse.json(
-            { error: "Failed to generate token" },
-            { status: 500 }
+            { error: error.message || "Failed to generate token" },
+            { status: error.status || 500 }
         );
     }
 }
@@ -86,6 +106,24 @@ export async function DELETE(
     { params }: { params: { id: string } }
 ) {
     try {
+        const user = await requireAuth(["admin", "teacher"]);
+
+        const session = await db.select({ createdBy: examSessions.createdBy })
+            .from(examSessions)
+            .where(eq(examSessions.id, params.id))
+            .limit(1);
+
+        if (session.length === 0) {
+            return NextResponse.json({ error: "Session not found" }, { status: 404 });
+        }
+
+        if (user.role === "teacher" && session[0].createdBy !== user.id) {
+            return NextResponse.json(
+                { error: "Akses ditolak. Anda hanya dapat mengelola token sesi ujian yang Anda buat." },
+                { status: 403 }
+            );
+        }
+
         await db.update(examSessions)
             .set({ accessToken: null })
             .where(eq(examSessions.id, params.id));
@@ -93,11 +131,11 @@ export async function DELETE(
         return NextResponse.json({
             message: "Token cleared successfully"
         });
-    } catch (error) {
+    } catch (error: any) {
         console.error("Error clearing token:", error);
         return NextResponse.json(
-            { error: "Failed to clear token" },
-            { status: 500 }
+            { error: error.message || "Failed to clear token" },
+            { status: error.status || 500 }
         );
     }
 }

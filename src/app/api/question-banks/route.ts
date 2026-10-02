@@ -8,12 +8,14 @@ import { requireAuth } from "@/lib/auth-guard";
 
 // GET /api/question-banks - List all question banks
 export const GET = (req: Request) => apiHandler(async () => {
-    await requireAuth(["admin", "teacher"]);
+    const user = await requireAuth(["admin", "teacher"]);
     const { searchParams } = new URL(req.url);
     const subjectId = searchParams.get("subjectId");
     const search = searchParams.get("search");
     const startDate = searchParams.get("startDate");
     const endDate = searchParams.get("endDate");
+    const scope = searchParams.get("scope"); // 'mine' | 'all'
+    const createdByFilter = searchParams.get("createdBy");
 
     let query = db.select({
         id: questionBanks.id,
@@ -31,6 +33,22 @@ export const GET = (req: Request) => apiHandler(async () => {
         .leftJoin(users, eq(questionBanks.createdBy, users.id));
 
     const conditions = [];
+
+    // Filter by ownership/scope
+    if (user.role === "teacher") {
+        if (scope === "all" || scope === "shared") {
+            // Teacher explicitly requested all shared school banks
+        } else {
+            // Default for teachers: only their own banks
+            conditions.push(eq(questionBanks.createdBy, user.id));
+        }
+    } else if (user.role === "admin") {
+        if (scope === "mine") {
+            conditions.push(eq(questionBanks.createdBy, user.id));
+        } else if (createdByFilter) {
+            conditions.push(eq(questionBanks.createdBy, createdByFilter));
+        }
+    }
 
     if (subjectId && subjectId !== "all") {
         conditions.push(eq(questionBanks.subjectId, subjectId));
@@ -53,7 +71,11 @@ export const GET = (req: Request) => apiHandler(async () => {
 
     const banks = await query.orderBy(questionBanks.createdAt);
 
-    return banks;
+    return banks.map((bank: typeof banks[0]) => ({
+        ...bank,
+        canEdit: user.role === "admin" || bank.createdBy === user.id,
+        isOwner: bank.createdBy === user.id,
+    }));
 });
 
 // POST /api/question-banks - Create new question bank

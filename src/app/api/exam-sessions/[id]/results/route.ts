@@ -12,12 +12,15 @@ import {
 } from "@/lib/schema";
 import { eq, inArray, and, like } from "drizzle-orm";
 
+import { requireAuth } from "@/lib/auth-guard";
+
 // GET /api/exam-sessions/[id]/results - Get exam results with aggregation
 export async function GET(
     request: Request,
     { params }: { params: { id: string } }
 ) {
     try {
+        const user = await requireAuth(["admin", "teacher"]);
         const { searchParams } = new URL(request.url);
         const classId = searchParams.get("classId");
         const search = searchParams.get("search");
@@ -34,6 +37,7 @@ export async function GET(
             templateId: examSessions.templateId,
             templateName: examTemplates.name,
             totalScore: examTemplates.totalScore,
+            createdBy: examSessions.createdBy,
         })
             .from(examSessions)
             .innerJoin(examTemplates, eq(examSessions.templateId, examTemplates.id))
@@ -48,6 +52,13 @@ export async function GET(
         }
 
         const session = sessionResult[0];
+
+        if (user.role === "teacher" && session.createdBy !== user.id) {
+            return NextResponse.json(
+                { error: "Akses ditolak. Anda hanya dapat melihat hasil sesi ujian yang Anda buat sendiri." },
+                { status: 403 }
+            );
+        }
 
         // 2. Get all submissions for this session (defined for potential future use)
         const _submissionsQuery = db.select({

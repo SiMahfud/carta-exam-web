@@ -58,9 +58,25 @@ export async function PUT(
     { params }: { params: { id: string } }
 ) {
     try {
-        await requireAuth(["admin", "teacher"]);
+        const user = await requireAuth(["admin", "teacher"]);
         const body = await request.json();
         const { name, description } = body;
+
+        const existing = await db.select().from(questionBanks).where(eq(questionBanks.id, params.id)).limit(1);
+        if (existing.length === 0) {
+            return NextResponse.json(
+                { error: "Question bank not found" },
+                { status: 404 }
+            );
+        }
+
+        // Only owner or admin can update
+        if (user.role === "teacher" && existing[0].createdBy !== user.id) {
+            return NextResponse.json(
+                { error: "Akses ditolak. Anda hanya dapat mengubah bank soal milik Anda sendiri." },
+                { status: 403 }
+            );
+        }
 
         await db.update(questionBanks)
             .set({
@@ -71,13 +87,6 @@ export async function PUT(
             .where(eq(questionBanks.id, params.id));
 
         const updated = await db.select().from(questionBanks).where(eq(questionBanks.id, params.id)).limit(1);
-
-        if (updated.length === 0) {
-            return NextResponse.json(
-                { error: "Question bank not found" },
-                { status: 404 }
-            );
-        }
 
         return NextResponse.json(updated[0]);
     } catch (error: any) {
@@ -95,13 +104,21 @@ export async function DELETE(
     { params }: { params: { id: string } }
 ) {
     try {
-        await requireAuth(["admin", "teacher"]);
+        const user = await requireAuth(["admin", "teacher"]);
         const deleted = await db.select().from(questionBanks).where(eq(questionBanks.id, params.id)).limit(1);
 
         if (deleted.length === 0) {
             return NextResponse.json(
                 { error: "Question bank not found" },
                 { status: 404 }
+            );
+        }
+
+        // Only owner or admin can delete
+        if (user.role === "teacher" && deleted[0].createdBy !== user.id) {
+            return NextResponse.json(
+                { error: "Akses ditolak. Anda hanya dapat menghapus bank soal milik Anda sendiri." },
+                { status: 403 }
             );
         }
 

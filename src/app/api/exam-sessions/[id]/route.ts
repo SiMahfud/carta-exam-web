@@ -13,7 +13,7 @@ export async function GET(
     { params }: { params: { id: string } }
 ) {
     try {
-        await requireAuth(["admin", "teacher"]);
+        const user = await requireAuth(["admin", "teacher"]);
         const session = await db.select({
             id: examSessions.id,
             sessionName: examSessions.sessionName,
@@ -26,6 +26,7 @@ export async function GET(
             templateName: examTemplates.name,
             durationMinutes: examTemplates.durationMinutes,
             totalScore: examTemplates.totalScore,
+            createdBy: examSessions.createdBy,
             createdAt: examSessions.createdAt,
             submissionCount: sql<number>`(SELECT COUNT(*) FROM ${submissions} WHERE ${submissions.sessionId} = ${examSessions.id})`
         })
@@ -42,6 +43,15 @@ export async function GET(
         }
 
         const sessionData = session[0];
+
+        // Teachers can only view sessions they created
+        if (user.role === "teacher" && sessionData.createdBy !== user.id) {
+            return NextResponse.json(
+                { error: "Akses ditolak. Anda hanya dapat melihat sesi ujian yang Anda buat sendiri." },
+                { status: 403 }
+            );
+        }
+
         const targetIds = safeJsonParse<string[]>(sessionData.targetIds, []);
 
         return NextResponse.json({ ...sessionData, targetIds: Array.isArray(targetIds) ? targetIds : [] });
@@ -61,6 +71,23 @@ export async function PATCH(
 ) {
     try {
         const user = await requireAuth(["admin", "teacher"]);
+
+        const existing = await db.select().from(examSessions).where(eq(examSessions.id, params.id)).limit(1);
+        if (existing.length === 0) {
+            return NextResponse.json(
+                { error: "Session not found" },
+                { status: 404 }
+            );
+        }
+
+        // Teachers can only modify their own sessions
+        if (user.role === "teacher" && existing[0].createdBy !== user.id) {
+            return NextResponse.json(
+                { error: "Akses ditolak. Anda hanya dapat mengubah sesi ujian yang Anda buat sendiri." },
+                { status: 403 }
+            );
+        }
+
         const body = await request.json();
         const { sessionName, startTime, endTime, status, targetIds, targetType } = body;
 
@@ -90,13 +117,6 @@ export async function PATCH(
             .where(eq(examSessions.id, params.id));
 
         const updatedSession = await db.select().from(examSessions).where(eq(examSessions.id, params.id)).limit(1);
-
-        if (updatedSession.length === 0) {
-            return NextResponse.json(
-                { error: "Session not found" },
-                { status: 404 }
-            );
-        }
 
         // Log activity
         await ActivityLogger.examSession.updated(
@@ -131,6 +151,14 @@ export async function DELETE(
             return NextResponse.json(
                 { error: "Session not found" },
                 { status: 404 }
+            );
+        }
+
+        // Teachers can only delete their own sessions
+        if (user.role === "teacher" && sessionToDelete[0].createdBy !== user.id) {
+            return NextResponse.json(
+                { error: "Akses ditolak. Anda hanya dapat menghapus sesi ujian yang Anda buat sendiri." },
+                { status: 403 }
             );
         }
 

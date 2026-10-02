@@ -10,7 +10,7 @@ import {
     CardTitle,
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Pencil, Trash2, Clock, FileText, Search, Eye, Filter, ArrowUpDown, Printer } from "lucide-react";
+import { Plus, Pencil, Trash2, Clock, FileText, Search, Eye, Filter, ArrowUpDown, Printer, Copy, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Input } from "@/components/ui/input";
 import ExamPreviewDialog from "@/components/exam-templates/ExamPreviewDialog";
@@ -43,6 +43,9 @@ interface ExamTemplate {
     totalScore: number;
     createdAt: string;
     creatorName: string;
+    canEdit?: boolean;
+    isOwner?: boolean;
+    isAdminTemplate?: boolean;
 }
 
 interface Subject {
@@ -71,6 +74,38 @@ export default function ExamTemplatesPage() {
     // Preview State
     const [previewOpen, setPreviewOpen] = useState(false);
     const [previewTemplateId, setPreviewTemplateId] = useState<string | null>(null);
+    const [duplicatingId, setDuplicatingId] = useState<string | null>(null);
+
+    const handleDuplicate = async (templateId: string) => {
+        try {
+            setDuplicatingId(templateId);
+            const res = await fetch(`/api/exam-templates/${templateId}/duplicate`, {
+                method: "POST",
+            });
+            if (res.ok) {
+                toast({
+                    title: "Berhasil Duplikasi",
+                    description: "Template ujian berhasil disalin ke koleksi Anda!",
+                });
+                fetchTemplates();
+            } else {
+                const err = await res.json();
+                toast({
+                    title: "Gagal Duplikasi",
+                    description: err.error || "Gagal menyalin template ujian",
+                    variant: "destructive",
+                });
+            }
+        } catch {
+            toast({
+                title: "Error",
+                description: "Terjadi kesalahan saat menduplikasi",
+                variant: "destructive",
+            });
+        } finally {
+            setDuplicatingId(null);
+        }
+    };
 
     useEffect(() => {
         fetchSubjects();
@@ -265,10 +300,22 @@ export default function ExamTemplatesPage() {
                         {templates.map((template) => (
                             <Card key={template.id} className="flex flex-col">
                                 <CardHeader className="pb-2">
-                                    <div className="flex justify-between items-start">
+                                    <div className="flex justify-between items-start gap-2">
                                         <div>
-                                            <CardTitle className="text-xl mb-1 line-clamp-1" title={template.name}>{template.name}</CardTitle>
-                                            <Badge variant="secondary">{template.subjectName}</Badge>
+                                            <CardTitle className="text-xl mb-1.5 line-clamp-1" title={template.name}>{template.name}</CardTitle>
+                                            <div className="flex flex-wrap items-center gap-1.5">
+                                                <Badge variant="secondary">{template.subjectName}</Badge>
+                                                {template.isAdminTemplate && (
+                                                    <Badge variant="outline" className="text-[10px] text-purple-700 bg-purple-50 border-purple-200">
+                                                        Template Sekolah
+                                                    </Badge>
+                                                )}
+                                                {template.isOwner && (
+                                                    <Badge variant="outline" className="text-[10px] text-green-700 bg-green-50 border-green-200">
+                                                        Milik Saya
+                                                    </Badge>
+                                                )}
+                                            </div>
                                         </div>
                                     </div>
                                     <CardDescription className="line-clamp-2 mt-2 h-10">
@@ -286,7 +333,7 @@ export default function ExamTemplatesPage() {
                                             Total Skor: {template.totalScore}
                                         </div>
                                     </div>
-                                    <div className="flex justify-end gap-2 border-t pt-4">
+                                    <div className="flex justify-end items-center gap-1 border-t pt-4">
                                         <Button
                                             variant="ghost"
                                             size="icon"
@@ -303,22 +350,40 @@ export default function ExamTemplatesPage() {
                                                 <Printer className="h-4 w-4" />
                                             </Button>
                                         </Link>
-                                        <Link href={`/admin/exam-templates/${template.id}/edit`}>
-                                            <Button variant="ghost" size="icon" title="Edit Template">
-                                                <Pencil className="h-4 w-4" />
-                                            </Button>
-                                        </Link>
                                         <Button
                                             variant="ghost"
                                             size="icon"
-                                            onClick={() => {
-                                                setTemplateToDelete(template);
-                                                setDeleteAlertOpen(true);
-                                            }}
-                                            title="Hapus Template"
+                                            disabled={duplicatingId === template.id}
+                                            onClick={() => handleDuplicate(template.id)}
+                                            title="Duplikat Template ke Koleksi Saya"
                                         >
-                                            <Trash2 className="h-4 w-4" />
+                                            {duplicatingId === template.id ? (
+                                                <Loader2 className="h-4 w-4 animate-spin" />
+                                            ) : (
+                                                <Copy className="h-4 w-4" />
+                                            )}
                                         </Button>
+                                        {template.canEdit && (
+                                            <>
+                                                <Link href={`/admin/exam-templates/${template.id}/edit`}>
+                                                    <Button variant="ghost" size="icon" title="Edit Template">
+                                                        <Pencil className="h-4 w-4" />
+                                                    </Button>
+                                                </Link>
+                                                <Button
+                                                    variant="ghost"
+                                                    size="icon"
+                                                    className="text-muted-foreground hover:text-destructive"
+                                                    onClick={() => {
+                                                        setTemplateToDelete(template);
+                                                        setDeleteAlertOpen(true);
+                                                    }}
+                                                    title="Hapus Template"
+                                                >
+                                                    <Trash2 className="h-4 w-4" />
+                                                </Button>
+                                            </>
+                                        )}
                                     </div>
                                 </CardContent>
                             </Card>
