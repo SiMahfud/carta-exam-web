@@ -209,7 +209,10 @@ export async function POST(
                 // Apply randomization rules to non-essays only
                 const randomizedNonEssayIds = applyQuestionRandomization(nonEssays, randomizationRules);
 
-                // Combine: Randomized non-essays + Original essays (at end)
+                // Sort essays by questionNumber to preserve original order
+                essays.sort((a: any, b: any) => ((a.questionNumber || 0) - (b.questionNumber || 0)));
+
+                // Combine: Randomized non-essays + Sorted essays (at end)
                 questionOrder = [...randomizedNonEssayIds, ...essays.map(q => q.id)];
             } else {
                 questionOrder = applyQuestionRandomization(selectedQuestions, randomizationRules);
