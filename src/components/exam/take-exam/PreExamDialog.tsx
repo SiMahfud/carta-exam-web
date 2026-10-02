@@ -220,6 +220,7 @@ export function PreExamDialog({
                         </div>
                         <ul className="list-disc list-inside space-y-1 text-[11.5px] leading-relaxed text-foreground/80">
                             <li>Ujian wajib dikerjakan dalam mode <strong>Layar Penuh (Fullscreen)</strong>.</li>
+                            <li>Layar perangkat otomatis <strong>dijaga tetap menyala (Wake Lock)</strong> agar tidak sleep saat membaca soal.</li>
                             <li>Dilarang menggunakan <strong>Split Screen</strong> atau <strong>Floating Window</strong>.</li>
                             <li>Dilarang berpindah tab browser, membuka aplikasi lain, atau mengambil screenshot.</li>
                             <li>Jawaban Anda otomatis tersimpan ke server secara berkala.</li>

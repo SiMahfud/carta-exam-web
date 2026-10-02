@@ -5,6 +5,7 @@ import { useParams, useRouter } from "next/navigation";
 import { useToast } from "@/hooks/use-toast";
 import { useFullscreen } from "@/hooks/use-fullscreen";
 import { useExamSecurity } from "@/hooks/use-exam-security";
+import { useWakeLock } from "@/hooks/use-wake-lock";
 import { getDeviceId } from "@/lib/device";
 import { useWatermark } from "@/lib/lockdown";
 import { checkSplitOrFloatingScreen } from "@/lib/mobile-security";
@@ -406,6 +407,11 @@ export default function TakeExamPage() {
         }
     });
 
+    // Screen Wake Lock (mencegah layar HP/laptop mati atau sleep selama ujian)
+    const { isActive: isWakeLockActive, requestWakeLock } = useWakeLock({
+        enabled: examStarted && !submitting && !isTerminated,
+    });
+
     // Anti-tamper watermark
     useWatermark(
         studentName || "Siswa",
@@ -604,6 +610,9 @@ export default function TakeExamPage() {
                 await enterFullscreen();
             }
 
+            // Aktifkan Wake Lock saat klik Mulai Ujian (user gesture)
+            await requestWakeLock();
+
             setShowPreExamDialog(false);
             setExamStarted(true);
         } catch (err) {
@@ -631,6 +640,7 @@ export default function TakeExamPage() {
 
         try {
             await enterFullscreen();
+            await requestWakeLock();
             await new Promise((r) => setTimeout(r, 250));
 
             const isNowFullscreen = !!(
@@ -985,6 +995,7 @@ export default function TakeExamPage() {
                         onChangeFontSize={handleChangeFontSize}
                         isZenMode={isZenMode}
                         onToggleZenMode={() => setIsZenMode(!isZenMode)}
+                        isWakeLockActive={isWakeLockActive}
                     />
 
                     {/* Main Body */}

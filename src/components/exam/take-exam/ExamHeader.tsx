@@ -10,6 +10,7 @@ import {
     CheckCircle2,
     Maximize2,
     Minimize2,
+    Sun,
 } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
@@ -28,6 +29,7 @@ interface ExamHeaderProps {
     onChangeFontSize?: (size: "sm" | "base" | "lg" | "xl") => void;
     isZenMode?: boolean;
     onToggleZenMode?: () => void;
+    isWakeLockActive?: boolean;
 }
 
 export function ExamHeader({
@@ -45,6 +47,7 @@ export function ExamHeader({
     onChangeFontSize,
     isZenMode = false,
     onToggleZenMode,
+    isWakeLockActive = false,
 }: ExamHeaderProps) {
     const formatTime = (seconds: number) => {
         const hours = Math.floor(seconds / 3600);
@@ -130,6 +133,19 @@ export function ExamHeader({
                             </span>
                         )}
                     </div>
+
+                    {/* Screen Wake Lock Indicator */}
+                    {isWakeLockActive && (
+                        <div className="hidden md:flex items-center text-xs">
+                            <span
+                                className="flex items-center gap-1 text-amber-600 dark:text-amber-400 bg-amber-500/10 px-2.5 py-1 rounded-full border border-amber-500/20 text-[11px] font-medium"
+                                title="Wake Lock Aktif: Layar perangkat Anda dijaga tetap menyala dan tidak akan sleep otomatis"
+                            >
+                                <Sun className="w-3.5 h-3.5 text-amber-500" />
+                                <span className="hidden lg:inline">Layar Aktif</span>
+                            </span>
+                        </div>
+                    )}
 
                     {/* Font Size Scaler [ A- | A | A+ ] */}
                     {onChangeFontSize && (
