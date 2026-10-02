@@ -389,6 +389,11 @@ export default function SessionMonitorPage() {
         const matchesSearch = student.name.toLowerCase().includes(searchQuery.toLowerCase());
         const matchesClass = classFilter === "all" || student.className === classFilter;
         return matchesSearch && matchesClass;
+    }).sort((a, b) => {
+        // Sort by class name first, then by student name
+        const classCompare = a.className.localeCompare(b.className, 'id');
+        if (classCompare !== 0) return classCompare;
+        return a.name.localeCompare(b.name, 'id');
     });
 
     if (loading) {
