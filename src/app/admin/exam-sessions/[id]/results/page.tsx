@@ -93,21 +93,20 @@ export default function ExamResultsPage() {
     const [classFilter, setClassFilter] = useState("all");
     const [searchQuery, setSearchQuery] = useState("");
     const [selectedView, setSelectedView] = useState<"auto" | "essay">("auto");
+    const [allResults, setAllResults] = useState<StudentResult[]>([]);
 
 
 
     const fetchResults = async () => {
         setLoading(true);
         try {
-            const params_url = new URLSearchParams();
-            if (classFilter !== "all") params_url.append("classId", classFilter);
-            if (searchQuery) params_url.append("search", searchQuery);
-
-            const response = await fetch(`/api/exam-sessions/${params.id}/results?${params_url.toString()}`);
+            // Fetch ALL results without filters - filtering is done client-side
+            const response = await fetch(`/api/exam-sessions/${params.id}/results`);
             if (response.ok) {
                 const data = await response.json();
                 setSession(data.session);
                 setStatistics(data.statistics);
+                setAllResults(data.results);
                 setResults(data.results);
             } else {
                 throw new Error("Failed to load results");
@@ -127,7 +126,30 @@ export default function ExamResultsPage() {
     useEffect(() => {
         fetchResults();
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [classFilter, searchQuery]);
+    }, []);
+
+    // Client-side filtering: apply classFilter and searchQuery to allResults
+    useEffect(() => {
+        let filtered = allResults;
+
+        if (classFilter !== "all") {
+            filtered = filtered.filter(r => r.className === classFilter);
+        }
+
+        if (searchQuery.trim()) {
+            const query = searchQuery.trim().toLowerCase();
+            filtered = filtered.filter(r => r.studentName.toLowerCase().includes(query));
+        }
+
+        // Sort by className first, then by studentName
+        filtered = [...filtered].sort((a, b) => {
+            const classCompare = a.className.localeCompare(b.className, 'id');
+            if (classCompare !== 0) return classCompare;
+            return a.studentName.localeCompare(b.studentName, 'id');
+        });
+
+        setResults(filtered);
+    }, [classFilter, searchQuery, allResults]);
 
 
 
@@ -190,7 +212,7 @@ export default function ExamResultsPage() {
     };
 
     // Get unique classes for filter
-    const uniqueClasses = Array.from(new Set(results.map(r => r.className))).filter(c => c !== 'N/A').sort();
+    const uniqueClasses = Array.from(new Set(allResults.map(r => r.className))).filter(c => c !== 'N/A').sort();
 
     // Filter results for essay questions
     const resultsWithEssays = results.filter(r => r.essayQuestions.length > 0);
