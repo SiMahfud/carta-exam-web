@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -51,6 +51,43 @@ interface Violation {
     timestamp: string;
 }
 
+const VIOLATION_LABELS: Record<string, string> = {
+    // From use-exam-security.ts
+    TAB_SWITCH: "Pindah Tab",
+    WINDOW_BLUR: "Keluar Jendela",
+    RIGHT_CLICK: "Klik Kanan",
+    KEYBOARD_SHORTCUT: "Shortcut Keyboard",
+    PRINT_ATTEMPT: "Cetak Halaman",
+    DEVTOOLS: "Developer Tools",
+    SCREENSHOT: "Screenshot",
+    // From lockdown.ts
+    tab_switch: "Pindah Tab",
+    window_blur: "Keluar Jendela",
+    context_menu: "Klik Kanan",
+    copy: "Copy",
+    paste: "Paste",
+    cut: "Cut",
+    screenshot_attempt: "Screenshot",
+    watermark_tampering: "Manipulasi Watermark",
+    // Legacy/Other
+    copy_paste: "Copy/Paste",
+    right_click: "Klik Kanan",
+    screenshot: "Screenshot",
+    fullscreen_exit: "Keluar Fullscreen",
+    FULLSCREEN_EXIT: "Keluar Fullscreen",
+    split_screen: "Layar Terbelah (Split Screen)",
+    SPLIT_SCREEN: "Layar Terbelah (Split Screen)",
+    floating_window: "Jendela Mengambang (Floating Window)",
+    FLOATING_WINDOW: "Jendela Mengambang (Floating Window)",
+    BACK_BUTTON: "Tombol Kembali",
+    WATERMARK_TAMPERING: "Manipulasi Watermark",
+    DEVICE_MISMATCH: "Perangkat Tidak Cocok / Sesi Ganda",
+};
+
+function getViolationTypeLabel(type: string): string {
+    return VIOLATION_LABELS[type] || type;
+}
+
 export default function SessionMonitorPage() {
     const params = useParams();
     const { toast } = useToast();
@@ -83,11 +120,13 @@ export default function SessionMonitorPage() {
     const [requireToken, setRequireToken] = useState(false);
     const [generatingToken, setGeneratingToken] = useState(false);
 
-    // Live Auto-Refresh State
+    // Live Auto-Refresh & Real-time SSE State
     const [liveAutoRefresh, setLiveAutoRefresh] = useState(true);
+    const [sseStatus, setSseStatus] = useState<"connected" | "connecting" | "disconnected">("connecting");
+    const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
 
-    const fetchData = useCallback(async () => {
-        setRefreshing(true);
+    const fetchData = useCallback(async (isSilent = false) => {
+        if (!isSilent) setRefreshing(true);
         try {
             const response = await fetch(`/api/exam-sessions/${params.id}/monitor`);
             if (response.ok) {
@@ -100,27 +139,27 @@ export default function SessionMonitorPage() {
             }
         } catch (error) {
             console.error("Error fetching monitor data:", error);
-            toast({
-                title: "Error",
-                description: "Gagal memuat data monitoring",
-                variant: "destructive",
-            });
+            if (!isSilent) {
+                toast({
+                    title: "Error",
+                    description: "Gagal memuat data monitoring",
+                    variant: "destructive",
+                });
+            }
         } finally {
             setLoading(false);
-            setRefreshing(false);
+            if (!isSilent) setRefreshing(false);
         }
     }, [params.id, toast]);
 
-    // Auto-refresh interval when session is active
-    useEffect(() => {
-        if (!liveAutoRefresh) return;
-
-        const timer = setInterval(() => {
-            fetchData();
-        }, 5000);
-
-        return () => clearInterval(timer);
-    }, [liveAutoRefresh, fetchData]);
+    const triggerDebouncedSync = useCallback(() => {
+        if (debounceTimerRef.current) {
+            clearTimeout(debounceTimerRef.current);
+        }
+        debounceTimerRef.current = setTimeout(() => {
+            fetchData(true);
+        }, 2500);
+    }, [fetchData]);
 
     const handleSingleProctorAction = async (studentId: string, action: string) => {
         try {
@@ -136,7 +175,7 @@ export default function SessionMonitorPage() {
                     title: "Aksi Berhasil",
                     description: res.message || "Aksi pengawas berhasil dijalankan.",
                 });
-                fetchData();
+                fetchData(true);
             } else {
                 const err = await response.json();
                 toast({
@@ -167,57 +206,180 @@ export default function SessionMonitorPage() {
         }
     };
 
+    // Initial load
     useEffect(() => {
         fetchData();
         fetchToken();
+    }, [fetchData]);
 
-        // Connect to SSE for real-time proctoring events
-        let eventSource: EventSource | null = null;
-        try {
-            eventSource = new EventSource(`/api/exam-sessions/${params.id}/events`);
-
-            eventSource.onmessage = (e) => {
-                try {
-                    const event = JSON.parse(e.data);
-                    if (event.type === 'violation') {
-                        toast({
-                            title: "⚠️ Pelanggaran Terdeteksi!",
-                            description: `${event.studentName || 'Siswa'}: ${getViolationTypeLabel(event.data?.violationType)} (${event.data?.violationCount || 1} pelanggaran)`,
-                            variant: "destructive",
-                        });
-                        fetchData();
-                    } else if (event.type === 'student_submit') {
-                        toast({
-                            title: "Ujian Dikumpulkan",
-                            description: `${event.studentName || 'Siswa'} telah mengumpulkan ujian.`,
-                        });
-                        fetchData();
-                    } else if (event.type === 'proctor_action' || event.type === 'student_start') {
-                        fetchData();
-                    }
-                } catch {
-                    // Non-JSON or keepalive event
-                }
-            };
-
-            eventSource.onerror = () => {
-                // Fallback gracefully to polling if SSE disconnected
-            };
-        } catch (e) {
-            console.error("SSE connection error:", e);
+    // Primary Real-time Connection (SSE)
+    useEffect(() => {
+        if (!liveAutoRefresh || !params.id) {
+            setSseStatus("disconnected");
+            return;
         }
 
-        // Auto-refresh fallback every 30s
-        const interval = setInterval(fetchData, 30000);
+        let eventSource: EventSource | null = null;
+        let isUnmounted = false;
+
+        const connectSSE = () => {
+            if (isUnmounted) return;
+            setSseStatus("connecting");
+
+            try {
+                eventSource = new EventSource(`/api/exam-sessions/${params.id}/events`);
+
+                eventSource.onopen = () => {
+                    if (!isUnmounted) setSseStatus("connected");
+                };
+
+                eventSource.onmessage = (e) => {
+                    if (isUnmounted) return;
+                    try {
+                        const event = JSON.parse(e.data);
+
+                        if (event.type === "connected" || event.type === "ping") {
+                            setSseStatus("connected");
+                            return;
+                        }
+
+                        if (event.type === "violation") {
+                            const violationType = event.data?.violationType;
+                            const violationCount = typeof event.data?.violationCount === "number" ? event.data.violationCount : 1;
+                            const isTerminated = !!event.data?.terminated;
+
+                            toast({
+                                title: isTerminated ? "🚫 Ujian Dihentikan!" : "⚠️ Pelanggaran Terdeteksi!",
+                                description: `${event.studentName || "Siswa"}: ${getViolationTypeLabel(violationType)} (${violationCount} pelanggaran)${isTerminated ? " - Batas tercapai" : ""}`,
+                                variant: "destructive",
+                            });
+
+                            // Immediate in-memory update (0ms lag)
+                            setStudents((prev) =>
+                                prev.map((s) => {
+                                    if (s.id === event.studentId) {
+                                        return {
+                                            ...s,
+                                            violationCount,
+                                            status: isTerminated ? "terminated" : s.status,
+                                        };
+                                    }
+                                    return s;
+                                })
+                            );
+
+                            setStats((prev) => (prev ? { ...prev, violations: prev.violations + 1 } : prev));
+                            triggerDebouncedSync();
+                        } else if (event.type === "student_submit") {
+                            const score = typeof event.data?.score === "number" ? event.data.score : null;
+
+                            toast({
+                                title: "Ujian Dikumpulkan",
+                                description: `${event.studentName || "Siswa"} telah mengumpulkan ujian.`,
+                            });
+
+                            // Immediate in-memory update (0ms lag)
+                            setStudents((prev) =>
+                                prev.map((s) => {
+                                    if (s.id === event.studentId) {
+                                        return {
+                                            ...s,
+                                            status: "completed",
+                                            score: score !== null ? score : s.score,
+                                            endTime: event.timestamp || new Date().toISOString(),
+                                        };
+                                    }
+                                    return s;
+                                })
+                            );
+
+                            setStats((prev) =>
+                                prev
+                                    ? {
+                                          ...prev,
+                                          inProgress: Math.max(0, prev.inProgress - 1),
+                                          completed: prev.completed + 1,
+                                      }
+                                    : prev
+                            );
+                            triggerDebouncedSync();
+                        } else if (event.type === "student_start") {
+                            // Immediate in-memory update (0ms lag)
+                            setStudents((prev) =>
+                                prev.map((s) => {
+                                    if (s.id === event.studentId) {
+                                        return {
+                                            ...s,
+                                            status: "in_progress",
+                                            startTime: event.timestamp || new Date().toISOString(),
+                                        };
+                                    }
+                                    return s;
+                                })
+                            );
+
+                            setStats((prev) =>
+                                prev
+                                    ? {
+                                          ...prev,
+                                          notStarted: Math.max(0, prev.notStarted - 1),
+                                          inProgress: prev.inProgress + 1,
+                                      }
+                                    : prev
+                            );
+                            triggerDebouncedSync();
+                        } else if (event.type === "proctor_action" || event.type === "session_update") {
+                            triggerDebouncedSync();
+                        }
+                    } catch {
+                        // Non-JSON or keepalive comment
+                    }
+                };
+
+                eventSource.onerror = () => {
+                    if (isUnmounted) return;
+                    setSseStatus("disconnected");
+                };
+            } catch (err) {
+                console.error("SSE connection error:", err);
+                if (!isUnmounted) setSseStatus("disconnected");
+            }
+        };
+
+        connectSSE();
 
         return () => {
-            clearInterval(interval);
+            isUnmounted = true;
             if (eventSource) {
                 eventSource.close();
             }
         };
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [params.id]);
+    }, [liveAutoRefresh, params.id, toast, triggerDebouncedSync]);
+
+    // Fallback Polling (Relaxed 45s when SSE is connected, or faster 15s fallback when SSE is disconnected)
+    useEffect(() => {
+        if (!liveAutoRefresh) return;
+
+        const pollInterval = sseStatus === "connected" ? 45000 : 15000;
+
+        const timer = setInterval(() => {
+            if (typeof document !== "undefined" && document.hidden) return;
+            fetchData(true);
+        }, pollInterval);
+
+        const handleVisibilityChange = () => {
+            if (typeof document !== "undefined" && !document.hidden) {
+                fetchData(true);
+            }
+        };
+
+        document.addEventListener("visibilitychange", handleVisibilityChange);
+
+        return () => {
+            clearInterval(timer);
+            document.removeEventListener("visibilitychange", handleVisibilityChange);
+        };
+    }, [liveAutoRefresh, sseStatus, fetchData]);
 
 
 
@@ -346,41 +508,6 @@ export default function SessionMonitorPage() {
         }
     };
 
-    const getViolationTypeLabel = (type: string) => {
-        const labels: Record<string, string> = {
-            // From use-exam-security.ts
-            TAB_SWITCH: "Pindah Tab",
-            WINDOW_BLUR: "Keluar Jendela",
-            RIGHT_CLICK: "Klik Kanan",
-            KEYBOARD_SHORTCUT: "Shortcut Keyboard",
-            PRINT_ATTEMPT: "Cetak Halaman",
-            DEVTOOLS: "Developer Tools",
-            SCREENSHOT: "Screenshot",
-            // From lockdown.ts
-            tab_switch: "Pindah Tab",
-            window_blur: "Keluar Jendela",
-            context_menu: "Klik Kanan",
-            copy: "Copy",
-            paste: "Paste",
-            cut: "Cut",
-            screenshot_attempt: "Screenshot",
-            watermark_tampering: "Manipulasi Watermark",
-            // Legacy/Other
-            copy_paste: "Copy/Paste",
-            right_click: "Klik Kanan",
-            screenshot: "Screenshot",
-            fullscreen_exit: "Keluar Fullscreen",
-            FULLSCREEN_EXIT: "Keluar Fullscreen",
-            split_screen: "Layar Terbelah (Split Screen)",
-            SPLIT_SCREEN: "Layar Terbelah (Split Screen)",
-            floating_window: "Jendela Mengambang (Floating Window)",
-            FLOATING_WINDOW: "Jendela Mengambang (Floating Window)",
-            BACK_BUTTON: "Tombol Kembali",
-            WATERMARK_TAMPERING: "Manipulasi Watermark",
-            DEVICE_MISMATCH: "Perangkat Tidak Cocok / Sesi Ganda",
-        };
-        return labels[type] || type;
-    };
 
     // Filter logic
     const uniqueClasses = Array.from(new Set(students.map(s => s.className))).sort();
@@ -432,10 +559,37 @@ export default function SessionMonitorPage() {
                         variant={liveAutoRefresh ? "default" : "outline"}
                         size="sm"
                         onClick={() => setLiveAutoRefresh(!liveAutoRefresh)}
-                        className={`gap-1.5 ${liveAutoRefresh ? "bg-emerald-600 hover:bg-emerald-700 text-white" : ""}`}
+                        className={`gap-1.5 transition-colors ${
+                            !liveAutoRefresh
+                                ? ""
+                                : sseStatus === "connected"
+                                ? "bg-emerald-600 hover:bg-emerald-700 text-white"
+                                : "bg-amber-600 hover:bg-amber-700 text-white"
+                        }`}
+                        title={
+                            !liveAutoRefresh
+                                ? "Live monitoring nonaktif"
+                                : sseStatus === "connected"
+                                ? "Real-time SSE aktif. Data diperbarui seketika (sinkronisasi DB berkala)."
+                                : "SSE terputus. Fallback polling aktif setiap 15 detik."
+                        }
                     >
-                        <span className={`h-2 w-2 rounded-full ${liveAutoRefresh ? "bg-white animate-pulse" : "bg-muted-foreground"}`} />
-                        <span>Live (5s): {liveAutoRefresh ? "Aktif" : "Mati"}</span>
+                        <span
+                            className={`h-2 w-2 rounded-full ${
+                                !liveAutoRefresh
+                                    ? "bg-muted-foreground"
+                                    : sseStatus === "connected"
+                                    ? "bg-white animate-pulse"
+                                    : "bg-white animate-ping"
+                            }`}
+                        />
+                        <span>
+                            {!liveAutoRefresh
+                                ? "Live: Nonaktif"
+                                : sseStatus === "connected"
+                                ? "Realtime (SSE): Aktif"
+                                : "Polling Fallback (15s): Aktif"}
+                        </span>
                     </Button>
                     <Link href={`/admin/exam-sessions/${params.id}/results`}>
                         <Button variant="default" size="sm">
@@ -443,7 +597,7 @@ export default function SessionMonitorPage() {
                             Lihat Hasil
                         </Button>
                     </Link>
-                    <Button variant="outline" size="sm" onClick={fetchData} disabled={refreshing}>
+                    <Button variant="outline" size="sm" onClick={() => fetchData(false)} disabled={refreshing}>
                         <RefreshCw className={`mr-2 h-4 w-4 ${refreshing ? "animate-spin" : ""}`} />
                         Refresh
                     </Button>

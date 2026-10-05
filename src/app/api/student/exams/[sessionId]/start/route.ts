@@ -5,6 +5,7 @@ import { eq, inArray, and } from "drizzle-orm";
 import { applyQuestionRandomization, RandomizationRules } from "@/lib/randomization";
 import { requireAuth } from "@/lib/auth-guard";
 import { validateBrowserRequirements } from "@/lib/browser-detection";
+import { publishStudentStartEvent } from "@/lib/proctoring-events";
 
 // POST /api/student/exams/[sessionId]/start - Start taking an exam
 export async function POST(
@@ -250,6 +251,17 @@ export async function POST(
             deviceId: deviceId || null,
             gradingStatus: "auto",
         });
+
+        // Broadcast student start event via SSE to proctor dashboard
+        try {
+            publishStudentStartEvent(
+                params.sessionId,
+                studentId,
+                user.name || "Siswa"
+            );
+        } catch (e) {
+            console.error("Error publishing student start event:", e);
+        }
 
         return NextResponse.json({
             submissionId: submissionId,

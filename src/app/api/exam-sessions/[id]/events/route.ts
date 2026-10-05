@@ -2,6 +2,8 @@ import { NextRequest } from "next/server";
 import { requireAuth } from "@/lib/auth-guard";
 import { proctoringEvents, type ProctoringEvent } from "@/lib/proctoring-events";
 
+export const dynamic = "force-dynamic";
+
 /**
  * GET /api/exam-sessions/[id]/events - SSE endpoint for real-time proctoring
  * 
@@ -12,8 +14,14 @@ export async function GET(
     req: NextRequest,
     { params }: { params: { id: string } }
 ) {
-    // Only admin/teacher can subscribe to proctoring events
-    await requireAuth(["admin", "teacher"]);
+    try {
+        await requireAuth(["admin", "teacher"]);
+    } catch (authError: any) {
+        return new Response(JSON.stringify({ error: authError.message || "Unauthorized" }), {
+            status: authError.status || 401,
+            headers: { "Content-Type": "application/json" },
+        });
+    }
 
     const sessionId = params.id;
 

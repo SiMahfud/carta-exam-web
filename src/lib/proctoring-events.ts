@@ -88,13 +88,29 @@ export const proctoringEvents = new ProctoringEventBus()
 
 // Helper functions for common event types
 
+export function publishStudentStartEvent(
+    sessionId: string,
+    studentId: string,
+    studentName?: string
+): void {
+    proctoringEvents.publish({
+        type: 'student_start',
+        sessionId,
+        studentId,
+        studentName,
+        data: {},
+        timestamp: new Date().toISOString(),
+    })
+}
+
 export function publishViolationEvent(
     sessionId: string,
     studentId: string,
     studentName: string,
     violationType: string,
     violationCount: number,
-    details?: string
+    details?: string,
+    terminated?: boolean
 ): void {
     proctoringEvents.publish({
         type: 'violation',
@@ -105,6 +121,7 @@ export function publishViolationEvent(
             violationType,
             violationCount,
             details,
+            terminated: !!terminated,
         },
         timestamp: new Date().toISOString(),
     })
@@ -146,6 +163,22 @@ export function publishProctorActionEvent(
     })
 }
 
+export function publishSessionUpdateEvent(
+    sessionId: string,
+    action: string,
+    details?: Record<string, unknown>
+): void {
+    proctoringEvents.publish({
+        type: 'session_update',
+        sessionId,
+        data: {
+            action,
+            ...details,
+        },
+        timestamp: new Date().toISOString(),
+    })
+}
+
 export function publishHeartbeatEvent(
     sessionId: string,
     studentId: string,
@@ -159,3 +192,4 @@ export function publishHeartbeatEvent(
         timestamp: new Date().toISOString(),
     })
 }
+

@@ -164,7 +164,8 @@ export async function POST(
                 user.name || "Siswa",
                 type,
                 newViolationCount,
-                details
+                details,
+                shouldTerminate
             );
         } catch (e) {
             console.error("Error publishing violation event:", e);

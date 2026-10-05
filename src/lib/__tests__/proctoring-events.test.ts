@@ -4,6 +4,8 @@ import {
     publishViolationEvent,
     publishStudentSubmitEvent,
     publishProctorActionEvent,
+    publishStudentStartEvent,
+    publishSessionUpdateEvent,
     type ProctoringEvent,
 } from "../proctoring-events";
 
@@ -52,6 +54,28 @@ describe("proctoring-events bus", () => {
         expect(event.type).toBe("proctor_action");
         expect(event.data.action).toBe("reset_violations");
         expect(event.studentId).toBe("student-3");
+
+        unsubscribe();
+    });
+
+    it("should support student start and session update publications", () => {
+        const sessionId = "session-test-start";
+        const callback = vi.fn();
+
+        const unsubscribe = proctoringEvents.subscribe(sessionId, callback);
+        publishStudentStartEvent(sessionId, "student-4", "Citra");
+
+        expect(callback).toHaveBeenCalledTimes(1);
+        const startEvent = callback.mock.calls[0][0] as ProctoringEvent;
+        expect(startEvent.type).toBe("student_start");
+        expect(startEvent.studentId).toBe("student-4");
+        expect(startEvent.studentName).toBe("Citra");
+
+        publishSessionUpdateEvent(sessionId, "reset_violations", { studentIds: ["student-4"] });
+        expect(callback).toHaveBeenCalledTimes(2);
+        const updateEvent = callback.mock.calls[1][0] as ProctoringEvent;
+        expect(updateEvent.type).toBe("session_update");
+        expect(updateEvent.data.action).toBe("reset_violations");
 
         unsubscribe();
     });

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { submissions } from "@/lib/schema";
 import { eq, and, inArray, sql } from "drizzle-orm";
+import { publishSessionUpdateEvent } from "@/lib/proctoring-events";
 
 export async function POST(
     request: Request,
@@ -123,6 +124,13 @@ export async function POST(
                     { error: "Invalid action" },
                     { status: 400 }
                 );
+        }
+
+        // Broadcast session update event via SSE to proctor dashboard
+        try {
+            publishSessionUpdateEvent(sessionId, action, { studentIds });
+        } catch (e) {
+            console.error("Error publishing participant action event:", e);
         }
 
         return NextResponse.json({ success: true });
