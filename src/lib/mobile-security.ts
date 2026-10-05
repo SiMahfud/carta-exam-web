@@ -14,8 +14,33 @@ export function isMobileDevice(): boolean {
     return isMobileUa || isIPadOS || isTouchTabletOrMobile;
 }
 
+let lastTypingTimestamp = 0;
+
+if (typeof window !== "undefined" && typeof document !== "undefined") {
+    const isInputTarget = (e: Event) => {
+        const target = e.target as HTMLElement | null;
+        return Boolean(target && (target.tagName === "INPUT" || target.tagName === "TEXTAREA" || target.isContentEditable));
+    };
+    document.addEventListener("focusin", (e) => {
+        if (isInputTarget(e)) lastTypingTimestamp = Date.now();
+    }, true);
+    document.addEventListener("input", (e) => {
+        if (isInputTarget(e)) lastTypingTimestamp = Date.now();
+    }, true);
+    document.addEventListener("keydown", (e) => {
+        if (isInputTarget(e)) lastTypingTimestamp = Date.now();
+    }, true);
+}
+
 export function isTypingActive(): boolean {
     if (typeof document === "undefined") return false;
+
+    // Check if an input or textarea was active within the last 1500ms
+    // (covers keyboard open/close/IME transitions, suggestion bar taps, and autocorrect)
+    if (lastTypingTimestamp > 0 && Date.now() - lastTypingTimestamp < 1500) {
+        return true;
+    }
+
     const activeEl = document.activeElement;
     if (activeEl) {
         const tagName = activeEl.tagName.toUpperCase();

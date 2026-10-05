@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useCallback, useRef } from "react";
-import { checkSplitOrFloatingScreen } from "@/lib/mobile-security";
+import { checkSplitOrFloatingScreen, isTypingActive } from "@/lib/mobile-security";
 
 interface ViolationLog {
     type: string;
@@ -111,6 +111,12 @@ export function useExamSecurity(options: UseExamSecurityOptions = {}) {
 
         // Detect window blur or floating window interaction
         const handleBlur = () => {
+            // On mobile devices, interacting with soft keyboards, speech-to-text, or text selection handles
+            // can fire transient window blur events. Do not falsely trigger if typing was active.
+            if (isTypingActive()) {
+                return;
+            }
+
             // When document is NOT hidden, but window lost focus, user is interacting with an external floating app or companion split window
             if (!document.hidden && detectFloatingWindow) {
                 logViolation("FLOATING_WINDOW", "Jendela mengambang (Floating Window) atau aplikasi luar mengambil fokus");
@@ -129,8 +135,17 @@ export function useExamSecurity(options: UseExamSecurityOptions = {}) {
 
         // Disable copy/paste keyboard shortcuts
         const handleKeyDown = (e: KeyboardEvent) => {
+            const target = e.target as HTMLElement | null;
+            const isInputOrTextarea = target && (target.tagName === "INPUT" || target.tagName === "TEXTAREA" || target.isContentEditable);
+
             if (disableCopyPaste && (e.ctrlKey || e.metaKey)) {
                 const key = e.key.toLowerCase();
+
+                // Allow Ctrl+A (select all) inside input/textarea so students can edit their essay answers
+                if (key === "a" && isInputOrTextarea) {
+                    return;
+                }
+
                 if (["c", "v", "x", "a"].includes(key)) {
                     e.preventDefault();
                     logViolation("KEYBOARD_SHORTCUT", `Ctrl+${key.toUpperCase()} attempted`);

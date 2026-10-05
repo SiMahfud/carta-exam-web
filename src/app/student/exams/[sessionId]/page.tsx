@@ -19,7 +19,6 @@ import { SecurityWarningBanner } from "@/components/exam/take-exam/SecurityWarni
 import { FullscreenLockoutOverlay } from "@/components/exam/take-exam/FullscreenLockoutOverlay";
 import { TerminatedExamView } from "@/components/exam/take-exam/TerminatedExamView";
 import { QuestionCard } from "@/components/exam/take-exam/QuestionCard";
-import { FloatingExamTools } from "@/components/exam/take-exam/FloatingExamTools";
 import { ViolationDetailDialog, ViolationLogItem } from "@/components/exam/take-exam/ViolationDetailDialog";
 import { SessionExpiredDialog } from "@/components/exam/take-exam/SessionExpiredDialog";
 
@@ -1061,8 +1060,6 @@ export default function TakeExamPage() {
                         </main>
                     </div>
 
-                    {/* Floating Tools: Mini Calculator, Digital Scratchpad, Keyboard Shortcuts Help */}
-                    <FloatingExamTools />
 
                     {/* Violation count indicator (Clickable button for details) */}
                     {violationCount > 0 && (

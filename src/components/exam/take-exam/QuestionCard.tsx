@@ -71,16 +71,37 @@ export function QuestionCard({
     const minSwipeDistance = 60;
 
     const onTouchStart = (e: React.TouchEvent) => {
+        const target = e.target as HTMLElement | null;
+        // Do not trigger card swipe navigation when interacting inside inputs, textareas, buttons, or editable areas
+        if (
+            target &&
+            (target.tagName === "TEXTAREA" ||
+                target.tagName === "INPUT" ||
+                target.tagName === "BUTTON" ||
+                target.closest("textarea") ||
+                target.closest("input") ||
+                target.closest("button") ||
+                target.closest("[contenteditable='true']"))
+        ) {
+            touchStartX.current = null;
+            touchEndX.current = null;
+            return;
+        }
         touchEndX.current = null;
         touchStartX.current = e.targetTouches[0].clientX;
     };
 
     const onTouchMove = (e: React.TouchEvent) => {
+        if (touchStartX.current === null) return;
         touchEndX.current = e.targetTouches[0].clientX;
     };
 
     const onTouchEnd = () => {
-        if (!touchStartX.current || !touchEndX.current) return;
+        if (!touchStartX.current || !touchEndX.current) {
+            touchStartX.current = null;
+            touchEndX.current = null;
+            return;
+        }
         const distance = touchStartX.current - touchEndX.current;
         const isLeftSwipe = distance > minSwipeDistance;
         const isRightSwipe = distance < -minSwipeDistance;
@@ -91,6 +112,8 @@ export function QuestionCard({
         if (isRightSwipe && currentQuestionIndex > 0) {
             onNavigate(currentQuestionIndex - 1);
         }
+        touchStartX.current = null;
+        touchEndX.current = null;
     };
 
     // Check if question has long text suitable for split-screen toggle

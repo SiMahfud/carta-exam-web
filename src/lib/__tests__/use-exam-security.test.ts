@@ -3,12 +3,19 @@ import { renderHook, act } from '@testing-library/react';
 import { useExamSecurity } from '@/hooks/use-exam-security';
 
 describe('useExamSecurity', () => {
+    const originalUA = navigator.userAgent;
+
     beforeEach(() => {
         vi.useFakeTimers();
     });
 
     afterEach(() => {
         vi.useRealTimers();
+        Object.defineProperty(navigator, 'userAgent', { value: originalUA, writable: true, configurable: true });
+        Object.defineProperty(window, 'innerHeight', { value: 1080, writable: true, configurable: true });
+        Object.defineProperty(window, 'innerWidth', { value: 1920, writable: true, configurable: true });
+        Object.defineProperty(window.screen, 'height', { value: 1080, writable: true, configurable: true });
+        Object.defineProperty(window.screen, 'width', { value: 1920, writable: true, configurable: true });
     });
 
     it('should trigger TAB_SWITCH violation when document becomes hidden', () => {
@@ -134,5 +141,54 @@ describe('useExamSecurity', () => {
         expect(onViolation).toHaveBeenCalledWith(expect.objectContaining({
             type: 'SPLIT_SCREEN',
         }));
+    });
+
+    it('should allow Ctrl+A inside textarea or input without triggering violation', () => {
+        const onViolation = vi.fn();
+        renderHook(() => useExamSecurity({ onViolation, disableCopyPaste: true }));
+
+        const textarea = document.createElement('textarea');
+        document.body.appendChild(textarea);
+        textarea.focus();
+
+        const event = new KeyboardEvent('keydown', { key: 'a', ctrlKey: true, bubbles: true });
+        act(() => {
+            textarea.dispatchEvent(event);
+        });
+
+        expect(onViolation).not.toHaveBeenCalled();
+        document.body.removeChild(textarea);
+    });
+
+    it('should trigger KEYBOARD_SHORTCUT for Ctrl+A when target is outside editable elements', () => {
+        const onViolation = vi.fn();
+        renderHook(() => useExamSecurity({ onViolation, disableCopyPaste: true }));
+
+        act(() => {
+            document.dispatchEvent(new KeyboardEvent('keydown', { key: 'a', ctrlKey: true, bubbles: true }));
+        });
+
+        expect(onViolation).toHaveBeenCalledTimes(1);
+        expect(onViolation).toHaveBeenCalledWith(expect.objectContaining({
+            type: 'KEYBOARD_SHORTCUT',
+        }));
+    });
+
+    it('should ignore window blur when typing is active in textarea', () => {
+        const onViolation = vi.fn();
+        renderHook(() => useExamSecurity({ onViolation, detectFloatingWindow: true }));
+
+        const textarea = document.createElement('textarea');
+        document.body.appendChild(textarea);
+        textarea.focus();
+
+        act(() => {
+            textarea.dispatchEvent(new Event('focusin', { bubbles: true }));
+            textarea.dispatchEvent(new Event('input', { bubbles: true }));
+            window.dispatchEvent(new Event('blur'));
+        });
+
+        expect(onViolation).not.toHaveBeenCalled();
+        document.body.removeChild(textarea);
     });
 });
