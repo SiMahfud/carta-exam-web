@@ -237,7 +237,7 @@ export async function POST(
         }
 
         // Create submission
-        // Create submission
+        const totalMax = selectedQuestions.reduce((sum: number, q: any) => sum + (q.defaultPoints || 0), 0);
         const submissionId = crypto.randomUUID();
         await db.insert(submissions).values({
             id: submissionId,
@@ -245,6 +245,9 @@ export async function POST(
             sessionId: params.sessionId,
             status: "in_progress",
             questionOrder,
+            totalPoints: totalMax,
+            earnedPoints: 0,
+            score: 0,
             flaggedQuestions: [],
             violationCount: 0,
             violationLog: [],

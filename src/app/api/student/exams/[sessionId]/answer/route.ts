@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { submissions, answers, bankQuestions, examSessions, examTemplates } from "@/lib/schema";
-import { eq, and } from "drizzle-orm";
+import { eq, and, inArray } from "drizzle-orm";
 import { requireAuth } from "@/lib/auth-guard";
 import { seededShuffle } from "@/lib/randomization";
 import { safeJsonParse } from "@/lib/json-utils";
@@ -297,6 +297,44 @@ export async function POST(
                 partialPoints: earnedPoints,
                 gradingStatus: question.type === 'essay' ? 'pending_manual' : 'auto',
             });
+        }
+
+        // Update submission running score in background/inline
+        try {
+            const allSubAnswers = await db.select({
+                partialPoints: answers.partialPoints,
+                score: answers.score,
+            })
+                .from(answers)
+                .where(eq(answers.submissionId, submission.id));
+
+            const totalEarned = allSubAnswers.reduce(
+                (sum: number, a: any) => sum + (a.partialPoints !== null && a.partialPoints !== undefined ? a.partialPoints : (a.score || 0)),
+                0
+            );
+
+            let totalMax = submission.totalPoints;
+            if (!totalMax || totalMax <= 0) {
+                const qIds: string[] = (submission.questionOrder as string[]) || [];
+                if (qIds.length > 0) {
+                    const qList = await db.select({ defaultPoints: bankQuestions.defaultPoints })
+                        .from(bankQuestions)
+                        .where(inArray(bankQuestions.id, qIds));
+                    totalMax = qList.reduce((sum: number, q: any) => sum + (q.defaultPoints || 0), 0);
+                }
+            }
+
+            const runningScore = totalMax && totalMax > 0 ? Math.round((totalEarned / totalMax) * 100) : 0;
+
+            await db.update(submissions)
+                .set({
+                    earnedPoints: totalEarned,
+                    totalPoints: totalMax,
+                    score: runningScore,
+                })
+                .where(eq(submissions.id, submission.id));
+        } catch (calcError) {
+            console.error("Error updating running score on submission:", calcError);
         }
 
         return NextResponse.json({

@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { examSessions, users, classStudents, submissions, classes } from "@/lib/schema";
+import { examSessions, users, classStudents, submissions, classes, answers, bankQuestions } from "@/lib/schema";
 import { eq, inArray } from "drizzle-orm";
 import { requireAuth } from "@/lib/auth-guard";
 
@@ -116,6 +116,88 @@ export async function GET(
             .from(submissions)
             .where(eq(submissions.sessionId, session.id));
 
+        // 3b. Calculate live temporary scores for in-progress submissions
+        const inProgressSubmissions = submissionsResult.filter(
+            (s: any) => (s.status || "in_progress") === "in_progress"
+        );
+        const inProgressSubmissionIds = inProgressSubmissions.map((s: any) => s.id);
+
+        const answersBySubmission = new Map<
+            string,
+            { totalEarned: number; answeredCount: number; hasEssays: boolean }
+        >();
+
+        if (inProgressSubmissionIds.length > 0) {
+            const inProgressAnswers = await db.select({
+                submissionId: answers.submissionId,
+                partialPoints: answers.partialPoints,
+                score: answers.score,
+                gradingStatus: answers.gradingStatus,
+            })
+                .from(answers)
+                .where(inArray(answers.submissionId, inProgressSubmissionIds));
+
+            for (const ans of inProgressAnswers) {
+                const prev = answersBySubmission.get(ans.submissionId) || {
+                    totalEarned: 0,
+                    answeredCount: 0,
+                    hasEssays: false,
+                };
+                const pts = ans.partialPoints !== null && ans.partialPoints !== undefined
+                    ? ans.partialPoints
+                    : (ans.score || 0);
+
+                answersBySubmission.set(ans.submissionId, {
+                    totalEarned: prev.totalEarned + pts,
+                    answeredCount: prev.answeredCount + 1,
+                    hasEssays: prev.hasEssays || ans.gradingStatus === "pending_manual",
+                });
+            }
+        }
+
+        // Helper to safely parse questionOrder which may be a JSON string or actual array
+        const parseQuestionOrder = (raw: unknown): string[] => {
+            if (Array.isArray(raw)) return raw;
+            if (typeof raw === 'string') {
+                try {
+                    const parsed = JSON.parse(raw);
+                    if (Array.isArray(parsed)) return parsed;
+                } catch {
+                    // not valid JSON
+                }
+            }
+            return [];
+        };
+
+        // Determine question points for submissions missing totalPoints
+        const questionPointsMap = new Map<string, number>();
+        const missingTotalPointsSubmissions = inProgressSubmissions.filter(
+            (s: any) => !s.totalPoints || s.totalPoints <= 0
+        );
+
+        const questionIdsToFetch = new Set<string>();
+        for (const s of missingTotalPointsSubmissions) {
+            const qIds = parseQuestionOrder(s.questionOrder);
+            for (const qId of qIds) {
+                if (typeof qId === "string") {
+                    questionIdsToFetch.add(qId);
+                }
+            }
+        }
+
+        if (questionIdsToFetch.size > 0) {
+            const questionsList = await db.select({
+                id: bankQuestions.id,
+                defaultPoints: bankQuestions.defaultPoints,
+            })
+                .from(bankQuestions)
+                .where(inArray(bankQuestions.id, Array.from(questionIdsToFetch)));
+
+            for (const q of questionsList) {
+                questionPointsMap.set(q.id, q.defaultPoints || 1);
+            }
+        }
+
         // 4. Map status to students
         const studentProgress = students.map((student: typeof students[0]) => {
             const submission = submissionsResult.find((s: typeof submissionsResult[0]) => s.userId === student.id);
@@ -125,13 +207,46 @@ export async function GET(
             let startTime = null;
             let endTime = null;
             let violationCount = 0;
+            let isTemporaryScore = false;
+            let answeredCount = 0;
+            let totalQuestions = 0;
+            let hasEssays = false;
 
             if (submission) {
                 status = submission.status || "in_progress";
-                score = submission.score;
                 startTime = submission.startTime;
                 endTime = submission.endTime;
                 violationCount = submission.violationCount || 0;
+
+                const qIds = parseQuestionOrder(submission.questionOrder);
+                totalQuestions = qIds.length;
+
+                if (status === "in_progress") {
+                    isTemporaryScore = true;
+                    const ansData = answersBySubmission.get(submission.id) || {
+                        totalEarned: 0,
+                        answeredCount: 0,
+                        hasEssays: false,
+                    };
+                    answeredCount = ansData.answeredCount;
+                    hasEssays = ansData.hasEssays;
+
+                    // Calculate max possible points
+                    let totalMax = submission.totalPoints || 0;
+                    if (!totalMax || totalMax <= 0) {
+                        totalMax = qIds.reduce(
+                            (sum: number, qId: string) => sum + (questionPointsMap.get(qId) || 1),
+                            0
+                        );
+                    }
+
+                    // Compute temporary score on scale 0-100
+                    score = totalMax > 0 ? Math.round((ansData.totalEarned / totalMax) * 100) : 0;
+                } else {
+                    // Completed, graded, or terminated
+                    score = submission.score;
+                    answeredCount = totalQuestions;
+                }
             }
 
             return {
@@ -140,7 +255,11 @@ export async function GET(
                 score,
                 startTime,
                 endTime,
-                violationCount
+                violationCount,
+                isTemporaryScore,
+                answeredCount,
+                totalQuestions,
+                hasEssays,
             };
         });
 

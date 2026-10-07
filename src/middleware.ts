@@ -5,7 +5,6 @@ export const config = {
     matcher: ['/((?!_next/static|_next/image|favicon.ico).*)']
 }
 
-import { apiRateLimiter } from "@/lib/rate-limit";
 import { verifySession } from "@/lib/session";
 
 export async function middleware(request: NextRequest) {
@@ -17,15 +16,9 @@ export async function middleware(request: NextRequest) {
         return NextResponse.redirect(new URL(`/student/exams${newPath}`, request.url))
     }
 
-    // 2. Rate Limiting for API
-    if (path.startsWith('/api')) {
-        const ip = request.headers.get('x-forwarded-for') || '127.0.0.1';
-        try {
-            await apiRateLimiter.getCheck()(100, ip) // 100 req/min
-        } catch {
-            return new NextResponse('Too Many Requests', { status: 429 });
-        }
-    }
+    // NOTE: API rate limiting removed - tidak efektif karena semua user
+    // di jaringan sekolah + Cloudflare Tunnel berbagi IP yang sama,
+    // menyebabkan limit 100 req/menit dibagi seluruh peserta ujian.
 
     // 3. Authentication & Authorization
     const sessionCookie = request.cookies.get('user_session')

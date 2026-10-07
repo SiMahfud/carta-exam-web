@@ -49,13 +49,11 @@ export async function login(formData: FormData): Promise<LoginResult> {
 
     const { username, password } = result.data
 
-    // Rate Limiting
-    const headersList = await headers()
-    const ip = headersList.get("x-forwarded-for") || "127.0.0.1"
-
+    // Rate Limiting (per username, bukan per IP - karena semua user
+    // di jaringan sekolah berbagi IP yang sama)
     try {
         const { authRateLimiter } = await import("@/lib/rate-limit")
-        await authRateLimiter.getCheck()(5, ip) // 5 login attempts per min
+        await authRateLimiter.getCheck()(5, `login:${username}`) // 5 login attempts per min per username
     } catch {
         return {
             success: false,

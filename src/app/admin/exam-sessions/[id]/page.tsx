@@ -27,6 +27,10 @@ interface StudentProgress {
     startTime: string | null;
     endTime: string | null;
     violationCount: number;
+    isTemporaryScore?: boolean;
+    answeredCount?: number;
+    totalQuestions?: number;
+    hasEssays?: boolean;
 }
 
 interface SessionStats {
@@ -286,6 +290,7 @@ export default function SessionMonitorPage() {
                                             ...s,
                                             status: "completed",
                                             score: score !== null ? score : s.score,
+                                            isTemporaryScore: false,
                                             endTime: event.timestamp || new Date().toISOString(),
                                         };
                                     }
@@ -311,6 +316,9 @@ export default function SessionMonitorPage() {
                                         return {
                                             ...s,
                                             status: "in_progress",
+                                            score: 0,
+                                            isTemporaryScore: true,
+                                            answeredCount: 0,
                                             startTime: event.timestamp || new Date().toISOString(),
                                         };
                                     }
@@ -819,7 +827,32 @@ export default function SessionMonitorPage() {
                                             )}
                                         </td>
                                         <td className="p-4 font-medium">
-                                            {student.score !== null ? student.score : "-"}
+                                            {student.status === "in_progress" ? (
+                                                <div
+                                                    className="inline-flex items-center gap-1.5"
+                                                    title={`Nilai sementara (berjalan): ${student.score ?? 0}${
+                                                        student.hasEssays ? " • belum termasuk essay" : ""
+                                                    }${
+                                                        student.totalQuestions
+                                                            ? ` • ${student.answeredCount ?? 0}/${student.totalQuestions} soal dijawab`
+                                                            : ""
+                                                    }`}
+                                                >
+                                                    <span className="font-semibold text-blue-600 dark:text-blue-400">
+                                                        {student.score !== null ? student.score : 0}
+                                                    </span>
+                                                    <Badge
+                                                        variant="outline"
+                                                        className="text-[10px] px-1.5 py-0 h-4 border-blue-300 text-blue-600 bg-blue-50 dark:bg-blue-950/40 dark:text-blue-400 dark:border-blue-800 font-normal select-none"
+                                                    >
+                                                        Sementara
+                                                    </Badge>
+                                                </div>
+                                            ) : student.score !== null ? (
+                                                <span className="font-semibold">{student.score}</span>
+                                            ) : (
+                                                <span className="text-muted-foreground">-</span>
+                                            )}
                                         </td>
                                         <td className="p-4">
                                             <div className="flex items-center gap-1">
