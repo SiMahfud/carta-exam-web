@@ -3,7 +3,7 @@
 import { db } from "@/lib/db"
 import { users } from "@/lib/schema"
 import { eq } from "drizzle-orm"
-import { cookies, headers } from "next/headers"
+import { cookies } from "next/headers"
 import { redirect } from "next/navigation"
 import bcrypt from "bcryptjs"
 import { z } from "zod"
