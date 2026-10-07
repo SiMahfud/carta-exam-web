@@ -1,35 +1,22 @@
-"use server";
-
 import { NextResponse, NextRequest } from "next/server";
 import { db } from "@/lib/db";
 import { savedFilters } from "@/lib/schema";
 import { eq, and } from "drizzle-orm";
-import { cookies } from "next/headers";
+import { getCurrentUser } from "@/lib/session";
 import { z } from "zod";
 
 // Validation schema
 const createFilterSchema = z.object({
     name: z.string().min(1, "Nama filter wajib diisi").max(100),
     page: z.string().min(1),
-    // Fix: z.record requires 2 arguments (key type, value type) OR just value type in older Zod versions. 
-    // Assuming Zod 3.x, z.record(valueType) uses string keys.
-    // If explicit key needed: z.record(z.string(), valueType)
     filters: z.record(z.string(), z.union([z.string(), z.array(z.string()), z.boolean(), z.null()])),
     isDefault: z.boolean().optional().default(false),
 });
 
-// Helper to get user ID from cookie
+// Helper to get user ID from session
 async function getUserId(): Promise<string | null> {
-    const cookieStore = await cookies();
-    const sessionCookie = cookieStore.get("user_session");
-    if (!sessionCookie) return null;
-
-    try {
-        const session = JSON.parse(sessionCookie.value);
-        return session.id || null;
-    } catch {
-        return null;
-    }
+    const user = await getCurrentUser();
+    return user?.id || null;
 }
 
 // GET /api/saved-filters?page=grading
@@ -53,7 +40,7 @@ export async function GET(request: NextRequest) {
             );
         }
 
-        const filters = await db
+        const filters = await (db as any)
             .select()
             .from(savedFilters)
             .where(and(
@@ -62,7 +49,22 @@ export async function GET(request: NextRequest) {
             ))
             .orderBy(savedFilters.createdAt);
 
-        return NextResponse.json({ data: filters });
+        const formattedFilters = filters.map((f: any) => {
+            let parsedFilters = f.filters;
+            if (typeof parsedFilters === "string") {
+                try {
+                    parsedFilters = JSON.parse(parsedFilters);
+                } catch {
+                    parsedFilters = {};
+                }
+            }
+            return {
+                ...f,
+                filters: parsedFilters || {},
+            };
+        });
+
+        return NextResponse.json({ data: formattedFilters });
     } catch (error) {
         console.error("Error fetching saved filters:", error);
         return NextResponse.json(
@@ -97,7 +99,7 @@ export async function POST(request: NextRequest) {
 
         // If setting as default, unset other defaults for this page
         if (isDefault) {
-            await db
+            await (db as any)
                 .update(savedFilters)
                 .set({ isDefault: false })
                 .where(and(
@@ -106,18 +108,40 @@ export async function POST(request: NextRequest) {
                 ));
         }
 
-        const [newFilter] = await db
+        const id = crypto.randomUUID();
+        await (db as any)
             .insert(savedFilters)
             .values({
+                id,
                 userId,
                 name,
                 page,
                 filters,
                 isDefault,
-            })
-            .returning();
+            });
 
-        return NextResponse.json({ data: newFilter }, { status: 201 });
+        const [newFilter] = await (db as any)
+            .select()
+            .from(savedFilters)
+            .where(eq(savedFilters.id, id));
+
+        let formattedFilters = newFilter?.filters;
+        if (typeof formattedFilters === "string") {
+            try {
+                formattedFilters = JSON.parse(formattedFilters);
+            } catch {
+                formattedFilters = {};
+            }
+        }
+
+        return NextResponse.json(
+            {
+                data: newFilter
+                    ? { ...newFilter, filters: formattedFilters || {} }
+                    : null,
+            },
+            { status: 201 }
+        );
     } catch (error) {
         console.error("Error creating saved filter:", error);
         return NextResponse.json(
