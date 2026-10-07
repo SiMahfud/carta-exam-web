@@ -228,7 +228,7 @@ export function useWatermark(
                 // Check if watermark was removed
                 if (mutation.type === 'childList') {
                     mutation.removedNodes.forEach((node) => {
-                        if (node instanceof HTMLElement && (node.id === 'exam-watermark' || node.contains(watermarkEl))) {
+                        if (node instanceof HTMLElement && (node.id === 'exam-watermark' || (watermarkEl && node.contains(watermarkEl)))) {
                             tampered = true
                         }
                     })

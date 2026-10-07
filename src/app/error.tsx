@@ -41,17 +41,21 @@ export default function Error({
                     </p>
                 </div>
 
-                {process.env.NODE_ENV === 'development' && error.message && (
-                    <div className="mb-6 p-4 bg-destructive/5 rounded-lg border border-destructive/20 text-left">
-                        <p className="text-sm font-mono text-destructive break-all">
+                {error?.message && (
+                    <details className="mb-6 p-3 bg-destructive/5 rounded-lg border border-destructive/20 text-left text-xs cursor-pointer group">
+                        <summary className="font-semibold text-destructive/80 hover:text-destructive flex items-center justify-between">
+                            <span>Detail Teknis Kesalahan</span>
+                            <span className="text-[10px] text-muted-foreground group-open:hidden">Klik untuk melihat</span>
+                        </summary>
+                        <p className="mt-2 font-mono text-destructive break-all select-all">
                             {error.message}
                         </p>
                         {error.digest && (
-                            <p className="text-xs text-muted-foreground mt-2">
-                                Error ID: {error.digest}
+                            <p className="text-[10px] text-muted-foreground mt-1">
+                                Digest: {error.digest}
                             </p>
                         )}
-                    </div>
+                    </details>
                 )}
 
                 <div className="flex flex-col sm:flex-row gap-3 justify-center">

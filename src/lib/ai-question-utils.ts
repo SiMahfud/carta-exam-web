@@ -151,18 +151,18 @@ export function cleanMathFormula(text: string): string {
     // 2. Fix double backslashes before LaTeX command names (e.g. \\sin -> \sin, \\circ -> \circ)
     result = result.replace(/\\\\([a-zA-Z]+)/g, '\\$1');
 
-    // 3. Fix missing backslash for common LaTeX keywords inside or outside math
-    result = result.replace(/(?<!\\)frac\{/g, '\\frac{');
-    result = result.replace(/(?<!\\)sqrt\{/g, '\\sqrt{');
+    // 3. Fix missing backslash for common LaTeX keywords inside or outside math (without lookbehind for Safari compatibility)
+    result = result.replace(/(^|[^\\])frac\{/g, '$1\\frac{');
+    result = result.replace(/(^|[^\\])sqrt\{/g, '$1\\sqrt{');
 
     // 4. Fix frac12 or frac 1 2 without braces (e.g. frac12 -> \frac{1}{2})
-    result = result.replace(/(?<!\\)frac\s*([0-9a-zA-Z])\s*([0-9a-zA-Z])/g, '\\frac{$1}{$2}');
+    result = result.replace(/(^|[^\\])frac\s*([0-9a-zA-Z])\s*([0-9a-zA-Z])/g, '$1\\frac{$2}{$3}');
 
     // 5. Auto-wrap in $...$ if string contains LaTeX commands or math patterns but no $
     // e.g. \sin 30^\circ -> $\sin 30^\circ$
     // e.g. \frac{1}{2} -> $\frac{1}{2}$
     if (!result.includes('$')) {
-        const hasLatex = /\\(?:sin|cos|tan|cot|sec|csc|log|ln|lim|frac|sqrt|alpha|beta|gamma|theta|lambda|pi|mu|sigma|omega|Delta|phi|circ|degree|pm|times|div|leq|geq|neq|approx|to|rightarrow|leftarrow|int|sum|prod)\b|(?<!\\)frac\{|(?<!\\)sqrt\{|\^\{?[0-9a-zA-Z]+\}?|_\{?[0-9a-zA-Z]+\}?/i.test(result);
+        const hasLatex = /\\(?:sin|cos|tan|cot|sec|csc|log|ln|lim|frac|sqrt|alpha|beta|gamma|theta|lambda|pi|mu|sigma|omega|Delta|phi|circ|degree|pm|times|div|leq|geq|neq|approx|to|rightarrow|leftarrow|int|sum|prod)\b|(?:^|[^\\])(?:frac|sqrt)\{|\^\{?[0-9a-zA-Z]+\}?|_\{?[0-9a-zA-Z]+\}?/i.test(result);
         if (hasLatex) {
             result = `$${result.trim()}$`;
         }
