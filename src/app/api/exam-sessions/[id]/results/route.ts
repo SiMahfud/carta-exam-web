@@ -90,7 +90,7 @@ export async function GET(
             conditions.push(like(users.name, `%${search}%`));
         }
 
-        const submissionsData = await db.select({
+        const rawSubmissionsData = await db.select({
             submissionId: submissions.id,
             userId: submissions.userId,
             studentName: users.name,
@@ -107,6 +107,38 @@ export async function GET(
             .leftJoin(classStudents, eq(users.id, classStudents.studentId))
             .leftJoin(classes, eq(classStudents.classId, classes.id))
             .where(and(...conditions));
+
+        // Deduplicate submissions by userId (prefer completed, highest score, latest submission)
+        const userMap = new Map<string, typeof rawSubmissionsData[0]>();
+        for (const sub of rawSubmissionsData) {
+            const existing = userMap.get(sub.userId);
+            if (!existing) {
+                userMap.set(sub.userId, sub);
+                continue;
+            }
+            const isCompleted = sub.status === 'completed';
+            const existingCompleted = existing.status === 'completed';
+            if (isCompleted && !existingCompleted) {
+                userMap.set(sub.userId, sub);
+            } else if (isCompleted && existingCompleted) {
+                if ((sub.score ?? 0) > (existing.score ?? 0)) {
+                    userMap.set(sub.userId, sub);
+                }
+            } else if (!isCompleted && !existingCompleted) {
+                if (sub.endTime && existing.endTime && new Date(sub.endTime) > new Date(existing.endTime)) {
+                    userMap.set(sub.userId, sub);
+                }
+            }
+        }
+
+        // Sort by className first, then by studentName (natural sort)
+        const submissionsData = Array.from(userMap.values()).sort((a, b) => {
+            const classA = a.className || '';
+            const classB = b.className || '';
+            const classCompare = classA.localeCompare(classB, 'id', { numeric: true });
+            if (classCompare !== 0) return classCompare;
+            return (a.studentName || '').localeCompare(b.studentName || '', 'id');
+        });
 
         // 3. Get all answers for these submissions with question details
         const submissionIds = submissionsData.map((s: typeof submissionsData[0]) => s.submissionId);
@@ -136,7 +168,18 @@ export async function GET(
 
         // 4. Aggregate results by student
         const results = submissionsData.map((submission: typeof submissionsData[0]) => {
-            const studentAnswers = answersData.filter((a: typeof answersData[0]) => a.submissionId === submission.submissionId);
+            const rawStudentAnswers = answersData.filter((a: typeof answersData[0]) => a.submissionId === submission.submissionId);
+
+            // Deduplicate answers by bankQuestionId (in case autosave created duplicate rows)
+            const answersMap = new Map<string, typeof rawStudentAnswers[0]>();
+            for (const a of rawStudentAnswers) {
+                const qKey = a.bankQuestionId || a.questionId || a.answerId;
+                const prev = answersMap.get(qKey);
+                if (!prev || (a.partialPoints || a.score || 0) >= (prev.partialPoints || prev.score || 0)) {
+                    answersMap.set(qKey, a);
+                }
+            }
+            const studentAnswers = Array.from(answersMap.values());
 
             // Initialize score aggregation by type
             const scoresByType: Record<string, any> = {
@@ -177,6 +220,14 @@ export async function GET(
                 }
             });
 
+            const autoEarned = Object.values(scoresByType).reduce((acc: number, curr: any) => acc + (curr.score || 0), 0);
+            const essayEarned = essayQuestions.reduce((acc: number, curr: any) => acc + (curr.score || 0), 0);
+            const realEarned = autoEarned + essayEarned;
+            const autoMax = Object.values(scoresByType).reduce((acc: number, curr: any) => acc + (curr.maxScore || 0), 0);
+            const essayMax = essayQuestions.reduce((acc: number, curr: any) => acc + (curr.maxScore || 0), 0);
+            const totalMax = submission.totalPoints || (autoMax + essayMax) || session.totalScore || 100;
+            const finalScore = totalMax > 0 ? Math.round((realEarned / totalMax) * 100) : (submission.score || 0);
+
             return {
                 studentId: submission.userId,
                 studentName: submission.studentName,
@@ -185,9 +236,9 @@ export async function GET(
                 status: submission.status,
                 scoresByType,
                 essayQuestions,
-                totalScore: submission.score || 0,
-                totalEarnedPoints: submission.earnedPoints || 0,
-                totalMaxScore: submission.totalPoints || 0,
+                totalScore: submission.score !== null && submission.score !== undefined ? submission.score : finalScore,
+                totalEarnedPoints: realEarned,
+                totalMaxScore: totalMax,
                 endTime: submission.endTime,
             };
         });

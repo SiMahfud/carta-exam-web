@@ -106,8 +106,16 @@ export default function ExamResultsPage() {
                 const data = await response.json();
                 setSession(data.session);
                 setStatistics(data.statistics);
-                setAllResults(data.results);
-                setResults(data.results);
+                // Defensive deduplication by studentId
+                const seen = new Set<string>();
+                const dedupedResults = (data.results || []).filter((r: StudentResult) => {
+                    const id = r.studentId || r.submissionId;
+                    if (seen.has(id)) return false;
+                    seen.add(id);
+                    return true;
+                });
+                setAllResults(dedupedResults);
+                setResults(dedupedResults);
             } else {
                 throw new Error("Failed to load results");
             }
@@ -133,19 +141,21 @@ export default function ExamResultsPage() {
         let filtered = allResults;
 
         if (classFilter !== "all") {
-            filtered = filtered.filter(r => r.className === classFilter);
+            filtered = filtered.filter(r => (r.className || '').trim() === classFilter.trim());
         }
 
         if (searchQuery.trim()) {
             const query = searchQuery.trim().toLowerCase();
-            filtered = filtered.filter(r => r.studentName.toLowerCase().includes(query));
+            filtered = filtered.filter(r => (r.studentName || '').toLowerCase().includes(query));
         }
 
-        // Sort by className first, then by studentName
+        // Sort by className first, then by studentName (natural sort)
         filtered = [...filtered].sort((a, b) => {
-            const classCompare = a.className.localeCompare(b.className, 'id');
+            const classA = a.className || '';
+            const classB = b.className || '';
+            const classCompare = classA.localeCompare(classB, 'id', { numeric: true });
             if (classCompare !== 0) return classCompare;
-            return a.studentName.localeCompare(b.studentName, 'id');
+            return (a.studentName || '').localeCompare(b.studentName || '', 'id');
         });
 
         setResults(filtered);
@@ -381,7 +391,7 @@ export default function ExamResultsPage() {
                                 </thead>
                                 <tbody>
                                     {results.map((result, idx) => (
-                                        <tr key={result.studentId} className="border-b last:border-0 hover:bg-muted/30">
+                                        <tr key={result.submissionId || `${result.studentId}-${idx}`} className="border-b last:border-0 hover:bg-muted/30">
                                             <td className="p-3 text-muted-foreground">{idx + 1}</td>
                                             <td className="p-3 font-medium">{result.studentName}</td>
                                             <td className="p-3 text-muted-foreground">{result.className}</td>
@@ -484,6 +494,8 @@ export default function ExamResultsPage() {
                                                     <Badge variant="default">Selesai</Badge>
                                                 ) : result.status === 'in_progress' ? (
                                                     <Badge variant="secondary">Mengerjakan</Badge>
+                                                ) : result.status === 'terminated' ? (
+                                                    <Badge variant="destructive">Dihentikan</Badge>
                                                 ) : (
                                                     <Badge variant="outline">Belum Mulai</Badge>
                                                 )}
@@ -540,7 +552,7 @@ export default function ExamResultsPage() {
                                 </div>
                             ) : (
                                 resultsWithEssays.map((result, _idx) => (
-                                    <div key={result.studentId} className="border rounded-lg p-4">
+                                    <div key={result.submissionId || `${result.studentId}-${_idx}`} className="border rounded-lg p-4">
                                         <div className="flex justify-between items-start mb-4">
                                             <div>
                                                 <h4 className="font-semibold text-lg">{result.studentName}</h4>

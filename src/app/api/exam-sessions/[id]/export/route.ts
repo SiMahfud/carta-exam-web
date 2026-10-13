@@ -57,7 +57,7 @@ export async function GET(
         }
 
         // 2. Get all submissions for this session
-        const submissionsData = await db.select({
+        const rawSubmissionsData = await db.select({
             submissionId: submissions.id,
             userId: submissions.userId,
             studentName: users.name,
@@ -75,13 +75,48 @@ export async function GET(
             .leftJoin(classes, eq(classStudents.classId, classes.id))
             .where(eq(submissions.sessionId, params.id));
 
+        // Deduplicate submissions by userId (prefer completed, highest score, latest submission)
+        const userMap = new Map<string, typeof rawSubmissionsData[0]>();
+        for (const sub of rawSubmissionsData) {
+            const existing = userMap.get(sub.userId);
+            if (!existing) {
+                userMap.set(sub.userId, sub);
+                continue;
+            }
+            const isCompleted = sub.status === 'completed';
+            const existingCompleted = existing.status === 'completed';
+            if (isCompleted && !existingCompleted) {
+                userMap.set(sub.userId, sub);
+            } else if (isCompleted && existingCompleted) {
+                if ((sub.score ?? 0) > (existing.score ?? 0)) {
+                    userMap.set(sub.userId, sub);
+                }
+            } else if (!isCompleted && !existingCompleted) {
+                if (sub.endTime && existing.endTime && new Date(sub.endTime) > new Date(existing.endTime)) {
+                    userMap.set(sub.userId, sub);
+                }
+            }
+        }
+
+        // Sort by className first, then by studentName (natural sort)
+        const submissionsData = Array.from(userMap.values()).sort((a, b) => {
+            const classA = a.className || '';
+            const classB = b.className || '';
+            const classCompare = classA.localeCompare(classB, 'id', { numeric: true });
+            if (classCompare !== 0) return classCompare;
+            return (a.studentName || '').localeCompare(b.studentName || '', 'id');
+        });
+
         // 3. Get all answers for these submissions
         const submissionIds = submissionsData.map((s: typeof submissionsData[0]) => s.submissionId);
         let answersData: any[] = [];
 
         if (submissionIds.length > 0) {
             answersData = await db.select({
+                answerId: answers.id,
                 submissionId: answers.submissionId,
+                bankQuestionId: answers.bankQuestionId,
+                questionId: answers.questionId,
                 questionType: bankQuestions.type,
                 questionContent: bankQuestions.content,
                 studentAnswer: answers.studentAnswer,
@@ -101,7 +136,18 @@ export async function GET(
 
         // === Sheet 1: Rekap Nilai ===
         const rekapData = submissionsData.map((sub: typeof submissionsData[0], idx: number) => {
-            const studentAnswers = answersData.filter((a: typeof answersData[0]) => a.submissionId === sub.submissionId);
+            const rawStudentAnswers = answersData.filter((a: typeof answersData[0]) => a.submissionId === sub.submissionId);
+
+            // Deduplicate answers by questionId / bankQuestionId (in case autosave created duplicate rows)
+            const answersMap = new Map<string, typeof rawStudentAnswers[0]>();
+            for (const a of rawStudentAnswers) {
+                const qKey = a.bankQuestionId || a.questionId || a.answerId;
+                const prev = answersMap.get(qKey);
+                if (!prev || (a.partialPoints || a.score || 0) >= (prev.partialPoints || prev.score || 0)) {
+                    answersMap.set(qKey, a);
+                }
+            }
+            const studentAnswers = Array.from(answersMap.values());
 
             // Calculate scores by type
             const scores: Record<string, { correct: number; total: number; score: number; maxScore: number }> = {
@@ -123,17 +169,34 @@ export async function GET(
                 }
             });
 
-            // Calculate Non-Essay and Essay totals separately
+            // Calculate Non-Essay and Essay totals
             const nonEssayScore = scores.mc.score + scores.complex_mc.score + scores.matching.score + scores.short.score + scores.true_false.score;
-            const nonEssayMax = scores.mc.maxScore + scores.complex_mc.maxScore + scores.matching.maxScore + scores.short.maxScore + scores.true_false.maxScore;
             const essayScore = scores.essay.score;
             const essayMax = scores.essay.maxScore;
+
+            // Total points: student's assigned totalPoints, or fallback to session/calculated
+            const calculatedNonEssayMax = scores.mc.maxScore + scores.complex_mc.maxScore + scores.matching.maxScore + scores.short.maxScore + scores.true_false.maxScore;
+            const totalPoints = sub.totalPoints || (calculatedNonEssayMax + essayMax) || session.totalScore || 100;
+            // Full ceiling for non-essay questions
+            const nonEssayMax = sub.totalPoints ? Math.max(sub.totalPoints - essayMax, 0) : calculatedNonEssayMax;
+
+            // Earned points: calculated directly from answers so it's always consistent with nonEssayScore + essayScore
+            const earnedPoints = nonEssayScore + essayScore;
+            const percentageScore = totalPoints > 0 ? Math.round((earnedPoints / totalPoints) * 100) : 0;
+
+            const statusText = sub.status === 'completed'
+                ? 'Selesai'
+                : sub.status === 'in_progress'
+                    ? 'Mengerjakan'
+                    : sub.status === 'terminated'
+                        ? 'Dihentikan'
+                        : 'Belum Mulai';
 
             return {
                 'No': idx + 1,
                 'Nama Siswa': sub.studentName,
                 'Kelas': sub.className || '-',
-                'Status': sub.status === 'completed' ? 'Selesai' : sub.status === 'in_progress' ? 'Mengerjakan' : 'Belum Mulai',
+                'Status': statusText,
                 'PG Benar': scores.mc.correct,
                 'PG Skor': scores.mc.score,
                 'Kompleks Benar': scores.complex_mc.correct,
@@ -146,8 +209,9 @@ export async function GET(
                 'Non-Essay Max': nonEssayMax,
                 'Essay Skor': essayScore,
                 'Essay Max': essayMax,
-                'Total Skor': sub.earnedPoints || sub.score || 0,
-                'Skor Maksimal': sub.totalPoints || session.totalScore || 100,
+                'Poin Diperoleh': earnedPoints,
+                'Total Poin': totalPoints,
+                'Nilai (%)': percentageScore,
                 'Nilai Non-Essay (%)': nonEssayMax > 0 ? Math.round((nonEssayScore / nonEssayMax) * 100) : '-',
             };
         });
@@ -157,7 +221,7 @@ export async function GET(
             { wch: 5 },  // No
             { wch: 25 }, // Nama Siswa
             { wch: 15 }, // Kelas
-            { wch: 12 }, // Status
+            { wch: 14 }, // Status
             { wch: 10 }, // PG Benar
             { wch: 10 }, // PG Skor
             { wch: 14 }, // Kompleks Benar
@@ -170,9 +234,10 @@ export async function GET(
             { wch: 14 }, // Non-Essay Max
             { wch: 12 }, // Essay Skor
             { wch: 12 }, // Essay Max
-            { wch: 12 }, // Total Skor
-            { wch: 14 }, // Skor Maksimal
-            { wch: 18 }, // Nilai Non-Essay (%)
+            { wch: 16 }, // Poin Diperoleh
+            { wch: 12 }, // Total Poin
+            { wch: 10 }, // Nilai (%)
+            { wch: 20 }, // Nilai Non-Essay (%)
         ];
         XLSX.utils.book_append_sheet(workbook, ws1, 'Rekap Nilai');
 
@@ -209,7 +274,12 @@ export async function GET(
 
         // === Sheet 3: Statistik ===
         const completedResults = submissionsData.filter((r: typeof submissionsData[0]) => r.status === 'completed');
-        const scores = completedResults.map((r: typeof completedResults[0]) => r.earnedPoints || r.score || 0);
+        // Use percentage scores (matching web UI) instead of raw earnedPoints
+        const scores = completedResults.map((r: typeof completedResults[0]) => {
+            const tp = r.totalPoints || session.totalScore || 100;
+            const ep = r.earnedPoints || 0;
+            return r.score || (tp > 0 ? Math.round((ep / tp) * 100) : 0);
+        });
         const avgScore = scores.length > 0 ? Math.round(scores.reduce((a: number, b: number) => a + b, 0) / scores.length * 10) / 10 : 0;
 
         const statsData = [

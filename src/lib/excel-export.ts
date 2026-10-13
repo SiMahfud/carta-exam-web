@@ -20,8 +20,17 @@ interface ExportData {
 export function exportToExcel(data: ExportData) {
     const workbook = XLSX.utils.book_new();
 
+    // Sort results by class then student name
+    const sortedResults = [...data.results].sort((a, b) => {
+        const classA = a.className || '';
+        const classB = b.className || '';
+        const classCompare = classA.localeCompare(classB, 'id', { numeric: true });
+        if (classCompare !== 0) return classCompare;
+        return (a.studentName || '').localeCompare(b.studentName || '', 'id');
+    });
+
     // Sheet 1: Auto-Graded Results
-    const autoGradedData = data.results.map((result, idx) => ({
+    const autoGradedData = sortedResults.map((result, idx) => ({
         'No': idx + 1,
         'Nama Siswa': result.studentName,
         'Kelas': result.className,
@@ -37,9 +46,10 @@ export function exportToExcel(data: ExportData) {
         'Isian Singkat - Benar': result.scoresByType.short.correct,
         'Isian Singkat - Salah': result.scoresByType.short.incorrect,
         'Isian Singkat - Skor': `${result.scoresByType.short.score}/${result.scoresByType.short.maxScore}`,
-        'Status': result.status === 'completed' ? 'Selesai' : result.status === 'in_progress' ? 'Mengerjakan' : 'Belum Mulai',
-        'Total Skor': result.totalScore,
-        'Skor Maksimal': result.totalMaxScore,
+        'Status': result.status === 'completed' ? 'Selesai' : result.status === 'in_progress' ? 'Mengerjakan' : result.status === 'terminated' ? 'Dihentikan' : 'Belum Mulai',
+        'Poin Diperoleh': result.totalEarnedPoints || 0,
+        'Total Poin': result.totalMaxScore,
+        'Nilai (%)': result.totalScore,
     }));
 
     const ws1 = XLSX.utils.json_to_sheet(autoGradedData);
@@ -62,8 +72,9 @@ export function exportToExcel(data: ExportData) {
         { wch: 15 },  // Isian Singkat - Salah
         { wch: 15 },  // Isian Singkat - Skor
         { wch: 15 },  // Status
-        { wch: 12 },  // Total Skor
-        { wch: 15 },  // Skor Maksimal
+        { wch: 16 },  // Poin Diperoleh
+        { wch: 12 },  // Total Poin
+        { wch: 10 },  // Nilai (%)
     ];
 
     XLSX.utils.book_append_sheet(workbook, ws1, 'Nilai Otomatis');
@@ -71,7 +82,7 @@ export function exportToExcel(data: ExportData) {
     // Sheet 2: Essay Results
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const essayData: any[] = [];
-    data.results.forEach(result => {
+    sortedResults.forEach(result => {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         result.essayQuestions.forEach((essay: any, idx: number) => {
             essayData.push({

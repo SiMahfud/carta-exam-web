@@ -266,15 +266,14 @@ export async function POST(
         }
 
         // Check if answer already exists
-        const existingAnswer = await db.select()
+        const existingAnswers = await db.select()
             .from(answers)
             .where(and(
                 eq(answers.submissionId, submission.id),
                 eq(answers.bankQuestionId, questionId)
-            ))
-            .limit(1);
+            ));
 
-        if (existingAnswer.length > 0) {
+        if (existingAnswers.length > 0) {
             await db.update(answers)
                 .set({
                     studentAnswer: answerToStore,
@@ -284,19 +283,41 @@ export async function POST(
                     maxPoints,
                     partialPoints: earnedPoints,
                 })
-                .where(eq(answers.id, existingAnswer[0].id));
+                .where(eq(answers.id, existingAnswers[0].id));
+
+            if (existingAnswers.length > 1) {
+                const extraIds = existingAnswers.slice(1).map((a: any) => a.id);
+                await db.delete(answers).where(inArray(answers.id, extraIds));
+            }
         } else {
-            await db.insert(answers).values({
-                submissionId: submission.id,
-                bankQuestionId: questionId,
-                studentAnswer: answerToStore,
-                isFlagged: isFlagged || false,
-                isCorrect,
-                score: earnedPoints,
-                maxPoints,
-                partialPoints: earnedPoints,
-                gradingStatus: question.type === 'essay' ? 'pending_manual' : 'auto',
-            });
+            try {
+                await db.insert(answers).values({
+                    submissionId: submission.id,
+                    bankQuestionId: questionId,
+                    studentAnswer: answerToStore,
+                    isFlagged: isFlagged || false,
+                    isCorrect,
+                    score: earnedPoints,
+                    maxPoints,
+                    partialPoints: earnedPoints,
+                    gradingStatus: question.type === 'essay' ? 'pending_manual' : 'auto',
+                });
+            } catch {
+                // In case of race condition concurrent insert, update existing
+                await db.update(answers)
+                    .set({
+                        studentAnswer: answerToStore,
+                        isFlagged: isFlagged || false,
+                        isCorrect,
+                        score: earnedPoints,
+                        maxPoints,
+                        partialPoints: earnedPoints,
+                    })
+                    .where(and(
+                        eq(answers.submissionId, submission.id),
+                        eq(answers.bankQuestionId, questionId)
+                    ));
+            }
         }
 
         // Update submission running score in background/inline
