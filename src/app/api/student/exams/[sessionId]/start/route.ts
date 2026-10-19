@@ -161,30 +161,6 @@ export async function POST(
             .from(bankQuestions)
             .where(inArray(bankQuestions.bankId, bankIds));
 
-        // Select questions by type according to composition
-        const selectedQuestions: any[] = [];
-        const questionTypes = ['mc', 'complex_mc', 'matching', 'short', 'essay', 'true_false'];
-
-        for (const type of questionTypes) {
-            const count = composition[type] || 0;
-            if (count > 0) {
-                let typeQuestions = allQuestions.filter((q: typeof allQuestions[0]) => q.type === type);
-
-                // Sort by questionNumber to ensure deterministic starting point
-                typeQuestions.sort((a: any, b: any) => ((a.questionNumber || 0) - (b.questionNumber || 0)));
-
-                if (template.randomizeQuestions) {
-                    // If random enabled, shuffle the pool before slicing
-                    typeQuestions = typeQuestions.sort(() => Math.random() - 0.5);
-                }
-
-                selectedQuestions.push(...typeQuestions.slice(0, count));
-            }
-        }
-
-        // Apply randomization based on template rules
-        let questionOrder: string[];
-
         // Parse randomization rules
         let randomizationRules: RandomizationRules = { mode: 'all' };
         try {
@@ -201,6 +177,37 @@ export async function POST(
         // Determine if we should randomize
         const shouldRandomize = template.randomizeQuestions || (randomizationRules.mode && randomizationRules.mode !== 'all');
 
+        // Select questions by type according to composition
+        const selectedQuestions: any[] = [];
+        const questionTypes = ['mc', 'complex_mc', 'matching', 'short', 'essay', 'true_false'];
+
+        for (const type of questionTypes) {
+            const count = composition[type] || 0;
+            if (count > 0) {
+                let typeQuestions = allQuestions.filter((q: typeof allQuestions[0]) => q.type === type);
+
+                // Sort by questionNumber with createdAt fallback to ensure deterministic starting point
+                typeQuestions.sort((a: any, b: any) => ((a.questionNumber || 0) - (b.questionNumber || 0)) || (new Date(a.createdAt || 0).getTime() - new Date(b.createdAt || 0).getTime()));
+
+                // Check if this specific question type should be randomized
+                const isTypeRandom = shouldRandomize && (
+                    randomizationRules.mode === 'all' ||
+                    (randomizationRules.mode === 'by_type' && (randomizationRules.types?.includes(type) ?? false)) ||
+                    (randomizationRules.mode === 'exclude_type' && !(randomizationRules.excludeTypes?.includes(type) ?? false))
+                );
+
+                if (isTypeRandom) {
+                    // If random enabled for this type, shuffle the pool before slicing
+                    typeQuestions = typeQuestions.sort(() => Math.random() - 0.5);
+                }
+
+                selectedQuestions.push(...typeQuestions.slice(0, count));
+            }
+        }
+
+        // Apply randomization based on template rules
+        let questionOrder: string[];
+
         if (shouldRandomize) {
             if (template.essayAtEnd) {
                 // Split essays and non-essays
@@ -210,8 +217,8 @@ export async function POST(
                 // Apply randomization rules to non-essays only
                 const randomizedNonEssayIds = applyQuestionRandomization(nonEssays, randomizationRules);
 
-                // Sort essays by questionNumber to preserve original order
-                essays.sort((a: any, b: any) => ((a.questionNumber || 0) - (b.questionNumber || 0)));
+                // Sort essays by questionNumber with createdAt fallback to preserve original order
+                essays.sort((a: any, b: any) => ((a.questionNumber || 0) - (b.questionNumber || 0)) || (new Date(a.createdAt || 0).getTime() - new Date(b.createdAt || 0).getTime()));
 
                 // Combine: Randomized non-essays + Sorted essays (at end)
                 questionOrder = [...randomizedNonEssayIds, ...essays.map(q => q.id)];
@@ -225,13 +232,13 @@ export async function POST(
                 const nonEssays = selectedQuestions.filter(q => q.type !== 'essay');
 
                 // Sort internal arrays
-                essays.sort((a, b) => ((a.questionNumber || 0) - (b.questionNumber || 0)));
-                nonEssays.sort((a, b) => ((a.questionNumber || 0) - (b.questionNumber || 0)));
+                essays.sort((a, b) => ((a.questionNumber || 0) - (b.questionNumber || 0)) || (new Date(a.createdAt || 0).getTime() - new Date(b.createdAt || 0).getTime()));
+                nonEssays.sort((a, b) => ((a.questionNumber || 0) - (b.questionNumber || 0)) || (new Date(a.createdAt || 0).getTime() - new Date(b.createdAt || 0).getTime()));
 
                 questionOrder = [...nonEssays.map(q => q.id), ...essays.map(q => q.id)];
             } else {
                 questionOrder = selectedQuestions
-                    .sort((a, b) => ((a.questionNumber || 0) - (b.questionNumber || 0)))
+                    .sort((a, b) => ((a.questionNumber || 0) - (b.questionNumber || 0)) || (new Date(a.createdAt || 0).getTime() - new Date(b.createdAt || 0).getTime()))
                     .map(q => q.id);
             }
         }

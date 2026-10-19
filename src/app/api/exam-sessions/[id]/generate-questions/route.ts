@@ -160,6 +160,11 @@ export async function POST(
             if (parsed && typeof parsed === 'object') randomizationRules = parsed as RandomizationRules;
         } catch { randomizationRules = { mode: 'all' }; }
 
+        // Determine if we should randomize
+        // If randomizeQuestions is true, OR if we have specific advanced rules configured (ignoring the default 'all' which could mean uninitialized)
+        // This handles cases where user set "Exclude Type" but the boolean flag didn't get updated in DB
+        const shouldRandomize = t.randomizeQuestions || (randomizationRules.mode && randomizationRules.mode !== 'all');
+
         const generatedQuestions: Record<string, string[]> = {};
 
         // Generate questions for each student
@@ -178,10 +183,22 @@ export async function POST(
                     );
                 }
 
-                // Random selection
-                const shuffled = [...available].sort(() => Math.random() - 0.5);
-                const selected = shuffled.slice(0, count);
-                selectedQuestions.push(...selected.map((q: typeof shuffled[0]) => q.id));
+                // Selection based on randomization rule for this type
+                const isTypeRandom = shouldRandomize && (
+                    randomizationRules.mode === 'all' ||
+                    (randomizationRules.mode === 'by_type' && (randomizationRules.types?.includes(type) ?? false)) ||
+                    (randomizationRules.mode === 'exclude_type' && !(randomizationRules.excludeTypes?.includes(type) ?? false))
+                );
+
+                const list = [...available];
+                if (isTypeRandom) {
+                    list.sort(() => Math.random() - 0.5);
+                } else {
+                    list.sort((a: any, b: any) => ((a.questionNumber || 0) - (b.questionNumber || 0)) || (new Date(a.createdAt || 0).getTime() - new Date(b.createdAt || 0).getTime()));
+                }
+
+                const selected = list.slice(0, count);
+                selectedQuestions.push(...selected.map((q: typeof list[0]) => q.id));
             }
 
             // Prepare question objects for randomization (need id and type)
@@ -192,11 +209,6 @@ export async function POST(
 
             // Randomize order based on rules
             let orderedQuestions: string[] = [];
-
-            // Determine if we should randomize
-            // If randomizeQuestions is true, OR if we have specific advanced rules configured (ignoring the default 'all' which could mean uninitialized)
-            // This handles cases where user set "Exclude Type" but the boolean flag didn't get updated in DB
-            const shouldRandomize = t.randomizeQuestions || (randomizationRules.mode && randomizationRules.mode !== 'all');
 
             if (shouldRandomize) {
                 if (t.essayAtEnd) {

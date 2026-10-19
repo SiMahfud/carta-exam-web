@@ -53,6 +53,7 @@ export interface ExamTemplateFormData {
     violationSettings: ViolationSettings;
     randomizeQuestions?: boolean;
     randomizeAnswers?: boolean;
+    essayAtEnd?: boolean;
     // New fields
     targetType: 'all' | 'classes' | 'grades' | 'students';
     targetIds: string[];

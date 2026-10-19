@@ -69,6 +69,9 @@ export default function EditExamTemplatePage({ params }: { params: { id: string 
                     targetType: data.targetType || 'all',
                     targetIds: safeParse(data.targetIds, []),
                     randomizationRules: safeParse(data.randomizationRules, { mode: 'all' }),
+                    randomizeQuestions: data.randomizeQuestions ?? false,
+                    randomizeAnswers: data.randomizeAnswers ?? false,
+                    essayAtEnd: data.essayAtEnd ?? true,
                 });
             } else {
                 toast({
