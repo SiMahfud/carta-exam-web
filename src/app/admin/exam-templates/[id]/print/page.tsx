@@ -100,6 +100,28 @@ export default function PrintableExamPage() {
 
     return (
         <div className="min-h-screen bg-slate-100 dark:bg-slate-900 py-6 px-4 print:p-0 print:bg-white">
+            {/* Print-specific styles to normalize rich text formatting and optimize layout */}
+            <style dangerouslySetInnerHTML={{ __html: `
+                @media print {
+                    body { -webkit-print-color-adjust: exact; }
+                    .print-doc a { color: black !important; text-decoration: none !important; }
+                    .print-doc u { text-decoration: none !important; }
+                    .print-doc .prose a, .print-doc .prose a:hover { color: black !important; text-decoration: none !important; font-weight: inherit !important; }
+                    .print-doc .prose, .print-doc .prose * { color: black !important; }
+                    .print-doc .bg-slate-50 { background-color: white !important; }
+                    .print-doc .text-slate-600 { color: #333 !important; }
+                    /* Remove scrollbar and ensure full content prints */
+                    * { overflow: visible !important; }
+                    .print-doc { overflow: visible !important; }
+                    /* Compact prose spacing for print */
+                    .print-doc .prose p { margin: 0 !important; }
+                    .print-doc .prose { line-height: 1.4 !important; }
+                }
+                .print-doc .prose a { color: inherit !important; text-decoration: none !important; font-weight: inherit !important; }
+                .print-doc .prose u { text-decoration: none !important; }
+                /* Compact prose on screen preview too */
+                .print-doc .prose p { margin: 0 !important; }
+            `}} />
             {/* Top Toolbar (Hidden on Print) */}
             <div className="max-w-4xl mx-auto mb-6 flex flex-wrap items-center justify-between gap-4 print:hidden bg-card p-4 rounded-xl border shadow-sm">
                 <div className="flex items-center gap-3">
@@ -144,17 +166,17 @@ export default function PrintableExamPage() {
             </div>
 
             {/* Document Container */}
-            <div className="max-w-4xl mx-auto bg-white text-black p-8 sm:p-12 rounded-lg shadow-xl print:shadow-none print:p-0 print:max-w-full font-serif">
+            <div className="print-doc max-w-4xl mx-auto bg-white text-black p-8 sm:p-12 rounded-lg shadow-xl print:shadow-none print:p-0 print:max-w-full font-serif overflow-visible">
                 {/* School Header Kop */}
-                <div className="border-b-4 border-double border-black pb-4 mb-6 text-center space-y-1">
-                    <h2 className="text-sm font-bold tracking-widest uppercase">Pemerintah Provinsi Jawa Timur</h2>
-                    <h1 className="text-lg sm:text-xl font-extrabold uppercase tracking-wide">
+                <div className="border-b-4 border-double border-black pb-3 mb-4 text-center space-y-0.5">
+                    <h2 className="text-xs font-bold tracking-widest uppercase">Pemerintah Provinsi Jawa Timur</h2>
+                    <h1 className="text-base sm:text-lg font-extrabold uppercase tracking-wide">
                         SMA Negeri 1 Campurdarat
                     </h1>
-                    <p className="text-xs font-sans text-slate-600">
+                    <p className="text-[10px] font-sans text-slate-600">
                         Jl. Raya Campurdarat, Telp. (0355) 531xxx, Tulungagung - Jawa Timur
                     </p>
-                    <div className="pt-2 text-sm font-bold uppercase tracking-wider underline">
+                    <div className="pt-1.5 text-xs font-bold uppercase tracking-wider underline">
                         {mode === "exam" && `NASKAH SOAL: ${template.name}`}
                         {mode === "ljk" && `LEMBAR JAWABAN KOMPUTER (LJK): ${template.name}`}
                         {mode === "key" && `KUNCI JAWABAN & PANDUAN GURU: ${template.name}`}
@@ -162,7 +184,7 @@ export default function PrintableExamPage() {
                 </div>
 
                 {/* Meta info table */}
-                <div className="grid grid-cols-2 text-xs font-sans mb-6 pb-3 border-b border-black gap-y-1">
+                <div className="grid grid-cols-2 text-[10px] font-sans mb-4 pb-2 border-b border-black gap-y-0.5">
                     <div><strong>Mata Pelajaran:</strong> {template.subjectName}</div>
                     <div><strong>Alokasi Waktu:</strong> {template.durationMinutes} Menit</div>
                     <div><strong>Jumlah Soal:</strong> {questions.length} Butir</div>
@@ -171,34 +193,34 @@ export default function PrintableExamPage() {
 
                 {/* 1. Mode Naskah Soal */}
                 {mode === "exam" && (
-                    <div className="space-y-6">
-                        <div className="p-3 bg-slate-50 border border-slate-300 rounded text-[11px] font-sans">
+                    <div className="space-y-3">
+                        <div className="p-2 bg-slate-50 border border-slate-300 rounded text-[10px] font-sans">
                             <strong>Petunjuk Umum:</strong>
-                            <ol className="list-decimal list-inside mt-1 space-y-0.5">
+                            <ol className="list-decimal list-inside mt-0.5 space-y-0">
                                 <li>Bacalah doa sebelum mengerjakan ujian.</li>
                                 <li>Periksa dan bacalah setiap butir soal dengan seksama sebelum menjawab.</li>
                                 <li>Gunakan pulpen hitam / pensil 2B untuk mengisi jawaban pada lembar jawaban yang disediakan.</li>
                             </ol>
                         </div>
 
-                        <div className="space-y-6">
+                        <div className="space-y-2.5">
                             {questions.map((q, idx) => (
-                                <div key={q.id} className="space-y-2 text-sm break-inside-avoid">
-                                    <div className="flex items-start gap-2">
-                                        <span className="font-bold">{idx + 1}.</span>
-                                        <div className="flex-1 font-normal leading-relaxed">
+                                <div key={q.id} className="space-y-0.5 text-xs">
+                                    <div className="flex items-start gap-1.5">
+                                        <span className="font-bold min-w-[1.5rem] text-right">{idx + 1}.</span>
+                                        <div className="flex-1 font-normal leading-snug">
                                             <MathHtmlRenderer html={q.questionText} />
                                         </div>
                                     </div>
 
-                                    {/* MC Options */}
+                                    {/* MC Options - compact layout */}
                                     {(q.type === "mc" || q.type === "true_false") && q.content?.options && (
-                                        <div className="ml-6 space-y-1.5 pt-1">
+                                        <div className="ml-7 space-y-0 pt-0.5">
                                             {q.content.options.map((opt: any, optIdx: number) => {
                                                 const label = String.fromCharCode(65 + optIdx);
                                                 const optText = typeof opt === "string" ? opt : opt.text || "";
                                                 return (
-                                                    <div key={label} className="flex items-start gap-2 text-xs">
+                                                    <div key={label} className="flex items-start gap-1.5 text-[11px] leading-snug py-[1px]">
                                                         <span className="font-semibold">{label}.</span>
                                                         <MathHtmlRenderer html={optText} />
                                                     </div>

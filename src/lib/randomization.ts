@@ -99,37 +99,48 @@ export function seededShuffle<T>(
  */
 export function applyQuestionRandomization(
     questions: Question[],
-    rules: RandomizationRules
+    rules: RandomizationRules,
+    seedStr?: string
 ): string[] {
     if (!rules || !rules.mode) {
         // No rules, return original order
         return questions.map(q => q.id);
     }
 
+    const shuffleFn = <T>(arr: T[]): T[] => {
+        if (seedStr) {
+            return seededShuffle(arr, seedStr).shuffled;
+        }
+        return shuffleArray(arr);
+    };
+
     switch (rules.mode) {
         case 'all':
             // Shuffle all questions
-            return shuffleArray(questions).map(q => q.id);
+            return shuffleFn(questions).map(q => q.id);
 
         case 'by_type':
             // Only shuffle questions of specified types
             return shuffleByCondition(
                 questions,
-                (q) => rules.types?.includes(q.type) || false
+                (q) => rules.types?.includes(q.type) || false,
+                seedStr
             );
 
         case 'exclude_type':
             // Shuffle all except specified types
             return shuffleByCondition(
                 questions,
-                (q) => !rules.excludeTypes?.includes(q.type)
+                (q) => !rules.excludeTypes?.includes(q.type),
+                seedStr
             );
 
         case 'specific_numbers':
             // Only shuffle questions at specific positions (1-indexed)
             return shuffleByCondition(
                 questions,
-                (_, index) => rules.questionNumbers?.includes(index + 1) || false
+                (_, index) => rules.questionNumbers?.includes(index + 1) || false,
+                seedStr
             );
 
         default:
@@ -142,11 +153,13 @@ export function applyQuestionRandomization(
  * 
  * @param questions - Array of questions
  * @param shouldShuffle - Function to determine if a question should be shuffled
+ * @param seedStr - Optional seed string for deterministic shuffling
  * @returns Array of question IDs with partial shuffling applied
  */
 export function shuffleByCondition(
     questions: Question[],
-    shouldShuffle: (question: Question, index: number) => boolean
+    shouldShuffle: (question: Question, index: number) => boolean,
+    seedStr?: string
 ): string[] {
     const result: (string | null)[] = new Array(questions.length).fill(null);
     const toShuffle: { question: Question; originalIndex: number }[] = [];
@@ -162,7 +175,10 @@ export function shuffleByCondition(
     });
 
     // Shuffle the questions that should be shuffled
-    const shuffledQuestions = shuffleArray(toShuffle.map(item => item.question));
+    const items = toShuffle.map(item => item.question);
+    const shuffledQuestions = seedStr
+        ? seededShuffle(items, seedStr).shuffled
+        : shuffleArray(items);
 
     // Get the original indices where shuffled questions should go
     const shuffleIndices = toShuffle.map(item => item.originalIndex);

@@ -112,7 +112,6 @@ describe('randomization', () => {
                 expect(result[4]).toBe('q5')
             }
         })
-
         it('should only shuffle specific positions in "specific_numbers" mode', () => {
             const rules: RandomizationRules = { mode: 'specific_numbers', questionNumbers: [1, 2] }
 
@@ -128,6 +127,31 @@ describe('randomization', () => {
                 expect(['q1', 'q2']).toContain(result[0])
                 expect(['q1', 'q2']).toContain(result[1])
             }
+        })
+
+        it('should preserve original order completely when all questions belong to excluded type', () => {
+            const allMcQuestions: Question[] = [
+                { id: 'mc1', type: 'mc' },
+                { id: 'mc2', type: 'mc' },
+                { id: 'mc3', type: 'mc' },
+                { id: 'mc4', type: 'mc' },
+            ]
+            const rules: RandomizationRules = { mode: 'exclude_type', excludeTypes: ['mc'] }
+
+            for (let i = 0; i < 5; i++) {
+                const result = applyQuestionRandomization(allMcQuestions, rules)
+                expect(result).toEqual(['mc1', 'mc2', 'mc3', 'mc4'])
+            }
+        })
+
+        it('should be deterministic when seedStr is provided', () => {
+            const rules: RandomizationRules = { mode: 'all' }
+            const seed = 'test-seed-deterministic'
+
+            const run1 = applyQuestionRandomization(mockQuestions, rules, seed)
+            const run2 = applyQuestionRandomization(mockQuestions, rules, seed)
+
+            expect(run1).toEqual(run2)
         })
     })
 
