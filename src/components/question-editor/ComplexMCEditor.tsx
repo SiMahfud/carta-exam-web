@@ -58,7 +58,7 @@ export function ComplexMCEditor({
                 setFormData({
                     question: questionToEdit.content.question,
                     options: questionToEdit.content.options || ["", ""],
-                    correctAnswers: questionToEdit.answerKey.correct || [],
+                    correctAnswers: questionToEdit.answerKey.correctIndices || questionToEdit.answerKey.correct || [],
                     difficulty: questionToEdit.difficulty,
                     defaultPoints: questionToEdit.defaultPoints,
                     tags: questionToEdit.tags || [],
@@ -83,7 +83,8 @@ export function ComplexMCEditor({
         };
 
         const answerKey = {
-            correct: formData.correctAnswers, // Array of indices
+            correct: formData.correctAnswers,
+            correctIndices: formData.correctAnswers,
         };
 
         try {
