@@ -25,6 +25,23 @@ interface BankQuestionCardProps {
 
 const OPTION_LABELS = ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J"];
 
+// Helper to extract text from matching items that can be string or { id, text }
+function getMatchingItemText(item: unknown): string {
+    if (typeof item === "string") return item;
+    if (item && typeof item === "object" && "text" in item) return (item as { text: string }).text;
+    return String(item);
+}
+
+function getMatchingItemId(item: unknown): string {
+    if (typeof item === "string") return item;
+    if (item && typeof item === "object") {
+        const obj = item as Record<string, unknown>;
+        if ("id" in obj) return String(obj.id);
+        if ("text" in obj) return String(obj.text);
+    }
+    return String(item);
+}
+
 function AnswerPreview({ question }: { question: BankQuestion }) {
     const { type, content, answerKey } = question;
 
@@ -125,46 +142,62 @@ function AnswerPreview({ question }: { question: BankQuestion }) {
 
     // Matching
     if (type === "matching" && content?.leftItems && content?.rightItems) {
-        // Support both formats: { pairs: { "0": 1, ... } } and { matches: [{ leftId, rightId }] }
-        let pairMap: Record<number, number> = {};
-        if (answerKey?.pairs) {
-            Object.entries(answerKey.pairs).forEach(([k, v]) => {
-                pairMap[parseInt(k)] = v as number;
-            });
-        } else if (answerKey?.matches) {
-            answerKey.matches.forEach((m: any) => {
-                const leftIdx = typeof m.leftId === "number" ? m.leftId : parseInt(m.leftId);
-                const rightIdx = typeof m.rightId === "number" ? m.rightId : parseInt(m.rightId);
-                if (!isNaN(leftIdx) && !isNaN(rightIdx)) {
-                    pairMap[leftIdx] = rightIdx;
+        const leftItems: unknown[] = Array.isArray(content.leftItems) ? content.leftItems : [];
+        const rightItems: unknown[] = Array.isArray(content.rightItems) ? content.rightItems : [];
+
+        // Build a map from left item id/index → right item, supporting multiple answer formats:
+        // Format 1: { pairs: { "0": 1, ... } } (index-based)
+        // Format 2: { matches: [{ leftId, rightId }, ...] } (id-based)
+        const resolvedPairs: { leftText: string; rightText: string | null }[] = leftItems.map((leftItem, idx) => {
+            let rightText: string | null = null;
+
+            if (answerKey?.matches && Array.isArray(answerKey.matches)) {
+                const leftId = getMatchingItemId(leftItem);
+                const match = answerKey.matches.find((m: any) => String(m.leftId) === String(leftId) || String(m.leftId) === String(idx));
+                if (match) {
+                    // Find right item by id
+                    const rightItem = rightItems.find((r) => String(getMatchingItemId(r)) === String(match.rightId));
+                    if (rightItem) {
+                        rightText = getMatchingItemText(rightItem);
+                    } else {
+                        // Try by index
+                        const rIdx = parseInt(String(match.rightId));
+                        if (!isNaN(rIdx) && rightItems[rIdx]) {
+                            rightText = getMatchingItemText(rightItems[rIdx]);
+                        }
+                    }
                 }
-            });
-        }
+            } else if (answerKey?.pairs) {
+                const rIdx = answerKey.pairs[idx.toString()] ?? answerKey.pairs[idx];
+                if (rIdx !== undefined && rightItems[rIdx]) {
+                    rightText = getMatchingItemText(rightItems[rIdx]);
+                }
+            }
+
+            return { leftText: getMatchingItemText(leftItem), rightText };
+        });
+
         return (
             <div className="grid gap-1.5">
-                {content.leftItems.map((leftItem: string, idx: number) => {
-                    const rightIdx = pairMap[idx];
-                    const rightItem = rightIdx !== undefined ? content.rightItems[rightIdx] : null;
-                    return (
-                        <div
-                            key={idx}
-                            className="flex items-center gap-2 rounded-md px-3 py-1.5 text-sm bg-muted/40"
-                        >
-                            <span className="font-medium text-muted-foreground shrink-0">{idx + 1}.</span>
-                            <span className="text-foreground">
-                                <MathHtmlRenderer html={leftItem} />
+                {resolvedPairs.map((pair, idx) => (
+                    <div
+                        key={idx}
+                        className="flex items-center gap-2 rounded-md px-3 py-1.5 text-sm bg-muted/40"
+                    >
+                        <span className="font-medium text-muted-foreground shrink-0">{idx + 1}.</span>
+                        <span className="text-foreground">
+                            <MathHtmlRenderer html={pair.leftText} />
+                        </span>
+                        <ArrowRight className="h-3.5 w-3.5 text-muted-foreground shrink-0 mx-1" />
+                        {pair.rightText ? (
+                            <span className="text-green-700 dark:text-green-400">
+                                <MathHtmlRenderer html={pair.rightText} />
                             </span>
-                            <ArrowRight className="h-3.5 w-3.5 text-muted-foreground shrink-0 mx-1" />
-                            {rightItem ? (
-                                <span className="text-green-700 dark:text-green-400">
-                                    <MathHtmlRenderer html={rightItem} />
-                                </span>
-                            ) : (
-                                <span className="text-muted-foreground italic">—</span>
-                            )}
-                        </div>
-                    );
-                })}
+                        ) : (
+                            <span className="text-muted-foreground italic">—</span>
+                        )}
+                    </div>
+                ))}
             </div>
         );
     }
