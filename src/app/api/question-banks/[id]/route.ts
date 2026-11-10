@@ -3,6 +3,7 @@ import { db } from "@/lib/db";
 import { questionBanks, bankQuestions } from "@/lib/schema";
 import { eq, sql } from "drizzle-orm";
 import { requireAuth } from "@/lib/auth-guard";
+import { deleteQuestionImages } from "@/lib/image-processor";
 
 // GET /api/question-banks/[id] - Get question bank with statistics
 export async function GET(
@@ -120,6 +121,17 @@ export async function DELETE(
                 { error: "Akses ditolak. Anda hanya dapat menghapus bank soal milik Anda sendiri." },
                 { status: 403 }
             );
+        }
+
+        // Clean up all question images in this bank before deleting
+        const questions = await db.select({ content: bankQuestions.content })
+            .from(bankQuestions)
+            .where(eq(bankQuestions.bankId, params.id));
+
+        for (const q of questions) {
+            if (q.content) {
+                deleteQuestionImages(q.content);
+            }
         }
 
         await db.delete(questionBanks).where(eq(questionBanks.id, params.id));

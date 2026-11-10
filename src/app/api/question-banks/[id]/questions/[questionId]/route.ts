@@ -3,6 +3,7 @@ import { db } from "@/lib/db";
 import { bankQuestions, questionBanks } from "@/lib/schema";
 import { eq } from "drizzle-orm";
 import { requireAuth } from "@/lib/auth-guard";
+import { deleteQuestionImages } from "@/lib/image-processor";
 
 // GET /api/question-banks/[bankId]/questions/[questionId]
 export async function GET(
@@ -124,6 +125,11 @@ export async function DELETE(
                 { error: "Question not found" },
                 { status: 404 }
             );
+        }
+
+        // Clean up associated images from disk
+        if (deleted[0].content) {
+            deleteQuestionImages(deleted[0].content);
         }
 
         await db.delete(bankQuestions).where(eq(bankQuestions.id, params.questionId));

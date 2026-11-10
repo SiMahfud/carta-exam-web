@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { bankQuestions, questionBanks } from "@/lib/schema";
 import { eq, and, sql } from "drizzle-orm";
-import { processContentImages } from "@/lib/image-processor";
+import { processContentImages, deleteQuestionImages } from "@/lib/image-processor";
 import { BankQuestionSchema } from "@/lib/validations/questions";
 import { z } from "zod";
 import fs from 'fs';
@@ -10,40 +10,7 @@ import path from 'path';
 import { requireAuth } from "@/lib/auth-guard";
 import { safeJsonParse } from "@/lib/json-utils";
 
-// Helper to delete images associated with a question
-const deleteQuestionImages = (content: any) => {
-    try {
-        const findAndDelete = (html: string) => {
-            if (!html) return;
-            // Match /uploads/questions/...
-            const regex = /src=["'](\/uploads\/questions\/[^"']+)["']/g;
-            let match;
-            while ((match = regex.exec(html)) !== null) {
-                const relativePath = match[1];
-                const fullPath = path.join(process.cwd(), 'public', relativePath);
-                if (fs.existsSync(fullPath)) {
-                    try {
-                        fs.unlinkSync(fullPath);
-                        console.log(`Deleted image: ${fullPath}`);
-                    } catch (e) {
-                        console.error(`Failed to delete image: ${fullPath}`, e);
-                    }
-                }
-            }
-        };
 
-        if (content.question) findAndDelete(content.question);
-
-        if (content.options && Array.isArray(content.options)) {
-            content.options.forEach((opt: any) => {
-                if (typeof opt === 'string') findAndDelete(opt);
-                else if (typeof opt === 'object' && opt.text) findAndDelete(opt.text);
-            });
-        }
-    } catch (error) {
-        console.error("Error in deleteQuestionImages:", error);
-    }
-};
 
 // GET /api/question-banks/[id]/questions - List questions with filters
 export async function GET(
