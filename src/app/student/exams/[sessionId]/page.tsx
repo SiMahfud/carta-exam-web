@@ -64,6 +64,7 @@ export default function TakeExamPage() {
         isOpen: boolean;
         reason?: "FULLSCREEN_EXIT" | "SPLIT_SCREEN" | "FLOATING_WINDOW" | string;
         details?: string;
+        graceSecondsRemaining?: number;
     }>({ isOpen: false });
 
     // UI/UX Customization States
@@ -176,6 +177,60 @@ export default function TakeExamPage() {
             console.error("Failed to log violation:", error);
         }
     }, [sessionId, studentId, isFullscreen, exitFullscreen, toast, violationSettings]);
+
+    // Fullscreen exit grace period refs (3-second accidental exit tolerance)
+    const fullscreenGraceTimeout = useRef<NodeJS.Timeout | null>(null);
+    const fullscreenGraceInterval = useRef<NodeJS.Timeout | null>(null);
+
+    const clearFullscreenGraceTimers = useCallback(() => {
+        if (fullscreenGraceTimeout.current) {
+            clearTimeout(fullscreenGraceTimeout.current);
+            fullscreenGraceTimeout.current = null;
+        }
+        if (fullscreenGraceInterval.current) {
+            clearInterval(fullscreenGraceInterval.current);
+            fullscreenGraceInterval.current = null;
+        }
+    }, []);
+
+    const startFullscreenGracePeriod = useCallback((detailsMessage?: string) => {
+        if (!examStarted || submitting || isTerminated) return;
+
+        // If a grace timer is already running, don't restart it
+        if (fullscreenGraceTimeout.current) return;
+
+        let secondsLeft = 3;
+        setLockoutState({
+            isOpen: true,
+            reason: "FULLSCREEN_EXIT",
+            details: detailsMessage || "Keluar dari mode layar penuh",
+            graceSecondsRemaining: secondsLeft,
+        });
+
+        fullscreenGraceInterval.current = setInterval(() => {
+            secondsLeft -= 1;
+            if (secondsLeft >= 0) {
+                setLockoutState((prev) => ({
+                    ...prev,
+                    graceSecondsRemaining: secondsLeft,
+                }));
+            }
+        }, 1000);
+
+        fullscreenGraceTimeout.current = setTimeout(() => {
+            clearFullscreenGraceTimers();
+            // Grace period expired without returning to fullscreen!
+            // Log security violation to backend now.
+            logSecurityViolation("FULLSCREEN_EXIT", "Keluar dari mode layar penuh melebihi batas toleransi 3 detik");
+            setLockoutState((prev) => ({
+                ...prev,
+                isOpen: true,
+                reason: "FULLSCREEN_EXIT",
+                details: "Waktu toleransi 3 detik telah habis. Pelanggaran dicatat dalam log ujian.",
+                graceSecondsRemaining: 0,
+            }));
+        }, 3000);
+    }, [examStarted, submitting, isTerminated, clearFullscreenGraceTimers, logSecurityViolation]);
 
     const fetchStudentProfile = useCallback(async () => {
         try {
@@ -473,12 +528,18 @@ export default function TakeExamPage() {
         if (!examStarted) return;
 
         const pushDummyState = () => {
-            window.history.pushState({ examInProgress: true }, '', window.location.href);
+            try {
+                window.history.pushState({ examInProgress: true }, '', window.location.href);
+            } catch {
+                // Ignore history errors
+            }
         };
 
+        // Trap multiple history steps to be robust against accidental back gestures
+        pushDummyState();
         pushDummyState();
 
-        const handleFullscreenChange = () => {
+        const handleFullscreenChange = async () => {
             const isCurrentlyFullscreen = !!(
                 document.fullscreenElement ||
                 (document as unknown as { webkitFullscreenElement?: Element }).webkitFullscreenElement ||
@@ -486,13 +547,26 @@ export default function TakeExamPage() {
             );
 
             if (!isCurrentlyFullscreen && examStarted && !submitting) {
-                logSecurityViolation("FULLSCREEN_EXIT", "Keluar dari mode layar penuh");
-                setLockoutState({
-                    isOpen: true,
-                    reason: "FULLSCREEN_EXIT",
-                    details: "Keluar dari mode layar penuh",
-                });
+                // Coba langsung auto-recovery seketika jika browser masih mengizinkan
+                try {
+                    await enterFullscreen();
+                    const check = !!(
+                        document.fullscreenElement ||
+                        (document as unknown as { webkitFullscreenElement?: Element }).webkitFullscreenElement
+                    );
+                    if (check) {
+                        clearFullscreenGraceTimers();
+                        setLockoutState({ isOpen: false });
+                        return;
+                    }
+                } catch {
+                    // Browser butuh sentuhan pengguna
+                }
+
+                startFullscreenGracePeriod("Keluar dari mode layar penuh");
             } else if (isCurrentlyFullscreen) {
+                clearFullscreenGraceTimers();
+
                 const splitRes = checkSplitOrFloatingScreen();
                 if (splitRes.isSplitScreen) {
                     logSecurityViolation("SPLIT_SCREEN", splitRes.details);
@@ -500,6 +574,7 @@ export default function TakeExamPage() {
                         isOpen: true,
                         reason: "SPLIT_SCREEN",
                         details: splitRes.details,
+                        graceSecondsRemaining: 0,
                     });
                 } else if (splitRes.isFloatingWindow) {
                     logSecurityViolation("FLOATING_WINDOW", splitRes.details);
@@ -507,6 +582,7 @@ export default function TakeExamPage() {
                         isOpen: true,
                         reason: "FLOATING_WINDOW",
                         details: splitRes.details,
+                        graceSecondsRemaining: 0,
                     });
                 } else {
                     setLockoutState({ isOpen: false });
@@ -514,7 +590,7 @@ export default function TakeExamPage() {
             }
         };
 
-        const handlePopState = (e: PopStateEvent) => {
+        const handlePopState = async (e: PopStateEvent) => {
             if (examStarted && !submitting) {
                 e.preventDefault();
                 pushDummyState();
@@ -522,18 +598,30 @@ export default function TakeExamPage() {
                 // Only lock out on back-button if fullscreen is supported (Android/Desktop).
                 // On iPhone Safari, fullscreen API is not available, so skip this check.
                 if (fullscreenSupported) {
+                    // 1. Coba langsung re-enter fullscreen seketika (menggunakan user gesture dari tombol back)
+                    try {
+                        await enterFullscreen();
+                        const check = !!(
+                            document.fullscreenElement ||
+                            (document as unknown as { webkitFullscreenElement?: Element }).webkitFullscreenElement
+                        );
+                        if (check) {
+                            clearFullscreenGraceTimers();
+                            setLockoutState({ isOpen: false });
+                            return;
+                        }
+                    } catch {
+                        // Browser menolak direct re-enter tanpa gesture spesifik
+                    }
+
                     const isCurrentlyFullscreen = !!(
                         document.fullscreenElement ||
                         (document as unknown as { webkitFullscreenElement?: Element }).webkitFullscreenElement
                     );
 
                     if (!isCurrentlyFullscreen) {
-                        logSecurityViolation("BACK_BUTTON", "User pressed back button on Android");
-                        setLockoutState({
-                            isOpen: true,
-                            reason: "FULLSCREEN_EXIT",
-                            details: "Tombol kembali ditekan",
-                        });
+                        // Mulai toleransi waktu 3 detik agar siswa tidak langsung divonis pelanggaran
+                        startFullscreenGracePeriod("Tombol kembali ditekan");
                     }
                 }
             }
@@ -551,12 +639,7 @@ export default function TakeExamPage() {
                     );
 
                     if (!isCurrentlyFullscreen) {
-                        logSecurityViolation("FULLSCREEN_EXIT", "Keluar dari mode layar penuh");
-                        setLockoutState({
-                            isOpen: true,
-                            reason: "FULLSCREEN_EXIT",
-                            details: "Keluar dari layar penuh saat beralih aplikasi",
-                        });
+                        startFullscreenGracePeriod("Keluar dari layar penuh saat beralih aplikasi");
                         return;
                     }
                 }
@@ -568,6 +651,7 @@ export default function TakeExamPage() {
                         isOpen: true,
                         reason: "SPLIT_SCREEN",
                         details: splitRes.details,
+                        graceSecondsRemaining: 0,
                     });
                 } else if (splitRes.isFloatingWindow) {
                     logSecurityViolation("FLOATING_WINDOW", splitRes.details);
@@ -575,8 +659,17 @@ export default function TakeExamPage() {
                         isOpen: true,
                         reason: "FLOATING_WINDOW",
                         details: splitRes.details,
+                        graceSecondsRemaining: 0,
                     });
                 }
+            }
+        };
+
+        const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+            if (examStarted && !submitting) {
+                e.preventDefault();
+                e.returnValue = "";
+                return "";
             }
         };
 
@@ -585,15 +678,18 @@ export default function TakeExamPage() {
         document.addEventListener("mozfullscreenchange", handleFullscreenChange);
         window.addEventListener("popstate", handlePopState);
         document.addEventListener("visibilitychange", handleVisibilityChange);
+        window.addEventListener("beforeunload", handleBeforeUnload);
 
         return () => {
+            clearFullscreenGraceTimers();
             document.removeEventListener("fullscreenchange", handleFullscreenChange);
             document.removeEventListener("webkitfullscreenchange", handleFullscreenChange);
             document.removeEventListener("mozfullscreenchange", handleFullscreenChange);
             window.removeEventListener("popstate", handlePopState);
             document.removeEventListener("visibilitychange", handleVisibilityChange);
+            window.removeEventListener("beforeunload", handleBeforeUnload);
         };
-    }, [examStarted, submitting, fullscreenSupported, logSecurityViolation]);
+    }, [examStarted, submitting, fullscreenSupported, logSecurityViolation, startFullscreenGracePeriod, clearFullscreenGraceTimers, enterFullscreen]);
 
     // Handle Start from PreExamDialog
     const handleStartExam = async (token?: string) => {
@@ -659,6 +755,7 @@ export default function TakeExamPage() {
         // On devices without fullscreen support (iPhone Safari), allow unlock
         // as long as no split/floating window is detected (checked above).
         if (!fullscreenSupported) {
+            clearFullscreenGraceTimers();
             await requestWakeLock();
             setLockoutState({ isOpen: false });
             return { success: true };
@@ -667,7 +764,7 @@ export default function TakeExamPage() {
         try {
             await enterFullscreen();
             await requestWakeLock();
-            await new Promise((r) => setTimeout(r, 250));
+            await new Promise((r) => setTimeout(r, 200));
 
             const isNowFullscreen = !!(
                 document.fullscreenElement ||
@@ -676,19 +773,24 @@ export default function TakeExamPage() {
             );
 
             if (isNowFullscreen) {
+                clearFullscreenGraceTimers();
                 setLockoutState({ isOpen: false });
+                toast({
+                    title: "Layar Penuh Dipulihkan",
+                    description: "Kembali ke mode layar penuh. Ujian dilanjutkan.",
+                });
                 return { success: true };
             } else {
                 return {
                     success: false,
-                    message: "Gagal masuk mode layar penuh. Ketuk tombol sekali lagi.",
+                    message: "Gagal masuk mode layar penuh. Ketuk layar sekali lagi.",
                 };
             }
         } catch (err) {
             console.error("Failed to restore fullscreen:", err);
             return {
                 success: false,
-                message: "Browser menolak permintaan layar penuh. Silakan coba lagi.",
+                message: "Browser menolak permintaan layar penuh. Silakan ketuk layar lagi.",
             };
         }
     };
@@ -705,18 +807,16 @@ export default function TakeExamPage() {
         const splitRes = checkSplitOrFloatingScreen();
 
         if (!isCurrentlyFullscreen) {
-            logSecurityViolation("FULLSCREEN_EXIT", "Mode layar penuh tidak aktif");
-            setLockoutState({
-                isOpen: true,
-                reason: "FULLSCREEN_EXIT",
-                details: "Mode layar penuh tidak aktif",
-            });
+            if (!fullscreenGraceTimeout.current) {
+                startFullscreenGracePeriod("Mode layar penuh tidak aktif");
+            }
         } else if (splitRes.isSplitScreen) {
             logSecurityViolation("SPLIT_SCREEN", splitRes.details);
             setLockoutState({
                 isOpen: true,
                 reason: "SPLIT_SCREEN",
                 details: splitRes.details,
+                graceSecondsRemaining: 0,
             });
         } else if (splitRes.isFloatingWindow) {
             logSecurityViolation("FLOATING_WINDOW", splitRes.details);
@@ -724,9 +824,10 @@ export default function TakeExamPage() {
                 isOpen: true,
                 reason: "FLOATING_WINDOW",
                 details: splitRes.details,
+                graceSecondsRemaining: 0,
             });
         }
-    }, [examStarted, submitting, fullscreenSupported, logSecurityViolation]);
+    }, [examStarted, submitting, fullscreenSupported, logSecurityViolation, startFullscreenGracePeriod]);
 
     // Periodic fullscreen check
     useEffect(() => {
@@ -983,6 +1084,7 @@ export default function TakeExamPage() {
                 isOpen={lockoutState.isOpen && examStarted && !isTerminated}
                 reason={lockoutState.reason}
                 details={lockoutState.details}
+                graceSecondsRemaining={lockoutState.graceSecondsRemaining}
                 onRestoreFullscreen={handleRestoreFullscreen}
             />
 
