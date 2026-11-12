@@ -107,71 +107,71 @@ export function PreExamDialog({
 
     return (
         <Dialog open={open}>
-            <DialogContent className="sm:max-w-xl max-h-[90vh] flex flex-col p-0 overflow-hidden border-2 border-primary/20 shadow-2xl">
+            <DialogContent className="w-[calc(100vw-1.5rem)] sm:w-full sm:max-w-xl max-h-[calc(100dvh-5.5rem)] sm:max-h-[90vh] flex flex-col p-0 overflow-hidden border-2 border-primary/20 shadow-2xl rounded-2xl top-[47%] sm:top-[50%] [&>button:last-child]:hidden">
                 {/* Header with decorative background */}
-                <DialogHeader className="bg-gradient-to-r from-primary to-indigo-700 p-6 text-primary-foreground text-center relative overflow-hidden space-y-0 shrink-0">
+                <DialogHeader className="bg-gradient-to-r from-primary to-indigo-700 p-4 sm:p-6 text-primary-foreground text-center relative overflow-hidden space-y-0 shrink-0">
                     <div className="relative z-10 space-y-1">
-                        <Badge className="bg-white/20 hover:bg-white/30 text-white border-none text-xs px-2.5 py-0.5 mb-1">
+                        <Badge className="bg-white/20 hover:bg-white/30 text-white border-none text-[10px] sm:text-xs px-2.5 py-0.5 mb-0.5 sm:mb-1">
                             <Sparkles className="w-3 h-3 mr-1" />
                             Konfirmasi Kesiapan Peserta
                         </Badge>
-                        <DialogTitle className="text-xl sm:text-2xl font-bold tracking-tight text-white">
+                        <DialogTitle className="text-lg sm:text-2xl font-bold tracking-tight text-white leading-tight">
                             {examName || "Ujian Digital"}
                         </DialogTitle>
-                        <DialogDescription className="text-xs sm:text-sm text-white/80">
+                        <DialogDescription className="text-[11px] sm:text-sm text-white/80">
                             SMAN 1 Campurdarat • Platform CBT CartaExam
                         </DialogDescription>
                     </div>
                 </DialogHeader>
 
-                <div className="p-6 space-y-5 flex-1 overflow-y-auto min-h-0">
+                <div className="p-3.5 sm:p-6 space-y-3 sm:space-y-4 flex-1 overflow-y-auto min-h-0 overscroll-contain touch-pan-y">
                     {/* Student Identity Card */}
-                    <div className="p-4 rounded-xl border-2 border-primary/20 bg-primary/5 flex items-center justify-between gap-4">
-                        <div className="flex items-center gap-3.5">
-                            <div className="w-12 h-12 rounded-xl bg-primary text-primary-foreground font-bold text-lg flex items-center justify-center shrink-0 shadow-md">
+                    <div className="p-3 sm:p-4 rounded-xl border-2 border-primary/20 bg-primary/5 flex items-center justify-between gap-3 sm:gap-4">
+                        <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-primary text-primary-foreground font-bold text-base sm:text-lg flex items-center justify-center shrink-0 shadow-md">
                                 {initials}
                             </div>
-                            <div className="space-y-0.5">
-                                <div className="flex items-center gap-1.5">
-                                    <span className="font-bold text-foreground text-sm sm:text-base">
+                            <div className="space-y-0.5 min-w-0">
+                                <div className="flex items-center gap-1.5 flex-wrap">
+                                    <span className="font-bold text-foreground text-sm sm:text-base truncate max-w-[190px] sm:max-w-none">
                                         {studentName || "Nama Siswa"}
                                     </span>
-                                    <CheckCircle2 className="w-4 h-4 text-green-600 dark:text-green-400" />
+                                    <CheckCircle2 className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-green-600 dark:text-green-400 shrink-0" />
                                 </div>
-                                <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+                                <div className="flex flex-wrap items-center gap-1.5 sm:gap-2 text-[11px] sm:text-xs text-muted-foreground">
                                     {studentUsername && (
                                         <span className="font-mono bg-background px-1.5 py-0.5 rounded border">
                                             NIS: {studentUsername}
                                         </span>
                                     )}
                                     <span className="flex items-center gap-1 font-semibold text-foreground">
-                                        <GraduationCap className="w-3.5 h-3.5 text-indigo-500" />
+                                        <GraduationCap className="w-3.5 h-3.5 text-indigo-500 shrink-0" />
                                         {className || "Kelas Peserta"}
                                     </span>
                                 </div>
                             </div>
                         </div>
-                        <Badge variant="outline" className="hidden sm:inline-flex text-[11px] bg-background">
+                        <Badge variant="outline" className="hidden sm:inline-flex text-[11px] bg-background shrink-0">
                             Akun Terverifikasi
                         </Badge>
                     </div>
 
                     {/* Exam Specs */}
-                    <div className="grid grid-cols-2 gap-3 text-xs">
-                        <div className="p-3 rounded-lg border bg-muted/30 flex items-center gap-2.5">
+                    <div className="grid grid-cols-2 gap-2.5 sm:gap-3 text-xs">
+                        <div className="p-2.5 sm:p-3 rounded-lg border bg-muted/30 flex items-center gap-2 sm:gap-2.5">
                             <Clock className="w-4 h-4 text-primary shrink-0" />
                             <div>
-                                <div className="text-muted-foreground text-[11px]">Durasi Ujian</div>
-                                <div className="font-bold text-foreground text-sm">
+                                <div className="text-muted-foreground text-[10px] sm:text-[11px]">Durasi Ujian</div>
+                                <div className="font-bold text-foreground text-xs sm:text-sm">
                                     {durationMinutes ? `${durationMinutes} Menit` : "Sesuai Jadwal"}
                                 </div>
                             </div>
                         </div>
-                        <div className="p-3 rounded-lg border bg-muted/30 flex items-center gap-2.5">
+                        <div className="p-2.5 sm:p-3 rounded-lg border bg-muted/30 flex items-center gap-2 sm:gap-2.5">
                             <FileText className="w-4 h-4 text-indigo-500 shrink-0" />
                             <div>
-                                <div className="text-muted-foreground text-[11px]">Jumlah Soal</div>
-                                <div className="font-bold text-foreground text-sm">
+                                <div className="text-muted-foreground text-[10px] sm:text-[11px]">Jumlah Soal</div>
+                                <div className="font-bold text-foreground text-xs sm:text-sm">
                                     {totalQuestions ? `${totalQuestions} Butir Soal` : "Tersedia"}
                                 </div>
                             </div>
@@ -180,7 +180,7 @@ export function PreExamDialog({
 
                     {/* Token Input if Required */}
                     {requireToken && (
-                        <div className="space-y-2 p-3.5 rounded-xl border-2 border-amber-300 dark:border-amber-700/60 bg-amber-50 dark:bg-amber-950/30">
+                        <div className="space-y-2 p-3 sm:p-3.5 rounded-xl border-2 border-amber-300 dark:border-amber-700/60 bg-amber-50 dark:bg-amber-950/30">
                             <div className="flex items-center gap-2 text-xs font-bold text-amber-800 dark:text-amber-300">
                                 <Lock className="w-4 h-4" />
                                 <span>Token Ujian Diperlukan</span>
@@ -201,24 +201,24 @@ export function PreExamDialog({
 
                     {/* Split Screen / Floating Window Warning Banner */}
                     {splitWarning && (
-                        <div className="p-4 rounded-xl border-2 border-destructive bg-destructive/10 text-destructive space-y-2 animate-in fade-in duration-200">
-                            <div className="flex items-center gap-2 text-sm font-bold">
-                                <Smartphone className="w-5 h-5 shrink-0 animate-bounce" />
+                        <div className="p-3 sm:p-4 rounded-xl border-2 border-destructive bg-destructive/10 text-destructive space-y-1.5 sm:space-y-2 animate-in fade-in duration-200">
+                            <div className="flex items-center gap-2 text-xs sm:text-sm font-bold">
+                                <Smartphone className="w-4 h-4 sm:w-5 sm:h-5 shrink-0 animate-bounce" />
                                 <span>Layar Terbelah Terdeteksi!</span>
                             </div>
-                            <p className="text-xs leading-relaxed text-destructive/90">
+                            <p className="text-[11px] sm:text-xs leading-relaxed text-destructive/90">
                                 {splitWarning}
                             </p>
                         </div>
                     )}
 
                     {/* Rules & Motivation Reminder */}
-                    <div className="text-xs text-muted-foreground space-y-1.5 p-3 rounded-lg bg-muted/20 border border-border/60">
-                        <div className="font-semibold text-foreground flex items-center gap-1.5">
-                            <ShieldAlert className="w-3.5 h-3.5 text-amber-500" />
+                    <div className="text-xs text-muted-foreground space-y-1.5 p-2.5 sm:p-3 rounded-lg bg-muted/20 border border-border/60">
+                        <div className="font-semibold text-foreground flex items-center gap-1.5 text-[11px] sm:text-xs">
+                            <ShieldAlert className="w-3.5 h-3.5 text-amber-500 shrink-0" />
                             Tata Tertib & Kesiapan:
                         </div>
-                        <ul className="list-disc list-inside space-y-1 text-[11.5px] leading-relaxed text-foreground/80">
+                        <ul className="list-disc list-inside space-y-0.5 sm:space-y-1 text-[11px] sm:text-[11.5px] leading-relaxed text-foreground/80">
                             <li>Ujian wajib dikerjakan dalam mode <strong>Layar Penuh (Fullscreen)</strong>.</li>
                             <li>Layar perangkat otomatis <strong>dijaga tetap menyala (Wake Lock)</strong> agar tidak sleep saat membaca soal.</li>
                             <li>Dilarang menggunakan <strong>Split Screen</strong> atau <strong>Floating Window</strong>.</li>
@@ -227,17 +227,16 @@ export function PreExamDialog({
                         </ul>
                     </div>
 
-                    <div className="text-center italic text-xs text-muted-foreground">
+                    <div className="text-center italic text-[11px] sm:text-xs text-muted-foreground px-1 pb-1">
                         &ldquo;Berdoalah sebelum mengerjakan, baca soal dengan teliti, dan yakinlah pada kemampuan diri sendiri. Selamat mengerjakan!&rdquo;
                     </div>
                 </div>
 
-                <DialogFooter className="p-4 bg-muted/30 border-t flex flex-col sm:flex-row gap-2 shrink-0">
+                <DialogFooter className="p-3 sm:p-4 bg-muted/30 border-t flex flex-col sm:flex-row gap-2 shrink-0">
                     <Button
                         size="lg"
-                        className={`w-full sm:w-auto flex-1 font-bold shadow-lg shadow-primary/20 cursor-pointer ${
-                            splitWarning ? "bg-destructive hover:bg-destructive text-destructive-foreground opacity-90" : ""
-                        }`}
+                        className={`w-full sm:w-auto flex-1 font-bold shadow-lg shadow-primary/20 cursor-pointer text-sm sm:text-base py-2.5 sm:py-3 ${splitWarning ? "bg-destructive hover:bg-destructive text-destructive-foreground opacity-90" : ""
+                            }`}
                         onClick={handleConfirm}
                         disabled={loading || !!splitWarning || (requireToken && !token.trim())}
                     >
@@ -245,8 +244,8 @@ export function PreExamDialog({
                         {splitWarning
                             ? "Tutup Split Screen untuk Memulai"
                             : loading
-                            ? "Menyiapkan Ujian..."
-                            : "Masuk & Mulai Ujian"}
+                                ? "Menyiapkan Ujian..."
+                                : "Masuk & Mulai Ujian"}
                     </Button>
                 </DialogFooter>
             </DialogContent>

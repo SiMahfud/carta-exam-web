@@ -116,7 +116,7 @@ export function ViolationDetailDialog({
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="max-w-lg max-h-[90vh] flex flex-col p-0 gap-0 overflow-hidden">
+            <DialogContent className="w-[calc(100vw-1.5rem)] sm:w-full max-w-lg max-h-[calc(100dvh-5.5rem)] sm:max-h-[90vh] flex flex-col p-0 gap-0 overflow-hidden rounded-2xl top-[47%] sm:top-[50%]">
                 {/* Header */}
                 <DialogHeader className="p-6 pb-4 border-b bg-muted/40">
                     <div className="flex items-center gap-3">
