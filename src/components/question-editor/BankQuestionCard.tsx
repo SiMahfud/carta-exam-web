@@ -2,8 +2,9 @@ import React from "react";
 import { Card, CardHeader, CardContent, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Pencil, Trash2, Tag, CheckCircle2, Circle, ArrowRight, MessageSquare } from "lucide-react";
+import { Pencil, Trash2, Tag, MessageSquare } from "lucide-react";
 import { MathHtmlRenderer } from "@/components/ui/math-html-renderer";
+import { MatchingQuestionRenderer } from "@/components/exam/MatchingQuestionRenderer";
 
 export interface BankQuestion {
     id: string;
@@ -25,21 +26,54 @@ interface BankQuestionCardProps {
 
 const OPTION_LABELS = ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J"];
 
-// Helper to extract text from matching items that can be string or { id, text }
-function getMatchingItemText(item: unknown): string {
-    if (typeof item === "string") return item;
-    if (item && typeof item === "object" && "text" in item) return (item as { text: string }).text;
-    return String(item);
-}
+function resolveMatchingAnswers(leftItems: any[], rightItems: any[], answerKey: any) {
+    if (!leftItems || !rightItems || !answerKey) return [];
 
-function getMatchingItemId(item: unknown): string {
-    if (typeof item === "string") return item;
-    if (item && typeof item === "object") {
-        const obj = item as Record<string, unknown>;
-        if ("id" in obj) return String(obj.id);
-        if ("text" in obj) return String(obj.text);
+    const getItemId = (item: any) =>
+        typeof item === "object" && item !== null ? (item.id || item.text) : String(item);
+
+    // Format 1: matches array [{ leftId, rightId }]
+    if (answerKey.matches && Array.isArray(answerKey.matches)) {
+        return answerKey.matches.map((m: any) => {
+            const leftItem = leftItems.find((l: any, idx: number) => {
+                const id = getItemId(l);
+                return String(id) === String(m.leftId) || String(idx) === String(m.leftId);
+            });
+            const rightItem = rightItems.find((r: any, idx: number) => {
+                const id = getItemId(r);
+                return String(id) === String(m.rightId) || String(idx) === String(m.rightId);
+            });
+            return {
+                left: leftItem ? getItemId(leftItem) : String(m.leftId),
+                right: rightItem ? getItemId(rightItem) : String(m.rightId),
+            };
+        });
     }
-    return String(item);
+
+    // Format 2: pairs object { [leftIndex]: rightIndex | rightIndex[] }
+    if (answerKey.pairs) {
+        const answers: { left: string; right: string }[] = [];
+        Object.entries(answerKey.pairs).forEach(([leftIdx, rightIndices]) => {
+            const lIdx = parseInt(leftIdx);
+            const lItem = leftItems[lIdx];
+            if (!lItem) return;
+            const lId = getItemId(lItem);
+
+            const rIndices = Array.isArray(rightIndices) ? rightIndices : [rightIndices];
+            rIndices.forEach((rIdx: any) => {
+                const rNum = typeof rIdx === "number" ? rIdx : parseInt(String(rIdx));
+                const rItem = !isNaN(rNum)
+                    ? rightItems[rNum]
+                    : rightItems.find((r: any) => getItemId(r) === String(rIdx));
+                if (rItem) {
+                    answers.push({ left: lId, right: getItemId(rItem) });
+                }
+            });
+        });
+        return answers;
+    }
+
+    return [];
 }
 
 function AnswerPreview({ question }: { question: BankQuestion }) {
@@ -47,171 +81,229 @@ function AnswerPreview({ question }: { question: BankQuestion }) {
 
     // Multiple Choice
     if (type === "mc" && content?.options) {
-        const correctIndex = answerKey?.correct;
+        let correctLabel = answerKey?.correct;
+        if (typeof correctLabel === "number" || (!isNaN(Number(correctLabel)) && correctLabel !== "")) {
+            correctLabel = OPTION_LABELS[Number(correctLabel)];
+        }
+
         return (
-            <div className="grid gap-1.5">
-                {content.options.map((option: string, idx: number) => {
-                    const isCorrect = correctIndex === idx;
-                    return (
-                        <div
-                            key={idx}
-                            className={`flex items-start gap-2 rounded-md px-3 py-1.5 text-sm transition-colors ${
-                                isCorrect
-                                    ? "bg-green-500/10 border border-green-500/30"
-                                    : "bg-muted/40"
-                            }`}
-                        >
-                            {isCorrect ? (
-                                <CheckCircle2 className="h-4 w-4 text-green-500 mt-0.5 shrink-0" />
-                            ) : (
-                                <Circle className="h-4 w-4 text-muted-foreground/50 mt-0.5 shrink-0" />
-                            )}
-                            <span className="font-medium text-muted-foreground mr-1">{OPTION_LABELS[idx]}.</span>
-                            <span className={isCorrect ? "text-green-700 dark:text-green-400" : "text-muted-foreground"}>
-                                <MathHtmlRenderer html={option} />
-                            </span>
-                        </div>
-                    );
-                })}
+            <div className="space-y-3 pt-1">
+                <p className="text-xs text-blue-600 dark:text-blue-400 italic">
+                    💡 Cara menjawab: Klik salah satu pilihan jawaban
+                </p>
+                <div className="space-y-2">
+                    {content.options.map((option: string, idx: number) => {
+                        const label = OPTION_LABELS[idx];
+                        const isCorrect = (
+                            answerKey?.correct === idx ||
+                            answerKey?.correct === label ||
+                            correctLabel === label
+                        );
+
+                        return (
+                            <div
+                                key={idx}
+                                className={`flex items-start gap-3 p-2.5 rounded-lg border transition-colors ${
+                                    isCorrect
+                                        ? "bg-green-100/70 dark:bg-green-950/40 border-green-500 dark:border-green-600"
+                                        : "bg-muted/30 border-transparent hover:bg-muted/50"
+                                }`}
+                            >
+                                <input
+                                    type="radio"
+                                    name={`q-preview-${question.id}`}
+                                    checked={isCorrect}
+                                    readOnly
+                                    className="mt-0.5 accent-primary pointer-events-none"
+                                />
+                                <span className="font-semibold text-sm min-w-[20px]">{label}.</span>
+                                <div className="text-sm flex-1">
+                                    <MathHtmlRenderer html={option} />
+                                </div>
+                                {isCorrect && (
+                                    <span className="ml-auto text-green-700 dark:text-green-400 font-semibold text-xs whitespace-nowrap">
+                                        ✓ BENAR
+                                    </span>
+                                )}
+                            </div>
+                        );
+                    })}
+                </div>
             </div>
         );
     }
 
     // Complex Multiple Choice
     if (type === "complex_mc" && content?.options) {
-        const correctIndices: number[] = answerKey?.correctIndices || answerKey?.correct || [];
+        let correctLabels: string[] = [];
+        const rawAnswers = answerKey?.correctIndices || answerKey?.correct || [];
+        if (Array.isArray(rawAnswers)) {
+            correctLabels = rawAnswers.map((ans: any) => {
+                if (typeof ans === "number" || (!isNaN(Number(ans)) && ans !== "")) {
+                    return OPTION_LABELS[Number(ans)];
+                }
+                return String(ans);
+            });
+        }
+
         return (
-            <div className="grid gap-1.5">
-                {content.options.map((option: string, idx: number) => {
-                    const isCorrect = correctIndices.includes(idx);
-                    return (
-                        <div
-                            key={idx}
-                            className={`flex items-start gap-2 rounded-md px-3 py-1.5 text-sm transition-colors ${
-                                isCorrect
-                                    ? "bg-green-500/10 border border-green-500/30"
-                                    : "bg-muted/40"
-                            }`}
-                        >
-                            {isCorrect ? (
-                                <CheckCircle2 className="h-4 w-4 text-green-500 mt-0.5 shrink-0" />
-                            ) : (
-                                <Circle className="h-4 w-4 text-muted-foreground/50 mt-0.5 shrink-0" />
-                            )}
-                            <span className="font-medium text-muted-foreground mr-1">{OPTION_LABELS[idx]}.</span>
-                            <span className={isCorrect ? "text-green-700 dark:text-green-400" : "text-muted-foreground"}>
-                                <MathHtmlRenderer html={option} />
-                            </span>
-                        </div>
-                    );
-                })}
+            <div className="space-y-3 pt-1">
+                <p className="text-xs text-blue-600 dark:text-blue-400 italic">
+                    💡 Cara menjawab: Centang satu atau lebih pilihan jawaban yang benar
+                </p>
+                <div className="space-y-2">
+                    {content.options.map((option: string, idx: number) => {
+                        const label = OPTION_LABELS[idx];
+                        const isCorrect = (
+                            correctLabels.includes(label) ||
+                            correctLabels.includes(String(idx))
+                        );
+
+                        return (
+                            <div
+                                key={idx}
+                                className={`flex items-start gap-3 p-2.5 rounded-lg border transition-colors ${
+                                    isCorrect
+                                        ? "bg-green-100/70 dark:bg-green-950/40 border-green-500 dark:border-green-600"
+                                        : "bg-muted/30 border-transparent hover:bg-muted/50"
+                                }`}
+                            >
+                                <input
+                                    type="checkbox"
+                                    checked={isCorrect}
+                                    readOnly
+                                    className="mt-0.5 accent-primary pointer-events-none"
+                                />
+                                <span className="font-semibold text-sm min-w-[20px]">{label}.</span>
+                                <div className="text-sm flex-1">
+                                    <MathHtmlRenderer html={option} />
+                                </div>
+                                {isCorrect && (
+                                    <span className="ml-auto text-green-700 dark:text-green-400 font-semibold text-xs whitespace-nowrap">
+                                        ✓ BENAR
+                                    </span>
+                                )}
+                            </div>
+                        );
+                    })}
+                </div>
             </div>
         );
     }
 
     // True/False
-    if (type === "true_false" && content?.options) {
-        const correctIndex = answerKey?.correct;
+    if (type === "true_false") {
         return (
-            <div className="grid gap-1.5">
-                {content.options.map((option: string, idx: number) => {
-                    const isCorrect = correctIndex === idx;
-                    return (
-                        <div
-                            key={idx}
-                            className={`flex items-start gap-2 rounded-md px-3 py-1.5 text-sm transition-colors ${
-                                isCorrect
-                                    ? "bg-green-500/10 border border-green-500/30"
-                                    : "bg-muted/40"
-                            }`}
-                        >
-                            {isCorrect ? (
-                                <CheckCircle2 className="h-4 w-4 text-green-500 mt-0.5 shrink-0" />
-                            ) : (
-                                <Circle className="h-4 w-4 text-muted-foreground/50 mt-0.5 shrink-0" />
-                            )}
-                            <span className={isCorrect ? "text-green-700 dark:text-green-400 font-medium" : "text-muted-foreground"}>
-                                <MathHtmlRenderer html={option} />
-                            </span>
-                        </div>
-                    );
-                })}
+            <div className="space-y-3 pt-1">
+                <p className="text-xs text-blue-600 dark:text-blue-400 italic">
+                    💡 Cara menjawab: Pilih Benar atau Salah
+                </p>
+                <div className="space-y-2">
+                    {["Benar", "Salah"].map((opt, i) => {
+                        const isCorrect = (
+                            (answerKey?.correct === 0 && i === 0) ||
+                            (answerKey?.correct === 1 && i === 1) ||
+                            (String(answerKey?.correct).toLowerCase() === "true" && i === 0) ||
+                            (String(answerKey?.correct).toLowerCase() === "false" && i === 1) ||
+                            (String(answerKey?.correct).toLowerCase() === "benar" && i === 0) ||
+                            (String(answerKey?.correct).toLowerCase() === "salah" && i === 1)
+                        );
+
+                        return (
+                            <div
+                                key={i}
+                                className={`flex items-start gap-3 p-2.5 rounded-lg border transition-colors ${
+                                    isCorrect
+                                        ? "bg-green-100/70 dark:bg-green-950/40 border-green-500 dark:border-green-600"
+                                        : "bg-muted/30 border-transparent hover:bg-muted/50"
+                                }`}
+                            >
+                                <input
+                                    type="radio"
+                                    name={`tf-preview-${question.id}`}
+                                    checked={!!isCorrect}
+                                    readOnly
+                                    className="mt-0.5 accent-primary pointer-events-none"
+                                />
+                                <span className="font-semibold text-sm min-w-[20px]">{opt === "Benar" ? "B." : "S."}</span>
+                                <div className="text-sm font-medium flex-1">{opt}</div>
+                                {isCorrect && (
+                                    <span className="ml-auto text-green-700 dark:text-green-400 font-semibold text-xs whitespace-nowrap">
+                                        ✓ BENAR
+                                    </span>
+                                )}
+                            </div>
+                        );
+                    })}
+                </div>
             </div>
         );
     }
 
     // Matching
-    if (type === "matching" && content?.leftItems && content?.rightItems) {
-        const leftItems: unknown[] = Array.isArray(content.leftItems) ? content.leftItems : [];
-        const rightItems: unknown[] = Array.isArray(content.rightItems) ? content.rightItems : [];
+    if (type === "matching") {
+        const leftItems: any[] = Array.isArray(content?.leftItems) ? content.leftItems : [];
+        const rightItems: any[] = Array.isArray(content?.rightItems) ? content.rightItems : [];
+        const matchingAnswers = resolveMatchingAnswers(leftItems, rightItems, answerKey);
 
-        // Build a map from left item id/index → right item, supporting multiple answer formats:
-        // Format 1: { pairs: { "0": 1, ... } } (index-based)
-        // Format 2: { matches: [{ leftId, rightId }, ...] } (id-based)
-        const resolvedPairs: { leftText: string; rightText: string | null }[] = leftItems.map((leftItem, idx) => {
-            let rightText: string | null = null;
-
-            if (answerKey?.matches && Array.isArray(answerKey.matches)) {
-                const leftId = getMatchingItemId(leftItem);
-                const match = answerKey.matches.find((m: any) => String(m.leftId) === String(leftId) || String(m.leftId) === String(idx));
-                if (match) {
-                    // Find right item by id
-                    const rightItem = rightItems.find((r) => String(getMatchingItemId(r)) === String(match.rightId));
-                    if (rightItem) {
-                        rightText = getMatchingItemText(rightItem);
-                    } else {
-                        // Try by index
-                        const rIdx = parseInt(String(match.rightId));
-                        if (!isNaN(rIdx) && rightItems[rIdx]) {
-                            rightText = getMatchingItemText(rightItems[rIdx]);
-                        }
-                    }
-                }
-            } else if (answerKey?.pairs) {
-                const rIdx = answerKey.pairs[idx.toString()] ?? answerKey.pairs[idx];
-                if (rIdx !== undefined && rightItems[rIdx]) {
-                    rightText = getMatchingItemText(rightItems[rIdx]);
-                }
-            }
-
-            return { leftText: getMatchingItemText(leftItem), rightText };
-        });
+        if (leftItems.length === 0 || rightItems.length === 0) {
+            return (
+                <div className="border border-dashed rounded-lg p-4 text-center text-sm text-muted-foreground">
+                    Belum ada data item menjodohkan.
+                </div>
+            );
+        }
 
         return (
-            <div className="grid gap-1.5">
-                {resolvedPairs.map((pair, idx) => (
-                    <div
-                        key={idx}
-                        className="flex items-center gap-2 rounded-md px-3 py-1.5 text-sm bg-muted/40"
-                    >
-                        <span className="font-medium text-muted-foreground shrink-0">{idx + 1}.</span>
-                        <span className="text-foreground">
-                            <MathHtmlRenderer html={pair.leftText} />
-                        </span>
-                        <ArrowRight className="h-3.5 w-3.5 text-muted-foreground shrink-0 mx-1" />
-                        {pair.rightText ? (
-                            <span className="text-green-700 dark:text-green-400">
-                                <MathHtmlRenderer html={pair.rightText} />
-                            </span>
-                        ) : (
-                            <span className="text-muted-foreground italic">—</span>
-                        )}
-                    </div>
-                ))}
+            <div className="space-y-3 pt-1">
+                <p className="text-xs text-blue-600 dark:text-blue-400 italic">
+                    💡 Cara menjawab: Pasangkan item kiri dengan item kanan yang sesuai
+                </p>
+                <div className="flex items-center justify-between">
+                    <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                        Kunci Jawaban (Pasangan Benar):
+                    </span>
+                    <Badge variant="outline" className="text-[11px] font-normal">
+                        {matchingAnswers.length} Pasangan
+                    </Badge>
+                </div>
+                <div className="border rounded-lg p-4 bg-muted/10 overflow-hidden">
+                    <MatchingQuestionRenderer
+                        question={{
+                            id: `bank-q-${question.id}`,
+                            questionText: "",
+                            leftItems,
+                            rightItems,
+                        }}
+                        answer={matchingAnswers}
+                        readOnly={true}
+                    />
+                </div>
             </div>
         );
     }
 
     // Short Answer
-    if (type === "short" && answerKey?.acceptedAnswers) {
+    if (type === "short") {
+        const answers: string[] = answerKey?.acceptedAnswers || [];
         return (
-            <div className="flex flex-wrap gap-2">
-                <span className="text-sm text-muted-foreground">Jawaban diterima:</span>
-                {answerKey.acceptedAnswers.map((answer: string, idx: number) => (
-                    <Badge key={idx} variant="secondary" className="bg-green-500/10 text-green-700 dark:text-green-400 border-green-500/30">
-                        {answer}
-                    </Badge>
-                ))}
+            <div className="space-y-2 pt-1">
+                <p className="text-xs text-blue-600 dark:text-blue-400 italic">
+                    💡 Cara menjawab: Ketik jawaban singkat Anda pada kotak di bawah
+                </p>
+                <input
+                    type="text"
+                    value={answers.join(" / ")}
+                    placeholder="Ketik jawaban Anda di sini..."
+                    className="w-full p-2.5 border rounded-lg bg-green-50 dark:bg-green-950/30 border-green-300 dark:border-green-700 text-green-800 dark:text-green-300 font-semibold text-sm"
+                    disabled
+                    readOnly
+                />
+                {answers.length > 0 && (
+                    <p className="text-xs text-green-700 dark:text-green-400 italic">
+                        🔑 Kunci jawaban yang diterima: {answers.join(", ")}
+                    </p>
+                )}
             </div>
         );
     }
@@ -221,29 +313,50 @@ function AnswerPreview({ question }: { question: BankQuestion }) {
         const maxWords = content?.maxWords;
         const rubric = answerKey?.rubric;
         const modelAnswer = answerKey?.modelAnswer;
-        if (!maxWords && !rubric && !modelAnswer) return null;
+        const guidelines = content?.guidelines;
+
         return (
-            <div className="space-y-1.5 text-sm">
+            <div className="space-y-2 pt-1">
+                <p className="text-xs text-blue-600 dark:text-blue-400 italic">
+                    💡 Cara menjawab: Tulis jawaban uraian Anda dengan lengkap dan jelas
+                </p>
+                <textarea
+                    placeholder="Area jawaban uraian siswa..."
+                    rows={3}
+                    className="w-full p-2.5 border rounded-lg resize-none bg-muted/20 text-sm text-muted-foreground"
+                    disabled
+                    readOnly
+                />
                 {maxWords && (
-                    <div className="flex items-center gap-2 text-muted-foreground">
+                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
                         <MessageSquare className="h-3.5 w-3.5" />
-                        <span>Maks. {maxWords} kata</span>
+                        <span>Batas maksimal: {maxWords} kata</span>
                     </div>
                 )}
-                {modelAnswer && (
-                    <div className="rounded-md bg-muted/40 px-3 py-2">
-                        <span className="text-xs font-medium text-muted-foreground block mb-1">Jawaban Model:</span>
-                        <span className="text-muted-foreground">
-                            <MathHtmlRenderer html={modelAnswer} />
-                        </span>
-                    </div>
-                )}
-                {rubric && (
-                    <div className="rounded-md bg-muted/40 px-3 py-2">
-                        <span className="text-xs font-medium text-muted-foreground block mb-1">Rubrik Penilaian:</span>
-                        <span className="text-muted-foreground">
-                            <MathHtmlRenderer html={rubric} />
-                        </span>
+                {(guidelines || rubric || modelAnswer) && (
+                    <div className="p-3 bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 rounded-lg space-y-1.5 text-xs">
+                        {guidelines && (
+                            <div>
+                                <span className="font-semibold text-blue-900 dark:text-blue-200">Panduan Penilaian: </span>
+                                <span className="text-blue-800 dark:text-blue-300">{guidelines}</span>
+                            </div>
+                        )}
+                        {modelAnswer && (
+                            <div>
+                                <span className="font-semibold text-blue-900 dark:text-blue-200">Model Jawaban: </span>
+                                <div className="text-blue-800 dark:text-blue-300 mt-0.5">
+                                    <MathHtmlRenderer html={modelAnswer} />
+                                </div>
+                            </div>
+                        )}
+                        {rubric && (
+                            <div>
+                                <span className="font-semibold text-blue-900 dark:text-blue-200">Rubrik: </span>
+                                <div className="text-blue-800 dark:text-blue-300 mt-0.5">
+                                    <MathHtmlRenderer html={rubric} />
+                                </div>
+                            </div>
+                        )}
                     </div>
                 )}
             </div>

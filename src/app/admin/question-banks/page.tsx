@@ -27,7 +27,7 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@/components/ui/select";
-import { Plus, Database, ArrowRight, Trash2, Search, Copy, User, Loader2, Globe, Sparkles } from "lucide-react";
+import { Plus, Database, ArrowRight, Trash2, Search, Copy, User, Loader2, Globe, Sparkles, Pencil } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import {
@@ -91,6 +91,16 @@ export default function QuestionBanksPage() {
     const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
     const [bankToDelete, setBankToDelete] = useState<string | null>(null);
     const { toast } = useToast();
+
+    // Edit Bank Soal State
+    const [editDialogOpen, setEditDialogOpen] = useState(false);
+    const [editingBank, setEditingBank] = useState<QuestionBank | null>(null);
+    const [editFormData, setEditFormData] = useState({
+        name: "",
+        description: "",
+        subjectId: "",
+    });
+    const [isSubmittingEdit, setIsSubmittingEdit] = useState(false);
 
     const [formData, setFormData] = useState({
         name: "",
@@ -249,6 +259,56 @@ export default function QuestionBanksPage() {
         } finally {
             setDeleteDialogOpen(false);
             setBankToDelete(null);
+        }
+    };
+
+    const handleEditClick = (bank: QuestionBank) => {
+        setEditingBank(bank);
+        setEditFormData({
+            name: bank.name,
+            description: bank.description || "",
+            subjectId: bank.subjectId,
+        });
+        setEditDialogOpen(true);
+    };
+
+    const handleEditSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!editingBank) return;
+
+        try {
+            setIsSubmittingEdit(true);
+            const response = await fetch(`/api/question-banks/${editingBank.id}`, {
+                method: "PUT",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(editFormData),
+            });
+
+            if (response.ok) {
+                toast({
+                    title: "Berhasil",
+                    description: "Bank soal berhasil diperbarui",
+                });
+                setEditDialogOpen(false);
+                setEditingBank(null);
+                fetchQuestionBanks();
+            } else {
+                const error = await response.json();
+                toast({
+                    title: "Gagal",
+                    description: error.error || "Gagal memperbarui bank soal",
+                    variant: "destructive",
+                });
+            }
+        } catch (error) {
+            console.error("Error updating question bank:", error);
+            toast({
+                title: "Error",
+                description: "Terjadi kesalahan saat memperbarui bank soal",
+                variant: "destructive",
+            });
+        } finally {
+            setIsSubmittingEdit(false);
         }
     };
 
@@ -436,15 +496,26 @@ export default function QuestionBanksPage() {
                                         </div>
                                     </div>
                                     {bank.canEdit && (
-                                        <Button
-                                            variant="ghost"
-                                            size="icon"
-                                            className="text-muted-foreground hover:text-destructive shrink-0"
-                                            onClick={() => handleDeleteClick(bank.id)}
-                                            title="Hapus Bank Soal"
-                                        >
-                                            <Trash2 className="h-4 w-4" />
-                                        </Button>
+                                        <div className="flex items-center gap-0.5 shrink-0">
+                                            <Button
+                                                variant="ghost"
+                                                size="icon"
+                                                className="text-muted-foreground hover:text-primary h-8 w-8"
+                                                onClick={() => handleEditClick(bank)}
+                                                title="Edit / Rename Bank Soal"
+                                            >
+                                                <Pencil className="h-4 w-4" />
+                                            </Button>
+                                            <Button
+                                                variant="ghost"
+                                                size="icon"
+                                                className="text-muted-foreground hover:text-destructive h-8 w-8"
+                                                onClick={() => handleDeleteClick(bank.id)}
+                                                title="Hapus Bank Soal"
+                                            >
+                                                <Trash2 className="h-4 w-4" />
+                                            </Button>
+                                        </div>
                                     )}
                                 </div>
                             </CardHeader>
@@ -577,6 +648,89 @@ export default function QuestionBanksPage() {
                                 Batal
                             </Button>
                             <Button type="submit">Buat Bank Soal</Button>
+                        </DialogFooter>
+                    </form>
+                </DialogContent>
+            </Dialog>
+
+            {/* Edit Question Bank Dialog */}
+            <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>Edit Bank Soal</DialogTitle>
+                        <DialogDescription>
+                            Ubah nama, mata pelajaran, atau deskripsi bank soal
+                        </DialogDescription>
+                    </DialogHeader>
+                    <form onSubmit={handleEditSubmit}>
+                        <div className="space-y-4">
+                            <div>
+                                <Label htmlFor="edit-name">Nama Bank Soal</Label>
+                                <Input
+                                    id="edit-name"
+                                    value={editFormData.name}
+                                    onChange={(e) =>
+                                        setEditFormData({ ...editFormData, name: e.target.value })
+                                    }
+                                    required
+                                    placeholder="e.g., Bank Soal UTS Semester 1"
+                                />
+                            </div>
+                            <div>
+                                <Label htmlFor="edit-subject">Mata Pelajaran</Label>
+                                <Select
+                                    value={editFormData.subjectId}
+                                    onValueChange={(value) =>
+                                        setEditFormData({ ...editFormData, subjectId: value })
+                                    }
+                                    required
+                                >
+                                    <SelectTrigger id="edit-subject">
+                                        <SelectValue placeholder="Pilih mata pelajaran" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {subjects.map((subject) => (
+                                            <SelectItem key={subject.id} value={subject.id}>
+                                                {subject.name} ({subject.code})
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                            <div>
+                                <Label htmlFor="edit-description">Deskripsi (Optional)</Label>
+                                <Textarea
+                                    id="edit-description"
+                                    value={editFormData.description}
+                                    onChange={(e) =>
+                                        setEditFormData({ ...editFormData, description: e.target.value })
+                                    }
+                                    placeholder="Deskripsi bank soal..."
+                                    rows={3}
+                                />
+                            </div>
+                        </div>
+                        <DialogFooter className="mt-6">
+                            <Button
+                                type="button"
+                                variant="outline"
+                                onClick={() => {
+                                    setEditDialogOpen(false);
+                                    setEditingBank(null);
+                                }}
+                            >
+                                Batal
+                            </Button>
+                            <Button type="submit" disabled={isSubmittingEdit}>
+                                {isSubmittingEdit ? (
+                                    <>
+                                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                        Menyimpan...
+                                    </>
+                                ) : (
+                                    "Simpan Perubahan"
+                                )}
+                            </Button>
                         </DialogFooter>
                     </form>
                 </DialogContent>

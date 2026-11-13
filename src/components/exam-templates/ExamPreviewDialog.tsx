@@ -345,6 +345,7 @@ export default function ExamPreviewDialog({ templateId, open, onOpenChange }: Ex
                                                                 }
                                                                 return [];
                                                             })()}
+                                                            readOnly={true}
                                                             onChange={() => { }} // Read-only
                                                         />
                                                     </div>

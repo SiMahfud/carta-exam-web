@@ -24,6 +24,9 @@ import {
     Filter,
     FileQuestion,
     ArrowLeft,
+    Pencil,
+    Eye,
+    Loader2,
 } from "lucide-react";
 import {
     Dialog,
@@ -32,7 +35,10 @@ import {
     DialogHeader,
     DialogTitle,
     DialogTrigger,
+    DialogFooter,
 } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import {
     AlertDialog,
@@ -66,6 +72,19 @@ export default function QuestionBankDetailPage() {
     const [editingQuestion, setEditingQuestion] = useState<BankQuestion | null>(null);
     const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
     const [questionToDelete, setQuestionToDelete] = useState<string | null>(null);
+
+    // Edit Bank Info State
+    const [editBankDialogOpen, setEditBankDialogOpen] = useState(false);
+    const [bankFormData, setBankFormData] = useState({
+        name: "",
+        description: "",
+        subjectId: "",
+    });
+    const [subjects, setSubjects] = useState<{ id: string; name: string; code: string }[]>([]);
+    const [isSavingBank, setIsSavingBank] = useState(false);
+
+    // Preview Dialog State
+    const [previewDialogOpen, setPreviewDialogOpen] = useState(false);
 
     // Filters
     const [filterType, setFilterType] = useState<string>("all");
@@ -132,15 +151,79 @@ export default function QuestionBankDetailPage() {
         }
     }, [bankId]);
 
+    const fetchSubjects = useCallback(async () => {
+        try {
+            const response = await fetch("/api/subjects");
+            if (response.ok) {
+                const result = await response.json();
+                setSubjects(result.data || []);
+            }
+        } catch (error) {
+            console.error("Error fetching subjects:", error);
+        }
+    }, []);
+
     useEffect(() => {
         fetchBankDetails();
         fetchQuestions();
         fetchTags();
-    }, [bankId, fetchBankDetails, fetchQuestions, fetchTags]);
+        fetchSubjects();
+    }, [bankId, fetchBankDetails, fetchQuestions, fetchTags, fetchSubjects]);
 
     useEffect(() => {
         fetchQuestions();
     }, [filterType, filterDifficulty, filterTags, page, fetchQuestions]);
+
+    const handleOpenEditBank = () => {
+        if (!bank) return;
+        setBankFormData({
+            name: bank.name || "",
+            description: bank.description || "",
+            subjectId: bank.subjectId || "",
+        });
+        setEditBankDialogOpen(true);
+    };
+
+    const handleSaveBank = async (e: React.FormEvent) => {
+        e.preventDefault();
+        try {
+            setIsSavingBank(true);
+            const response = await fetch(`/api/question-banks/${bankId}`, {
+                method: "PUT",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(bankFormData),
+            });
+
+            if (response.ok) {
+                const updated = await response.json();
+                setBank((prev: any) => ({
+                    ...prev,
+                    ...updated,
+                }));
+                toast({
+                    title: "Berhasil",
+                    description: "Informasi bank soal berhasil diperbarui",
+                });
+                setEditBankDialogOpen(false);
+            } else {
+                const error = await response.json();
+                toast({
+                    title: "Gagal",
+                    description: error.error || "Gagal memperbarui bank soal",
+                    variant: "destructive",
+                });
+            }
+        } catch (error) {
+            console.error("Error updating bank:", error);
+            toast({
+                title: "Error",
+                description: "Terjadi kesalahan saat memperbarui bank soal",
+                variant: "destructive",
+            });
+        } finally {
+            setIsSavingBank(false);
+        }
+    };
 
     const handleDeleteClick = (questionId: string) => {
         console.log("Delete button clicked for question:", questionId);
@@ -215,12 +298,41 @@ export default function QuestionBankDetailPage() {
                 </Link>
                 <div className="flex flex-col md:flex-row md:justify-between md:items-start gap-4">
                     <div>
-                        <h1 className="text-3xl font-bold">{bank.name}</h1>
-                        <p className="text-muted-foreground mt-2">
-                            {bank.description || "No description"}
-                        </p>
+                        <div className="flex items-center gap-2">
+                            <h1 className="text-3xl font-bold">{bank.name}</h1>
+                            {bank.canEdit !== false && (
+                                <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-8 w-8 text-muted-foreground hover:text-foreground shrink-0"
+                                    onClick={handleOpenEditBank}
+                                    title="Edit / Rename Bank Soal"
+                                >
+                                    <Pencil className="h-4 w-4" />
+                                </Button>
+                            )}
+                        </div>
+                        <div className="flex flex-wrap items-center gap-2 mt-2">
+                            {bank.subjectName && (
+                                <Badge variant="secondary" className="font-normal text-xs">
+                                    {bank.subjectName}
+                                </Badge>
+                            )}
+                            <p className="text-muted-foreground text-sm">
+                                {bank.description || "Tidak ada deskripsi"}
+                            </p>
+                        </div>
                     </div>
                     <div className="flex flex-wrap gap-2">
+                        <Button
+                            variant="outline"
+                            onClick={() => setPreviewDialogOpen(true)}
+                            disabled={questions.length === 0}
+                            title="Lihat pratinjau tampilan soal"
+                        >
+                            <Eye className="mr-2 h-4 w-4" />
+                            Pratinjau Soal
+                        </Button>
                         <ImportQuestionsDialog
                             bankId={bankId}
                             onSuccess={() => {
@@ -549,6 +661,119 @@ export default function QuestionBankDetailPage() {
                     </AlertDialogFooter>
                 </AlertDialogContent>
             </AlertDialog>
+
+            {/* Edit Bank Information Dialog */}
+            <Dialog open={editBankDialogOpen} onOpenChange={setEditBankDialogOpen}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>Edit Informasi Bank Soal</DialogTitle>
+                        <DialogDescription>
+                            Ubah nama, mata pelajaran, atau deskripsi bank soal ini
+                        </DialogDescription>
+                    </DialogHeader>
+                    <form onSubmit={handleSaveBank}>
+                        <div className="space-y-4 py-2">
+                            <div>
+                                <Label htmlFor="bank-name">Nama Bank Soal</Label>
+                                <Input
+                                    id="bank-name"
+                                    value={bankFormData.name}
+                                    onChange={(e) =>
+                                        setBankFormData({ ...bankFormData, name: e.target.value })
+                                    }
+                                    required
+                                    placeholder="e.g., Bank Soal UTS Semester 1"
+                                />
+                            </div>
+                            <div>
+                                <Label htmlFor="bank-subject">Mata Pelajaran</Label>
+                                <Select
+                                    value={bankFormData.subjectId}
+                                    onValueChange={(value) =>
+                                        setBankFormData({ ...bankFormData, subjectId: value })
+                                    }
+                                    required
+                                >
+                                    <SelectTrigger id="bank-subject">
+                                        <SelectValue placeholder="Pilih mata pelajaran" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {subjects.map((s) => (
+                                            <SelectItem key={s.id} value={s.id}>
+                                                {s.name} ({s.code})
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                            <div>
+                                <Label htmlFor="bank-desc">Deskripsi (Optional)</Label>
+                                <Textarea
+                                    id="bank-desc"
+                                    value={bankFormData.description}
+                                    onChange={(e) =>
+                                        setBankFormData({ ...bankFormData, description: e.target.value })
+                                    }
+                                    placeholder="Deskripsi bank soal..."
+                                    rows={3}
+                                />
+                            </div>
+                        </div>
+                        <DialogFooter className="mt-4">
+                            <Button
+                                type="button"
+                                variant="outline"
+                                onClick={() => setEditBankDialogOpen(false)}
+                            >
+                                Batal
+                            </Button>
+                            <Button type="submit" disabled={isSavingBank}>
+                                {isSavingBank ? (
+                                    <>
+                                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                        Menyimpan...
+                                    </>
+                                ) : (
+                                    "Simpan Perubahan"
+                                )}
+                            </Button>
+                        </DialogFooter>
+                    </form>
+                </DialogContent>
+            </Dialog>
+
+            {/* Pratinjau / Preview Dialog */}
+            <Dialog open={previewDialogOpen} onOpenChange={setPreviewDialogOpen}>
+                <DialogContent className="max-w-4xl max-h-[90vh] flex flex-col">
+                    <DialogHeader>
+                        <DialogTitle className="flex items-center gap-2">
+                            <Eye className="h-5 w-5" />
+                            Pratinjau Bank Soal: {bank.name}
+                        </DialogTitle>
+                        <DialogDescription>
+                            Tampilan pratinjau soal-soal di bank ini dengan format visual yang sama seperti pada ujian siswa
+                        </DialogDescription>
+                    </DialogHeader>
+
+                    <div className="flex-1 overflow-y-auto pr-2 space-y-4 my-2">
+                        {questions.map((question, index) => (
+                            <BankQuestionCard
+                                key={question.id}
+                                question={question}
+                                indexNumber={(page - 1) * 20 + index + 1}
+                                onEdit={(q) => {
+                                    setPreviewDialogOpen(false);
+                                    handleEdit(q);
+                                }}
+                                onDelete={(id) => {
+                                    setPreviewDialogOpen(false);
+                                    handleDeleteClick(id);
+                                }}
+                            />
+                        ))}
+                    </div>
+                </DialogContent>
+            </Dialog>
         </div>
     );
 }

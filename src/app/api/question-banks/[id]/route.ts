@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { questionBanks, bankQuestions } from "@/lib/schema";
+import { questionBanks, bankQuestions, subjects } from "@/lib/schema";
 import { eq, sql } from "drizzle-orm";
 import { requireAuth } from "@/lib/auth-guard";
 import { deleteQuestionImages } from "@/lib/image-processor";
@@ -11,7 +11,7 @@ export async function GET(
     { params }: { params: { id: string } }
 ) {
     try {
-        await requireAuth(["admin", "teacher"]);
+        const user = await requireAuth(["admin", "teacher"]);
         const bank = await db.select()
             .from(questionBanks)
             .where(eq(questionBanks.id, params.id))
@@ -22,6 +22,21 @@ export async function GET(
                 { error: "Question bank not found" },
                 { status: 404 }
             );
+        }
+
+        let subjectName: string | null = null;
+        if (bank[0].subjectId) {
+            try {
+                const subj = await db.select({ name: subjects.name })
+                    .from(subjects)
+                    .where(eq(subjects.id, bank[0].subjectId))
+                    .limit(1);
+                if (subj.length > 0) {
+                    subjectName = subj[0].name;
+                }
+            } catch {
+                // In testing or standalone query without subject
+            }
         }
 
         // Get question statistics
@@ -42,6 +57,9 @@ export async function GET(
 
         return NextResponse.json({
             ...bank[0],
+            subjectName,
+            canEdit: user.role === "admin" || bank[0].createdBy === user.id,
+            isOwner: bank[0].createdBy === user.id,
             statistics: stats[0],
         });
     } catch (error) {
@@ -61,7 +79,7 @@ export async function PUT(
     try {
         const user = await requireAuth(["admin", "teacher"]);
         const body = await request.json();
-        const { name, description } = body;
+        const { name, description, subjectId } = body;
 
         const existing = await db.select().from(questionBanks).where(eq(questionBanks.id, params.id)).limit(1);
         if (existing.length === 0) {
@@ -79,17 +97,43 @@ export async function PUT(
             );
         }
 
+        const updateData: Record<string, any> = {
+            updatedAt: new Date(),
+        };
+        if (name !== undefined) updateData.name = name;
+        if (description !== undefined) updateData.description = description;
+        if (subjectId !== undefined) updateData.subjectId = subjectId;
+
         await db.update(questionBanks)
-            .set({
-                name,
-                description,
-                updatedAt: new Date(),
-            })
+            .set(updateData)
             .where(eq(questionBanks.id, params.id));
 
-        const updated = await db.select().from(questionBanks).where(eq(questionBanks.id, params.id)).limit(1);
+        const updated = await db.select()
+            .from(questionBanks)
+            .where(eq(questionBanks.id, params.id))
+            .limit(1);
 
-        return NextResponse.json(updated[0]);
+        let subjectName: string | null = null;
+        if (updated[0]?.subjectId) {
+            try {
+                const subj = await db.select({ name: subjects.name })
+                    .from(subjects)
+                    .where(eq(subjects.id, updated[0].subjectId))
+                    .limit(1);
+                if (subj.length > 0) {
+                    subjectName = subj[0].name;
+                }
+            } catch {
+                // In testing or standalone query without subject
+            }
+        }
+
+        return NextResponse.json({
+            ...updated[0],
+            subjectName,
+            canEdit: user.role === "admin" || updated[0].createdBy === user.id,
+            isOwner: updated[0].createdBy === user.id,
+        });
     } catch (error: any) {
         console.error("Error updating question bank:", error);
         return NextResponse.json(

@@ -12,7 +12,8 @@ interface MatchingQuestionRendererProps {
         rightItems?: (string | { id: string; text: string })[];
     };
     answer: { left: string; right: string }[] | null;
-    onChange: (answer: { left: string; right: string }[]) => void;
+    onChange?: (answer: { left: string; right: string }[]) => void;
+    readOnly?: boolean;
 }
 
 
@@ -24,7 +25,7 @@ const COLORS = [
 
 const getColor = (index: number) => COLORS[index % COLORS.length];
 
-export function MatchingQuestionRenderer({ question, answer, onChange }: MatchingQuestionRendererProps) {
+export function MatchingQuestionRenderer({ question, answer, onChange, readOnly = false }: MatchingQuestionRendererProps) {
     const [selectedLeft, setSelectedLeft] = useState<string | null>(null);
     const containerRef = useRef<HTMLDivElement>(null);
     const [lines, setLines] = useState<{ x1: number; y1: number; x2: number; y2: number; color: string }[]>([]);
@@ -116,15 +117,18 @@ export function MatchingQuestionRenderer({ question, answer, onChange }: Matchin
         window.addEventListener("resize", calculateLines);
 
         // Also recalculate after a short delay to ensure DOM is fully rendered
-        const timeout = setTimeout(calculateLines, 100);
+        const timeout1 = setTimeout(calculateLines, 100);
+        const timeout2 = setTimeout(calculateLines, 350);
 
         return () => {
             window.removeEventListener("resize", calculateLines);
-            clearTimeout(timeout);
+            clearTimeout(timeout1);
+            clearTimeout(timeout2);
         };
     }, [connections, question.id, leftItems]);
 
     const handleLeftClick = (item: string) => {
+        if (readOnly) return;
         if (selectedLeft === item) {
             setSelectedLeft(null); // Deselect
         } else {
@@ -133,7 +137,7 @@ export function MatchingQuestionRenderer({ question, answer, onChange }: Matchin
     };
 
     const handleRightClick = (item: string) => {
-        if (!selectedLeft) return;
+        if (readOnly || !selectedLeft) return;
 
         // Check if connection already exists
         const exists = connections.some(c => c.left === selectedLeft && c.right === item);
@@ -141,31 +145,34 @@ export function MatchingQuestionRenderer({ question, answer, onChange }: Matchin
         if (exists) {
             // Remove connection if clicked again
             const newConnections = connections.filter(c => !(c.left === selectedLeft && c.right === item));
-            onChange(newConnections);
+            onChange?.(newConnections);
         } else {
             // Add new connection
             // Note: We allow one-to-many (one left to multiple right)
             const newConnections = [...connections, { left: selectedLeft, right: item }];
-            onChange(newConnections);
+            onChange?.(newConnections);
             setSelectedLeft(null); // Reset selection after connecting
         }
     };
 
     const removeConnection = (left: string, right: string) => {
+        if (readOnly) return;
         const newConnections = connections.filter(c => !(c.left === left && c.right === right));
-        onChange(newConnections);
+        onChange?.(newConnections);
     };
 
     return (
         <div className="space-y-6 select-none">
-            <div className="flex items-center gap-2 text-sm text-muted-foreground bg-muted/20 p-3 rounded-md w-fit">
-                <div className="bg-primary/10 p-1 rounded-full">
-                    <svg className="w-4 h-4 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-                    </svg>
+            {!readOnly && (
+                <div className="flex items-center gap-2 text-sm text-muted-foreground bg-muted/20 p-3 rounded-md w-fit">
+                    <div className="bg-primary/10 p-1 rounded-full">
+                        <svg className="w-4 h-4 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                        </svg>
+                    </div>
+                    <span>Klik item di <strong>kiri</strong>, lalu klik pasangannya di <strong>kanan</strong>.</span>
                 </div>
-                <span>Klik item di <strong>kiri</strong>, lalu klik pasangannya di <strong>kanan</strong>.</span>
-            </div>
+            )}
 
             {/* ContainerRef moved here to the relative parent of SVG */}
             <div className="relative flex justify-between gap-8 md:gap-16 min-h-[300px]" ref={containerRef}>
@@ -205,7 +212,7 @@ export function MatchingQuestionRenderer({ question, answer, onChange }: Matchin
                     {leftItems.map((item, idx) => {
                         const itemId = getItemId(item);
                         const itemText = getItemText(item);
-                        const isSelected = selectedLeft === itemId;
+                        const isSelected = !readOnly && selectedLeft === itemId;
                         const isConnected = connections.some(c => c.left === itemId);
                         const color = getColor(idx);
 
@@ -216,10 +223,11 @@ export function MatchingQuestionRenderer({ question, answer, onChange }: Matchin
                             <div
                                 id={domId}
                                 key={idx}
-                                onClick={() => handleLeftClick(itemId)}
+                                onClick={readOnly ? undefined : () => handleLeftClick(itemId)}
                                 className={`
-                                    relative p-4 rounded-xl border-2 cursor-pointer transition-all duration-200
-                                    flex items-center justify-between group hover:shadow-md
+                                    relative p-4 rounded-xl border-2 transition-all duration-200
+                                    flex items-center justify-between group
+                                    ${!readOnly ? "cursor-pointer hover:shadow-md" : ""}
                                     ${isSelected
                                         ? `border-[${color}] ring-2 ring-[${color}]/20 bg-[${color}]/5`
                                         : isConnected
@@ -262,14 +270,15 @@ export function MatchingQuestionRenderer({ question, answer, onChange }: Matchin
                             <div
                                 id={domId}
                                 key={idx}
-                                onClick={() => handleRightClick(itemId)}
+                                onClick={readOnly ? undefined : () => handleRightClick(itemId)}
                                 className={`
-                                    relative p-4 rounded-xl border-2 cursor-pointer transition-all duration-200
-                                    flex items-center gap-3 group hover:shadow-md
+                                    relative p-4 rounded-xl border-2 transition-all duration-200
+                                    flex items-center gap-3 group
+                                    ${!readOnly ? "cursor-pointer hover:shadow-md" : ""}
                                     ${isConnected
                                         ? "border-primary/50 bg-background"
                                         : "border-muted bg-background hover:border-primary/30"}
-                                    ${selectedLeft ? "hover:ring-2 hover:ring-primary/20 hover:bg-primary/5" : ""}
+                                    ${!readOnly && selectedLeft ? "hover:ring-2 hover:ring-primary/20 hover:bg-primary/5" : ""}
                                 `}
                             >
                                 {/* Connection indicator dot */}
@@ -283,7 +292,7 @@ export function MatchingQuestionRenderer({ question, answer, onChange }: Matchin
                                 </div>
 
                                 {/* Remove buttons for connections */}
-                                {isConnected && (
+                                {!readOnly && isConnected && (
                                     <div className="flex -space-x-1">
                                         {itemConnections.map((conn, i) => {
                                             const leftIndex = leftItems.findIndex(l => getItemId(l) === conn.left);
