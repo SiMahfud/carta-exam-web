@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
@@ -28,6 +28,7 @@ import {
 import { useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
 import { GlobalSearch } from "@/components/global-search/GlobalSearch";
+import { getPortoCartaUrl } from "@/lib/porto-url";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
     DropdownMenu,
@@ -245,7 +246,7 @@ export default function AdminLayout({
                     <div className="flex items-center gap-2">
                         {/* Tombol Pintas ke PortoCarta */}
                         <a
-                            href="https://porto.sman1campurdarat.sch.id/dashboard"
+                            href={getPortoCartaUrl("/dashboard")}
                             target="_blank"
                             rel="noopener noreferrer"
                             className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-indigo-200 dark:border-indigo-800/80 bg-indigo-50/50 dark:bg-indigo-950/30 text-indigo-700 dark:text-indigo-300 hover:bg-indigo-100 dark:hover:bg-indigo-900/50 text-xs font-medium transition-all mr-1 shadow-xs"

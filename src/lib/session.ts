@@ -1,4 +1,4 @@
-import { cookies } from "next/headers";
+import { cookies, headers } from "next/headers";
 
 export type UserRole = "admin" | "teacher" | "student";
 
@@ -83,10 +83,29 @@ export const DEFAULT_SESSION_MAX_AGE = 60 * 60 * 24 * 7; // 7 days
 
 /**
  * Determine if cookie should have secure flag (HTTPS)
+ * Mendukung override langsung atau auto-deteksi via Next.js headers (adaptif LAN/Online)
  */
-export function isSecureCookie(): boolean {
+export function isSecureCookie(explicitSecure?: boolean): boolean {
+    if (typeof explicitSecure === "boolean") return explicitSecure;
     if (process.env.COOKIE_SECURE === "false") return false;
     if (process.env.COOKIE_SECURE === "true") return true;
+
+    // Coba deteksi protokol dan host dari incoming request jika dipanggil di Server Action / Route
+    try {
+        const headerList = headers();
+        const proto = headerList.get("x-forwarded-proto");
+        const host = (headerList.get("x-forwarded-host") || headerList.get("host") || "").toLowerCase();
+
+        if (proto === "https" && !host.includes("localhost") && !host.startsWith("192.168.") && !host.startsWith("10.") && !host.startsWith("172.")) {
+            return true;
+        }
+        if (proto === "http" || host.includes("localhost") || host.startsWith("192.168.") || host.startsWith("10.") || host.startsWith("172.")) {
+            return false;
+        }
+    } catch {
+        // Abaikan jika dipanggil di luar konteks request Next.js
+    }
+
     if (process.env.APP_URL?.startsWith("https://") || process.env.NEXT_PUBLIC_APP_URL?.startsWith("https://")) {
         return true;
     }
@@ -96,10 +115,10 @@ export function isSecureCookie(): boolean {
 /**
  * Standard cookie configuration for CartaExam session
  */
-export function getSessionCookieOptions(maxAge: number = DEFAULT_SESSION_MAX_AGE) {
+export function getSessionCookieOptions(maxAge: number = DEFAULT_SESSION_MAX_AGE, explicitSecure?: boolean) {
     return {
         httpOnly: true,
-        secure: isSecureCookie(),
+        secure: isSecureCookie(explicitSecure),
         sameSite: "lax" as const,
         maxAge,
         path: "/",

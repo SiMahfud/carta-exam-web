@@ -53,7 +53,7 @@ function resolveRedirectUrl(request: NextRequest, redirectPath: string): URL {
     const host = forwardedHost || request.headers.get("host") || request.nextUrl.host;
     const proto = request.headers.get("x-forwarded-proto") || (request.url.startsWith("https") ? "https" : "http");
 
-    if (host && !host.includes("localhost") && !host.includes("127.0.0.1")) {
+    if (host) {
         return new URL(redirectPath, `${proto}://${host}`);
     }
 
@@ -233,21 +233,29 @@ export async function GET(request: NextRequest) {
     </script>
 </body>
 </html>`;
+            const proto = request.headers.get("x-forwarded-proto") || (request.url.startsWith("https") ? "https" : "http");
+            const host = (request.headers.get("x-forwarded-host") || request.headers.get("host") || "").toLowerCase();
+            const isRequestSecure = proto === "https" && !host.includes("localhost") && !host.startsWith("192.168.") && !host.startsWith("10.") && !host.startsWith("172.");
+
             const popupResponse = new NextResponse(html, {
                 headers: { "Content-Type": "text/html; charset=utf-8" },
             });
-            popupResponse.cookies.set("user_session", sessionToken, getSessionCookieOptions(DEFAULT_SESSION_MAX_AGE));
+            popupResponse.cookies.set("user_session", sessionToken, getSessionCookieOptions(DEFAULT_SESSION_MAX_AGE, isRequestSecure));
             return popupResponse;
         }
 
         // Tentukan redirect URL sesuai peran
-        let redirectPath = redirectParam || (role === "admin" || role === "teacher" ? "/admin" : "/student/exams");
+        const redirectPath = redirectParam || (role === "admin" || role === "teacher" ? "/admin" : "/student/exams");
 
         const targetUrl = resolveRedirectUrl(request, redirectPath);
         const response = NextResponse.redirect(targetUrl);
 
-        // Pasang session cookie
-        response.cookies.set("user_session", sessionToken, getSessionCookieOptions(DEFAULT_SESSION_MAX_AGE));
+        // Pasang session cookie (adaptif HTTP LAN vs HTTPS Online)
+        const proto = request.headers.get("x-forwarded-proto") || (request.url.startsWith("https") ? "https" : "http");
+        const host = (request.headers.get("x-forwarded-host") || request.headers.get("host") || "").toLowerCase();
+        const isRequestSecure = proto === "https" && !host.includes("localhost") && !host.startsWith("192.168.") && !host.startsWith("10.") && !host.startsWith("172.");
+
+        response.cookies.set("user_session", sessionToken, getSessionCookieOptions(DEFAULT_SESSION_MAX_AGE, isRequestSecure));
 
         return response;
     } catch (err: any) {

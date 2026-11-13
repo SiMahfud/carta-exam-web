@@ -17,6 +17,7 @@ import {
     DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { getPortoCartaUrl } from "@/lib/porto-url";
 
 interface StudentProfile {
     id: string;
@@ -116,7 +117,7 @@ export default function StudentLayout({
 
                     <div className="flex items-center gap-2 sm:gap-3">
                         <a
-                            href="https://porto.sman1campurdarat.sch.id/siswa/dashboard"
+                            href={getPortoCartaUrl("/siswa/dashboard")}
                             target="_blank"
                             rel="noopener noreferrer"
                             className="inline-flex items-center gap-1.5 text-xs text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 bg-indigo-50 dark:bg-indigo-950/40 border border-indigo-200 dark:border-indigo-800/60 px-3 py-1.5 rounded-full transition-colors font-medium shadow-xs"

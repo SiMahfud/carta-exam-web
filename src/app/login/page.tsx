@@ -1,13 +1,13 @@
-﻿'use client'
+'use client'
 
-import { useState, useTransition } from 'react'
+import { useState, useEffect, useTransition } from 'react'
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Label } from "@/components/ui/label"
 import { login } from "@/actions/auth"
 import { ShieldCheck, Lock, User, Loader2, AlertCircle, Eye, EyeOff, Rocket, ChevronDown, ChevronUp, Sparkles } from "lucide-react"
-import Link from "next/link"
+import { getPortoCartaUrl } from "@/lib/porto-url"
 
 export default function LoginPage() {
     const [isPending, startTransition] = useTransition()
@@ -15,6 +15,11 @@ export default function LoginPage() {
     const [fieldErrors, setFieldErrors] = useState<{ username?: string[]; password?: string[] }>({})
     const [showPassword, setShowPassword] = useState(false)
     const [showManualLogin, setShowManualLogin] = useState(false)
+    const [portoLaunchUrl, setPortoLaunchUrl] = useState("https://porto.sman1campurdarat.sch.id/apps/launch/carta-exam")
+
+    useEffect(() => {
+        setPortoLaunchUrl(getPortoCartaUrl("/apps/launch/carta-exam"))
+    }, [])
 
     async function handleSubmit(formData: FormData) {
         setError(null)
@@ -67,7 +72,7 @@ export default function LoginPage() {
                             Masuk instan menggunakan akun <strong>PortoCarta</strong> tanpa perlu menghafal password ujian.
                         </p>
                         <a
-                            href="https://porto.sman1campurdarat.sch.id/apps/launch/carta-exam"
+                            href={portoLaunchUrl}
                             className="w-full flex items-center justify-center gap-2.5 px-4 py-3 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-sm transition-all shadow-md hover:shadow-indigo-500/25 active:scale-[0.98] group"
                         >
                             <Rocket className="h-4 w-4 transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5" />

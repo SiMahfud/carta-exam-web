@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { AlertCircle, Lock, KeyRound, Loader2, CheckCircle2, ExternalLink, Sparkles } from "lucide-react";
+import { getPortoCartaUrl } from "@/lib/porto-url";
 
 interface SessionExpiredDialogProps {
     open: boolean;
@@ -107,9 +108,9 @@ export function SessionExpiredDialog({
         const left = window.screenX + (window.outerWidth - width) / 2;
         const top = window.screenY + (window.outerHeight - height) / 2;
 
-        const portoUrl = "https://porto.sman1campurdarat.sch.id";
+        const popupUrl = getPortoCartaUrl("/apps/launch/carta-exam?mode=popup");
         const popup = window.open(
-            `${portoUrl}/sso/carta-exam?mode=popup`,
+            popupUrl,
             "PortoCartaSSO",
             `width=${width},height=${height},left=${left},top=${top},scrollbars=yes,status=no`
         );

@@ -6,6 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { RefreshCw, CheckCircle2, ExternalLink, ShieldCheck, Database, Layers, Activity, AlertCircle, Wifi } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { getPortoCartaUrl } from "@/lib/porto-url";
 
 export function PortoCartaSyncCard() {
     const [isSyncing, setIsSyncing] = useState(false);
@@ -19,7 +20,7 @@ export function PortoCartaSyncCard() {
     const [lastSyncResult, setLastSyncResult] = useState<any>(null);
     const { toast } = useToast();
 
-    const portoCartaUrl = "https://porto.sman1campurdarat.sch.id";
+    const portoCartaUrl = getPortoCartaUrl();
 
     async function handlePing() {
         setIsPinging(true);
