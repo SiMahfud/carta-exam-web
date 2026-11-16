@@ -56,7 +56,7 @@ export function GradingItemCard({
             const res = await evaluateEssayWithAI({
                 questionText: answer.questionText,
                 studentAnswer: typeof answer.studentAnswer === 'string' ? answer.studentAnswer : JSON.stringify(answer.studentAnswer || ""),
-                maxPoints: answer.maxPoints || answer.defaultPoints || 10,
+                maxPoints: (answer.maxPoints !== null && answer.maxPoints !== undefined) ? answer.maxPoints : (answer.defaultPoints ?? 10),
                 guidelines,
                 rubric,
                 modelAnswer,

@@ -223,7 +223,7 @@ export async function GET(
                         type: q.type,
                         questionText: parsedContent.question || "",
                         content: parsedContent,
-                        points: studentAns?.maxPoints || q.defaultPoints || 1,
+                        points: studentAns?.maxPoints ?? q.defaultPoints ?? 0,
                         studentAnswer: parsedStudentAnswer,
                         isCorrect: studentAns?.isCorrect ?? false,
                         score: pointsEarned,

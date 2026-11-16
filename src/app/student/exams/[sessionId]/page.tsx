@@ -18,6 +18,7 @@ import { PreExamDialog } from "@/components/exam/take-exam/PreExamDialog";
 import { SecurityWarningBanner } from "@/components/exam/take-exam/SecurityWarningBanner";
 import { FullscreenLockoutOverlay } from "@/components/exam/take-exam/FullscreenLockoutOverlay";
 import { TerminatedExamView } from "@/components/exam/take-exam/TerminatedExamView";
+import { ExamCompletedView } from "@/components/exam/take-exam/ExamCompletedView";
 import { QuestionCard } from "@/components/exam/take-exam/QuestionCard";
 import { ViolationDetailDialog, ViolationLogItem } from "@/components/exam/take-exam/ViolationDetailDialog";
 import { SessionExpiredDialog } from "@/components/exam/take-exam/SessionExpiredDialog";
@@ -51,6 +52,8 @@ export default function TakeExamPage() {
     const [showViolationBanner, setShowViolationBanner] = useState(false);
     const [lastViolationType, setLastViolationType] = useState<string>("");
     const [isTerminated, setIsTerminated] = useState(false);
+    const [isForceCompleted, setIsForceCompleted] = useState(false);
+    const [forceCompletedMessage, setForceCompletedMessage] = useState<string>("");
     const [examName, setExamName] = useState<string>("");
     const [minSubmitMinutes, setMinSubmitMinutes] = useState(0);
     const [durationMinutes, setDurationMinutes] = useState<number | undefined>(undefined);
@@ -119,6 +122,8 @@ export default function TakeExamPage() {
 
     // Log security violations to backend and check for termination
     const logSecurityViolation = useCallback(async (type: string, details?: string) => {
+        if (!examStarted || submitting || isTerminated || isForceCompleted) return;
+
         const now = Date.now();
         const cooldownSeconds = Math.max(1, Number(violationSettings?.cooldownSeconds) || 5);
         const cooldownMs = cooldownSeconds * 1000;
@@ -176,7 +181,7 @@ export default function TakeExamPage() {
         } catch (error) {
             console.error("Failed to log violation:", error);
         }
-    }, [sessionId, studentId, isFullscreen, exitFullscreen, toast, violationSettings]);
+    }, [sessionId, studentId, isFullscreen, exitFullscreen, toast, violationSettings, examStarted, submitting, isTerminated, isForceCompleted]);
 
     // Fullscreen exit grace period refs (3-second accidental exit tolerance)
     const fullscreenGraceTimeout = useRef<NodeJS.Timeout | null>(null);
@@ -194,7 +199,7 @@ export default function TakeExamPage() {
     }, []);
 
     const startFullscreenGracePeriod = useCallback((detailsMessage?: string) => {
-        if (!examStarted || submitting || isTerminated) return;
+        if (!examStarted || submitting || isTerminated || isForceCompleted) return;
 
         // If a grace timer is already running, don't restart it
         if (fullscreenGraceTimeout.current) return;
@@ -230,7 +235,7 @@ export default function TakeExamPage() {
                 graceSecondsRemaining: 0,
             }));
         }, 3000);
-    }, [examStarted, submitting, isTerminated, clearFullscreenGraceTimers, logSecurityViolation]);
+    }, [examStarted, submitting, isTerminated, isForceCompleted, clearFullscreenGraceTimers, logSecurityViolation]);
 
     const fetchStudentProfile = useCallback(async () => {
         try {
@@ -438,9 +443,30 @@ export default function TakeExamPage() {
         handleSubmit();
     }, [handleSubmit, toast]);
 
+    const handleExamForceCompleted = useCallback(async (message?: string) => {
+        setExamStarted(false);
+        setIsForceCompleted(true);
+        clearFullscreenGraceTimers();
+        setLockoutState({ isOpen: false });
+        if (message) {
+            setForceCompletedMessage(message);
+        }
+        if (isFullscreen) {
+            try {
+                await exitFullscreen();
+            } catch (e) {
+                console.error("Error exiting fullscreen on force completed:", e);
+            }
+        }
+        toast({
+            title: "Ujian Selesai",
+            description: message || "Ujian Anda telah dikumpulkan oleh pengawas.",
+        });
+    }, [isFullscreen, exitFullscreen, toast, clearFullscreenGraceTimers]);
+
     // Security hook
     useExamSecurity({
-        enabled: examStarted,
+        enabled: examStarted && !isTerminated && !isForceCompleted,
         cooldownMs: (violationSettings?.cooldownSeconds || 5) * 1000,
         disableCopyPaste: violationSettings?.detectCopyPaste ?? true,
         disableRightClick: violationSettings?.detectRightClick ?? true,
@@ -463,7 +489,7 @@ export default function TakeExamPage() {
 
     // Screen Wake Lock (mencegah layar HP/laptop mati atau sleep selama ujian)
     const { isActive: isWakeLockActive, requestWakeLock } = useWakeLock({
-        enabled: examStarted && !submitting && !isTerminated,
+        enabled: examStarted && !submitting && !isTerminated && !isForceCompleted,
     });
 
     // Anti-tamper watermark
@@ -472,12 +498,12 @@ export default function TakeExamPage() {
         (violation) => {
             logSecurityViolation(violation.type, violation.details);
         },
-        examStarted && (violationSettings?.watermarkAntiTamper ?? true)
+        examStarted && !isForceCompleted && (violationSettings?.watermarkAntiTamper ?? true)
     );
 
     // Heartbeat sync
     useEffect(() => {
-        if (!examStarted || submitting || isTerminated || !studentId) return;
+        if (!examStarted || submitting || isTerminated || isForceCompleted || !studentId) return;
 
         const deviceId = getDeviceId();
 
@@ -497,6 +523,9 @@ export default function TakeExamPage() {
                     const data = await response.json();
                     if (data.status === "terminated") {
                         setIsTerminated(true);
+                    } else if (data.status === "completed") {
+                        handleExamForceCompleted(data.message || "Ujian Anda telah dikumpulkan oleh pengawas.");
+                        return;
                     } else if (data.remainingSeconds !== undefined) {
                         setTimeRemaining(data.remainingSeconds);
                     }
@@ -519,9 +548,9 @@ export default function TakeExamPage() {
         };
 
         sendHeartbeat();
-        const interval = setInterval(sendHeartbeat, 20000);
+        const interval = setInterval(sendHeartbeat, 10000);
         return () => clearInterval(interval);
-    }, [examStarted, submitting, isTerminated, sessionId, studentId, toast]);
+    }, [examStarted, submitting, isTerminated, isForceCompleted, sessionId, studentId, toast, handleExamForceCompleted]);
 
     // Fullscreen enforcement
     useEffect(() => {
@@ -894,13 +923,18 @@ export default function TakeExamPage() {
 
             if (response.status === 401) {
                 setShowSessionExpiredDialog(true);
+            } else if (response.status === 403) {
+                const data = await response.json();
+                if (data.status === "completed" || data.completed) {
+                    handleExamForceCompleted(data.message || "Ujian telah selesai atau dikumpulkan oleh pengawas.");
+                }
             }
         } catch (error) {
             console.error("Error saving answer:", error);
         } finally {
             setAutoSaving(false);
         }
-    }, [sessionId, studentId]);
+    }, [sessionId, studentId, handleExamForceCompleted]);
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const handleAnswerChange = useCallback((questionId: string, answer: any) => {
@@ -949,7 +983,7 @@ export default function TakeExamPage() {
 
     // KEYBOARD SHORTCUTS INTEGRATION (ala UTBK/UNBK)
     useEffect(() => {
-        if (!examStarted || submitting || isTerminated) return;
+        if (!examStarted || submitting || isTerminated || isForceCompleted) return;
 
         const handleKeyDown = (e: KeyboardEvent) => {
             const target = e.target as HTMLElement;
@@ -1023,7 +1057,7 @@ export default function TakeExamPage() {
 
         window.addEventListener("keydown", handleKeyDown);
         return () => window.removeEventListener("keydown", handleKeyDown);
-    }, [examStarted, submitting, isTerminated, questions, currentQuestionIndex, answers, navigateToQuestion, handleAnswerChange, toggleFlag]);
+    }, [examStarted, submitting, isTerminated, isForceCompleted, questions, currentQuestionIndex, answers, navigateToQuestion, handleAnswerChange, toggleFlag]);
 
     const currentQuestion = questions[currentQuestionIndex];
     const currentAnswer = currentQuestion ? answers.get(currentQuestion.id) : null;
@@ -1037,6 +1071,17 @@ export default function TakeExamPage() {
                     <p className="text-muted-foreground animate-pulse">Memuat soal ujian...</p>
                 </div>
             </div>
+        );
+    }
+
+    if (isForceCompleted) {
+        return (
+            <ExamCompletedView
+                message={forceCompletedMessage || "Ujian Anda telah dikumpulkan oleh pengawas."}
+                onReturn={() => {
+                    window.location.href = "/student/exams";
+                }}
+            />
         );
     }
 
@@ -1081,7 +1126,7 @@ export default function TakeExamPage() {
 
             {/* Fullscreen & Split-Screen Lockout Overlay */}
             <FullscreenLockoutOverlay
-                isOpen={lockoutState.isOpen && examStarted && !isTerminated}
+                isOpen={lockoutState.isOpen && examStarted && !isTerminated && !isForceCompleted}
                 reason={lockoutState.reason}
                 details={lockoutState.details}
                 graceSecondsRemaining={lockoutState.graceSecondsRemaining}

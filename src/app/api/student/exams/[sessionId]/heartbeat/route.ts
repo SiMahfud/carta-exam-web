@@ -49,8 +49,8 @@ export async function POST(
                 remainingSeconds: 0,
                 serverTime: new Date().toISOString(),
                 message: submission.status === "terminated"
-                    ? "Ujian dihentikan"
-                    : "Ujian sudah selesai"
+                    ? "Ujian dihentikan karena pelanggaran."
+                    : "Ujian Anda telah dikumpulkan oleh pengawas atau telah selesai."
             });
         }
 

@@ -259,7 +259,7 @@ export async function GET(
                 }
 
                 const totalPairs = correctPairsList.length;
-                const maxPoints = question.defaultPoints || 1;
+                const maxPoints = question.defaultPoints ?? 1;
                 const recalculatedPoints = totalPairs > 0 ? Math.round((correctCount / totalPairs) * maxPoints * 100) / 100 : 0;
                 const recalculatedIsCorrect = correctCount === totalPairs && totalPairs > 0;
 
@@ -288,7 +288,7 @@ export async function GET(
                 isFlagged: answer?.isFlagged || false,
                 isCorrect: currentIsCorrect,
                 score: currentScore,
-                maxPoints: answer?.maxPoints || question.defaultPoints,
+                maxPoints: (answer?.maxPoints !== null && answer?.maxPoints !== undefined) ? answer.maxPoints : (question.defaultPoints ?? 0),
                 partialPoints: currentPartialPoints,
                 gradingStatus: answer?.gradingStatus || (answer ? "auto" : "not_answered"),
                 gradingNotes: answer?.gradingNotes || null,

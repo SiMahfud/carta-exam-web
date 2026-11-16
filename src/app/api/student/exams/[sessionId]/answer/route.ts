@@ -44,6 +44,19 @@ export async function POST(
 
         const submission = submissionData[0];
 
+        // Check if submission is still in progress
+        if (submission.status !== "in_progress") {
+            return NextResponse.json(
+                {
+                    error: "Ujian telah selesai",
+                    status: submission.status,
+                    completed: submission.status === "completed",
+                    message: "Ujian telah selesai atau dikumpulkan oleh pengawas. Jawaban tidak dapat diubah lagi."
+                },
+                { status: 403 }
+            );
+        }
+
         // Get question for auto-grading
         const questionData = await db.select()
             .from(bankQuestions)

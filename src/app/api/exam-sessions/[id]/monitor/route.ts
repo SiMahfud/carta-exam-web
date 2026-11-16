@@ -194,7 +194,7 @@ export async function GET(
                 .where(inArray(bankQuestions.id, Array.from(questionIdsToFetch)));
 
             for (const q of questionsList) {
-                questionPointsMap.set(q.id, q.defaultPoints || 1);
+                questionPointsMap.set(q.id, q.defaultPoints ?? 1);
             }
         }
 

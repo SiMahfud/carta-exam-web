@@ -305,7 +305,7 @@ export default function PrintableExamPage() {
                         type: q.type,
                         questionText: parsedContent.question || parsedContent.questionText || "",
                         content: parsedContent,
-                        points: q.points || q.defaultPoints || 1,
+                        points: q.points ?? q.defaultPoints ?? 0,
                         answerKey: parsedKey,
                     };
                 });

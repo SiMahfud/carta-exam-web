@@ -44,6 +44,16 @@ export async function POST(
 
         const submission = submissionData[0];
 
+        // Do not process violations if submission is already finished or terminated
+        if (submission.status !== "in_progress") {
+            return NextResponse.json({
+                violationCount: submission.violationCount || 0,
+                shouldTerminate: submission.status === "terminated",
+                status: submission.status,
+                message: "Ujian telah selesai atau dihentikan."
+            });
+        }
+
         // Get session to check max violations
         const sessionData = await db.select({
             templateId: examSessions.templateId,

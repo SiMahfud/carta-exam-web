@@ -297,14 +297,15 @@ export function ComplexMCEditor({
                                 <Input
                                     id="points"
                                     type="number"
-                                    min="1"
+                                    min="0"
                                     value={formData.defaultPoints}
-                                    onChange={(e) =>
+                                    onChange={(e) => {
+                                        const val = parseInt(e.target.value, 10);
                                         setFormData({
                                             ...formData,
-                                            defaultPoints: parseInt(e.target.value),
-                                        })
-                                    }
+                                            defaultPoints: isNaN(val) ? 0 : Math.max(0, val),
+                                        });
+                                    }}
                                     required
                                 />
                             </div>

@@ -77,7 +77,7 @@ export function EssayEditor({
                     rubric: questionToEdit.answerKey.rubric || [{ criteria: "", maxPoints: 1 }],
                     keywords: questionToEdit.answerKey.keywords || [],
                     difficulty: questionToEdit.difficulty,
-                    defaultPoints: questionToEdit.defaultPoints,
+                    defaultPoints: questionToEdit.defaultPoints !== undefined ? questionToEdit.defaultPoints : 0,
                     tags: questionToEdit.tags || [],
                 });
             } else {
@@ -422,14 +422,15 @@ export function EssayEditor({
                                 <Input
                                     id="points"
                                     type="number"
-                                    min="1"
+                                    min="0"
                                     value={formData.defaultPoints}
-                                    onChange={(e) =>
+                                    onChange={(e) => {
+                                        const val = parseInt(e.target.value, 10);
                                         setFormData({
                                             ...formData,
-                                            defaultPoints: parseInt(e.target.value),
-                                        })
-                                    }
+                                            defaultPoints: isNaN(val) ? 0 : Math.max(0, val),
+                                        });
+                                    }}
                                     required
                                 />
                                 {formData.defaultPoints !== getTotalRubricPoints() && (

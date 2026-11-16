@@ -1,10 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { submissions, examSessions } from "@/lib/schema";
-import { eq, and } from "drizzle-orm";
+import { submissions, examSessions, answers, bankQuestions } from "@/lib/schema";
+import { eq, and, inArray } from "drizzle-orm";
 import { requireAuth } from "@/lib/auth-guard";
 import { ActivityLogger } from "@/lib/activity-logger";
-import { publishProctorActionEvent } from "@/lib/proctoring-events";
+import { publishProctorActionEvent, publishStudentSubmitEvent } from "@/lib/proctoring-events";
+import { safeJsonParse } from "@/lib/json-utils";
 
 export async function POST(
     req: NextRequest,
@@ -129,12 +130,41 @@ export async function POST(
         }
 
         if (action === "force_submit") {
-            const now = Math.floor(Date.now() / 1000);
+            // 1. Get ordered question IDs to determine total maximum points
+            const questionIds: string[] = safeJsonParse<string[]>(sub.questionOrder, []);
+            let totalMax = 0;
+            if (questionIds.length > 0) {
+                const allQuestions = await (db as any)
+                    .select({
+                        id: bankQuestions.id,
+                        defaultPoints: bankQuestions.defaultPoints,
+                    })
+                    .from(bankQuestions)
+                    .where(inArray(bankQuestions.id, questionIds));
+
+                totalMax = allQuestions.reduce((sum: number, q: any) => sum + (q.defaultPoints || 0), 0);
+            }
+
+            // 2. Calculate earned points from recorded answers
+            const answerData = await (db as any)
+                .select()
+                .from(answers)
+                .where(eq(answers.submissionId, sub.id));
+
+            const totalEarned = answerData.reduce((sum: number, a: any) => sum + (a.partialPoints || 0), 0);
+            const hasEssays = answerData.some((a: any) => a.gradingStatus === "pending_manual");
+            const gradingStatus = hasEssays ? "pending_manual" : "completed";
+            const finalScore = totalMax > 0 ? Math.round((totalEarned / totalMax) * 100) : 0;
+
             await (db as any)
                 .update(submissions)
                 .set({
                     status: "completed",
-                    endTime: now,
+                    endTime: new Date(),
+                    earnedPoints: totalEarned,
+                    totalPoints: totalMax,
+                    score: finalScore,
+                    gradingStatus: gradingStatus as any,
                 })
                 .where(eq(submissions.id, sub.id));
 
@@ -146,6 +176,7 @@ export async function POST(
 
             try {
                 publishProctorActionEvent(params.id, user.id, "force_submit", studentId, "Ujian dikumpulkan paksa oleh pengawas");
+                publishStudentSubmitEvent(params.id, studentId, studentSubmission[0]?.userId || "Siswa", finalScore);
             } catch (e) {
                 console.error("Error publishing proctor action event:", e);
             }
@@ -153,6 +184,7 @@ export async function POST(
             return NextResponse.json({
                 success: true,
                 message: "Ujian siswa berhasil dikumpulkan oleh pengawas.",
+                score: finalScore,
             });
         }
 
