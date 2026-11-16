@@ -172,7 +172,10 @@ export async function POST(
             const selectedQuestions: string[] = [];
 
             // For each question type, select random questions
-            for (const type of Object.keys(composition)) {
+            const standardQuestionTypes = ['mc', 'complex_mc', 'matching', 'true_false', 'short', 'essay'];
+            const allTypesToProcess = Array.from(new Set([...standardQuestionTypes, ...Object.keys(composition)]));
+
+            for (const type of allTypesToProcess) {
                 const count = composition[type] || 0;
                 const available = questionsByType[type as keyof typeof questionsByType] || [];
 
@@ -236,7 +239,7 @@ export async function POST(
                 }
             }
 
-            generatedQuestions[studentId] = selectedQuestions;
+            generatedQuestions[studentId] = orderedQuestions;
 
             // Create question pool record
             await db.insert(questionPools).values({

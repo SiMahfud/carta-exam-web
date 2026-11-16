@@ -179,9 +179,10 @@ export async function POST(
 
         // Select questions by type according to composition
         const selectedQuestions: any[] = [];
-        const questionTypes = ['mc', 'complex_mc', 'matching', 'short', 'essay', 'true_false'];
+        const questionTypes = ['mc', 'complex_mc', 'matching', 'true_false', 'short', 'essay'];
+        const allTypesToProcess = Array.from(new Set([...questionTypes, ...Object.keys(composition)]));
 
-        for (const type of questionTypes) {
+        for (const type of allTypesToProcess) {
             const count = composition[type] || 0;
             if (count > 0) {
                 let typeQuestions = allQuestions.filter((q: typeof allQuestions[0]) => q.type === type);

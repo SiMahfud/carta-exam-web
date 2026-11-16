@@ -88,7 +88,7 @@ function selectAndOrderQuestions(
             questionsByType[q.type].push(q);
         });
 
-        const questionTypes = ['mc', 'complex_mc', 'matching', 'short', 'essay', 'true_false'];
+        const questionTypes = ['mc', 'complex_mc', 'matching', 'true_false', 'short', 'essay'];
         const allTypesToProcess = Array.from(new Set([...questionTypes, ...Object.keys(composition)]));
 
         for (const type of allTypesToProcess) {
