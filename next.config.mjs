@@ -5,10 +5,24 @@ const nextConfig = {
     experimental: {
         instrumentationHook: true,
     },
-    webpack: (config) => {
+    webpack: (config, { isServer }) => {
         config.ignoreWarnings = [
             { module: /node_modules\/require-in-the-middle/ },
         ];
+        if (!isServer) {
+            config.resolve.alias = {
+                ...config.resolve.alias,
+                'get-dom': 'get-dom/browser.js',
+            };
+            config.resolve.fallback = {
+                ...config.resolve.fallback,
+                fs: false,
+                path: false,
+                net: false,
+                tls: false,
+                child_process: false,
+            };
+        }
         return config;
     },
     async headers() {

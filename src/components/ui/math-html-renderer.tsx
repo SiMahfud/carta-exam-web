@@ -23,6 +23,8 @@ function sanitizeLatexExpression(expr: string): string {
     clean = clean.replace(/(^|[^\\])sqrt\{/g, '$1\\sqrt{');
     // 4. Fix frac12 or frac 1 2 without braces if present (e.g. frac12 -> \frac{1}{2})
     clean = clean.replace(/(^|[^\\])frac\s*([0-9a-zA-Z])\s*([0-9a-zA-Z])/g, '$1\\frac{$2}{$3}');
+    // 5. Fix HTML entity &nbsp; or unicode non-breaking space
+    clean = clean.replace(/&amp;nbsp;|&nbsp;/g, ' ').replace(/\u00a0/g, ' ');
     return clean;
 }
 

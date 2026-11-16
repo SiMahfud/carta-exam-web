@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from "react";
 import mammoth from "mammoth";
 import { saveAs } from "file-saver";
 import { DocxGenerator } from "@/lib/docx-generator";
+import { preprocessDocxEquations } from "@/lib/docx-math-preprocessor";
 import katex from "katex";
 import "katex/dist/katex.min.css";
 
@@ -116,7 +117,9 @@ export function ImportQuestionsDialog({ bankId, onSuccess }: ImportQuestionsDial
 
         try {
             const arrayBuffer = await file.arrayBuffer();
-            const result = await mammoth.convertToHtml({ arrayBuffer });
+            // Preprocess DOCX to convert Word native equations (<m:oMath>) to LaTeX
+            const processedBuffer = await preprocessDocxEquations(arrayBuffer);
+            const result = await mammoth.convertToHtml({ arrayBuffer: processedBuffer });
             const html = result.value;
 
             // Parse HTML to Questions
