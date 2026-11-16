@@ -276,6 +276,121 @@ export async function GET(
                 }
             }
 
+            // Recalculate complex_mc score if key was updated or missing initially
+            if (question.type === 'complex_mc' && answer) {
+                const maxPoints = question.defaultPoints ?? 0;
+                if (maxPoints > 0) {
+                    const rawCorrect = parsedAnswerKey.correct !== undefined
+                        ? parsedAnswerKey.correct
+                        : (parsedAnswerKey.correctIndices || parsedAnswerKey.correctAnswers || parsedAnswerKey.correctOptions || []);
+
+                    let correctOrigIndices: number[] = [];
+                    if (Array.isArray(rawCorrect)) {
+                        correctOrigIndices = rawCorrect.map((val: any) => {
+                            if (typeof val === 'number') return val;
+                            const s = String(val).replace(/["']/g, '').trim().toUpperCase();
+                            if (s.length === 1 && s >= 'A' && s <= 'Z') {
+                                return s.charCodeAt(0) - 65;
+                            }
+                            const n = parseInt(s, 10);
+                            if (!isNaN(n)) return n;
+                            return -1;
+                        }).filter(idx => idx >= 0);
+                    }
+
+                    if (correctOrigIndices.length > 0) {
+                        let studentArray: any[] = [];
+                        if (Array.isArray(parsedStudentAnswer)) {
+                            studentArray = parsedStudentAnswer;
+                        } else if (typeof parsedStudentAnswer === 'string') {
+                            const parsed = safeJsonParse<any>(parsedStudentAnswer, null);
+                            if (Array.isArray(parsed)) {
+                                studentArray = parsed;
+                            } else if (parsedStudentAnswer.trim()) {
+                                studentArray = parsedStudentAnswer.split(/[,;\s]+/).filter(Boolean);
+                            }
+                        }
+
+                        const chosenIndices = studentArray.map((val: any) => {
+                            if (typeof val === 'number') return val;
+                            const s = String(val).replace(/["']/g, '').trim().toUpperCase();
+                            if (s.length === 1 && s >= 'A' && s <= 'Z') {
+                                return s.charCodeAt(0) - 65;
+                            }
+                            const n = parseInt(s, 10);
+                            if (!isNaN(n)) return n;
+                            return -1;
+                        }).filter(idx => idx >= 0);
+
+                        const uniqueChosen = Array.from(new Set(chosenIndices));
+                        const uniqueCorrect = Array.from(new Set(correctOrigIndices));
+
+                        const correctCount = uniqueChosen.filter(idx => uniqueCorrect.includes(idx)).length;
+                        const incorrectCount = uniqueChosen.length - correctCount;
+
+                        let recalculatedPoints = 0;
+                        let recalculatedIsCorrect = false;
+
+                        if (uniqueCorrect.length > 0 && incorrectCount === 0 && correctCount === uniqueCorrect.length) {
+                            recalculatedIsCorrect = true;
+                            recalculatedPoints = maxPoints;
+                        } else if (uniqueCorrect.length > 0) {
+                            recalculatedPoints = Math.max(0, Math.round((correctCount - incorrectCount) / uniqueCorrect.length * maxPoints * 100) / 100);
+                            recalculatedIsCorrect = recalculatedPoints === maxPoints;
+                        }
+
+                        if (recalculatedPoints !== currentScore || recalculatedIsCorrect !== currentIsCorrect) {
+                            currentScore = recalculatedPoints;
+                            currentPartialPoints = recalculatedPoints;
+                            currentIsCorrect = recalculatedIsCorrect;
+                            hasScoreUpdates = true;
+                            db.update(answers).set({
+                                score: recalculatedPoints,
+                                partialPoints: recalculatedPoints,
+                                maxPoints,
+                                isCorrect: recalculatedIsCorrect ? (1 as any) : (0 as any)
+                            }).where(eq(answers.id, answer.id)).catch(() => {});
+                        }
+                    }
+                }
+            }
+
+            // Recalculate mc score if key was updated or missing initially
+            if (question.type === 'mc' && answer) {
+                const maxPoints = question.defaultPoints ?? 0;
+                let correctVal = parsedAnswerKey.correct !== undefined ? parsedAnswerKey.correct : parsedAnswerKey.correctAnswer;
+                if (typeof correctVal === 'object' && correctVal !== null && 'correct' in correctVal) {
+                    correctVal = correctVal.correct;
+                }
+                const normalizeLetter = (val: any): string | null => {
+                    if (val === null || val === undefined) return null;
+                    if (typeof val === 'number') return String.fromCharCode(65 + val);
+                    const s = String(val).replace(/["']/g, '').trim().toUpperCase();
+                    if (s.length === 1 && s >= 'A' && s <= 'Z') return s;
+                    const n = parseInt(s, 10);
+                    if (!isNaN(n) && n >= 0 && n <= 25) return String.fromCharCode(65 + n);
+                    return null;
+                };
+                const studentLetter = normalizeLetter(parsedStudentAnswer);
+                const correctLetter = normalizeLetter(correctVal);
+                if (studentLetter && correctLetter) {
+                    const recalculatedIsCorrect = studentLetter === correctLetter;
+                    const recalculatedPoints = recalculatedIsCorrect ? maxPoints : 0;
+                    if (recalculatedPoints !== currentScore || recalculatedIsCorrect !== currentIsCorrect) {
+                        currentScore = recalculatedPoints;
+                        currentPartialPoints = recalculatedPoints;
+                        currentIsCorrect = recalculatedIsCorrect;
+                        hasScoreUpdates = true;
+                        db.update(answers).set({
+                            score: recalculatedPoints,
+                            partialPoints: recalculatedPoints,
+                            maxPoints,
+                            isCorrect: recalculatedIsCorrect ? (1 as any) : (0 as any)
+                        }).where(eq(answers.id, answer.id)).catch(() => {});
+                    }
+                }
+            }
+
 
             return {
                 answerId: answer?.id || `missing-${qId}`, // Virtual ID for missing answers
