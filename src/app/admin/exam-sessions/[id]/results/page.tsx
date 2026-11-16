@@ -17,9 +17,20 @@ import {
     CheckCircle,
     XCircle,
     Clock,
-    Eye
+    Eye,
+    RotateCcw
 } from "lucide-react";
 import Link from "next/link";
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 // import { format } from "date-fns";
 // import { id as idLocale } from "date-fns/locale";
 // import { exportToExcel } from "@/lib/excel-export";
@@ -94,6 +105,10 @@ export default function ExamResultsPage() {
     const [searchQuery, setSearchQuery] = useState("");
     const [selectedView, setSelectedView] = useState<"auto" | "essay">("auto");
     const [allResults, setAllResults] = useState<StudentResult[]>([]);
+
+    // Resync Scores State
+    const [isResyncing, setIsResyncing] = useState(false);
+    const [resyncDialogOpen, setResyncDialogOpen] = useState(false);
 
 
 
@@ -221,6 +236,44 @@ export default function ExamResultsPage() {
         }
     };
 
+    const handleResyncScores = async () => {
+        try {
+            setIsResyncing(true);
+            toast({
+                title: "Menyinkronkan skor...",
+                description: "Sedang menghitung ulang nilai siswa berdasarkan Bank Soal terbaru",
+            });
+
+            const response = await fetch(`/api/exam-sessions/${params.id}/resync-scores`, {
+                method: "POST",
+            });
+
+            const data = await response.json();
+
+            if (!response.ok) {
+                throw new Error(data.error || "Gagal menyinkronkan skor");
+            }
+
+            toast({
+                title: "Berhasil",
+                description: data.message || "Skor siswa berhasil disinkronkan.",
+            });
+
+            // Refresh data
+            await fetchResults();
+        } catch (error: any) {
+            console.error("Error resyncing scores:", error);
+            toast({
+                title: "Gagal Menyinkronkan Skor",
+                description: error.message || "Terjadi kesalahan saat menyinkronkan skor.",
+                variant: "destructive",
+            });
+        } finally {
+            setIsResyncing(false);
+            setResyncDialogOpen(false);
+        }
+    };
+
     // Get unique classes for filter
     const uniqueClasses = Array.from(new Set(allResults.map(r => r.className))).filter(c => c !== 'N/A').sort();
 
@@ -256,10 +309,21 @@ export default function ExamResultsPage() {
                         <p className="text-sm text-muted-foreground">{session.templateName}</p>
                     </div>
                 </div>
-                <Button variant="outline" onClick={handleExport}>
-                    <Download className="mr-2 h-4 w-4" />
-                    Export ke Excel
-                </Button>
+                <div className="flex flex-wrap items-center gap-2">
+                    <Button
+                        variant="outline"
+                        onClick={() => setResyncDialogOpen(true)}
+                        disabled={isResyncing}
+                        className="cursor-pointer"
+                    >
+                        <RotateCcw className={`mr-2 h-4 w-4 ${isResyncing ? "animate-spin" : ""}`} />
+                        Sinkronkan Skor
+                    </Button>
+                    <Button variant="outline" onClick={handleExport} className="cursor-pointer">
+                        <Download className="mr-2 h-4 w-4" />
+                        Export ke Excel
+                    </Button>
+                </div>
             </div>
 
             {/* Statistics Cards */}
@@ -614,6 +678,36 @@ export default function ExamResultsPage() {
                     </CardContent>
                 </Card>
             )}
+
+            {/* Dialog Konfirmasi Sinkronkan Skor */}
+            <AlertDialog open={resyncDialogOpen} onOpenChange={setResyncDialogOpen}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle className="flex items-center gap-2">
+                            <RotateCcw className="h-5 w-5 text-primary" />
+                            Sinkronkan Skor dengan Bank Soal?
+                        </AlertDialogTitle>
+                        <AlertDialogDescription className="space-y-2 text-sm text-muted-foreground pt-2 text-left">
+                            <p>
+                                Tindakan ini akan <strong>menghitung ulang seluruh nilai siswa</strong> pada sesi ujian ini berdasarkan bobot poin dan skor terbaru di Bank Soal.
+                            </p>
+                            <p>
+                                💡 <em>Catatan: Nilai koreksi manual untuk soal esai/uraian yang sudah diperiksa guru akan tetap dipertahankan.</em>
+                            </p>
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel disabled={isResyncing}>Batal</AlertDialogCancel>
+                        <AlertDialogAction
+                            onClick={handleResyncScores}
+                            disabled={isResyncing}
+                            className="bg-primary hover:bg-primary/90"
+                        >
+                            {isResyncing ? "Menyinkronkan..." : "Ya, Sinkronkan Skor"}
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
         </div>
     );
 }

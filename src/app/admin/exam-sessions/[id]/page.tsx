@@ -6,7 +6,17 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { ArrowLeft, RefreshCw, Users, PlayCircle, CheckCircle, AlertTriangle, Clock, Eye, Key, Copy } from "lucide-react";
+import { ArrowLeft, RefreshCw, Users, PlayCircle, CheckCircle, AlertTriangle, Clock, Eye, Key, Copy, RotateCcw } from "lucide-react";
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import {
     Dialog,
     DialogContent,
@@ -128,6 +138,48 @@ export default function SessionMonitorPage() {
     const [liveAutoRefresh, setLiveAutoRefresh] = useState(true);
     const [sseStatus, setSseStatus] = useState<"connected" | "connecting" | "disconnected">("connecting");
     const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
+
+    // Resync Scores State
+    const [isResyncing, setIsResyncing] = useState(false);
+    const [resyncDialogOpen, setResyncDialogOpen] = useState(false);
+
+    const handleResyncScores = async () => {
+        try {
+            setIsResyncing(true);
+            toast({
+                title: "Menyinkronkan skor...",
+                description: "Sedang menghitung ulang nilai siswa berdasarkan Bank Soal terbaru",
+            });
+
+            const response = await fetch(`/api/exam-sessions/${params.id}/resync-scores`, {
+                method: "POST",
+            });
+
+            const data = await response.json();
+
+            if (!response.ok) {
+                throw new Error(data.error || "Gagal menyinkronkan skor");
+            }
+
+            toast({
+                title: "Berhasil",
+                description: data.message || "Skor siswa berhasil disinkronkan.",
+            });
+
+            // Refresh monitor data
+            await fetchData(false);
+        } catch (error: any) {
+            console.error("Error resyncing scores:", error);
+            toast({
+                title: "Gagal Menyinkronkan Skor",
+                description: error.message || "Terjadi kesalahan saat menyinkronkan skor.",
+                variant: "destructive",
+            });
+        } finally {
+            setIsResyncing(false);
+            setResyncDialogOpen(false);
+        }
+    };
 
     const fetchData = useCallback(async (isSilent = false) => {
         if (!isSilent) setRefreshing(true);
@@ -599,6 +651,16 @@ export default function SessionMonitorPage() {
                                 : "Polling Fallback (15s): Aktif"}
                         </span>
                     </Button>
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setResyncDialogOpen(true)}
+                        disabled={isResyncing}
+                        className="cursor-pointer"
+                    >
+                        <RotateCcw className={`mr-2 h-4 w-4 ${isResyncing ? "animate-spin" : ""}`} />
+                        Sinkronkan Skor
+                    </Button>
                     <Link href={`/admin/exam-sessions/${params.id}/results`}>
                         <Button variant="default" size="sm">
                             <Eye className="mr-2 h-4 w-4" />
@@ -995,6 +1057,36 @@ export default function SessionMonitorPage() {
                     </div>
                 </DialogContent>
             </Dialog>
+
+            {/* Dialog Konfirmasi Sinkronkan Skor */}
+            <AlertDialog open={resyncDialogOpen} onOpenChange={setResyncDialogOpen}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle className="flex items-center gap-2">
+                            <RotateCcw className="h-5 w-5 text-primary" />
+                            Sinkronkan Skor dengan Bank Soal?
+                        </AlertDialogTitle>
+                        <AlertDialogDescription className="space-y-2 text-sm text-muted-foreground pt-2 text-left">
+                            <p>
+                                Tindakan ini akan <strong>menghitung ulang seluruh nilai siswa</strong> pada sesi ujian ini berdasarkan bobot poin dan skor terbaru di Bank Soal.
+                            </p>
+                            <p>
+                                💡 <em>Catatan: Nilai koreksi manual untuk soal esai/uraian yang sudah diperiksa guru akan tetap dipertahankan.</em>
+                            </p>
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel disabled={isResyncing}>Batal</AlertDialogCancel>
+                        <AlertDialogAction
+                            onClick={handleResyncScores}
+                            disabled={isResyncing}
+                            className="bg-primary hover:bg-primary/90"
+                        >
+                            {isResyncing ? "Menyinkronkan..." : "Ya, Sinkronkan Skor"}
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
         </div>
     );
 }
