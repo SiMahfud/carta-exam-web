@@ -1,5 +1,3 @@
-'use client'
-
 const DEVICE_ID_KEY = 'cartaexam_device_id'
 
 /**
