@@ -6,7 +6,7 @@ export async function processContentImages(html: string): Promise<string> {
 
     // Regex to match data:image src attributes
     // src="data:image/png;base64,..."
-    const imgRegex = /src=["']data:image\/([a-zA-Z]*);base64,([^"']*)["']/g;
+    const imgRegex = /src=["']data:image\/([a-zA-Z0-9\+\-\.]+);base64,([^"']*)["']/g;
 
     let match;
     let newHtml = html;
@@ -17,10 +17,14 @@ export async function processContentImages(html: string): Promise<string> {
 
     while ((match = imgRegex.exec(html)) !== null) {
         const fullMatch = match[0];
-        const ext = match[1];
+        const rawExt = match[1];
         const base64Data = match[2];
 
         try {
+            let ext = (rawExt || 'png').toLowerCase();
+            if (ext === 'svg+xml') ext = 'svg';
+            if (ext === 'jpeg') ext = 'jpg';
+
             // Prepare directory
             const now = new Date();
             const year = now.getFullYear();
@@ -59,6 +63,51 @@ export async function processContentImages(html: string): Promise<string> {
     });
 
     return newHtml;
+}
+
+/**
+ * Processes base64 images within all fields of question content
+ * (question text, MC options, matching leftItems, and matching rightItems).
+ */
+export async function processQuestionImages<T = any>(content: T): Promise<T> {
+    if (!content || typeof content !== 'object') return content;
+    const c = content as any;
+
+    if (c.question && typeof c.question === 'string') {
+        c.question = await processContentImages(c.question);
+    }
+
+    if (Array.isArray(c.options)) {
+        for (let j = 0; j < c.options.length; j++) {
+            if (typeof c.options[j] === 'string') {
+                c.options[j] = await processContentImages(c.options[j]);
+            } else if (c.options[j] && typeof c.options[j] === 'object' && c.options[j].text) {
+                c.options[j].text = await processContentImages(c.options[j].text);
+            }
+        }
+    }
+
+    if (Array.isArray(c.leftItems)) {
+        for (let j = 0; j < c.leftItems.length; j++) {
+            if (typeof c.leftItems[j] === 'string') {
+                c.leftItems[j] = await processContentImages(c.leftItems[j]);
+            } else if (c.leftItems[j] && typeof c.leftItems[j] === 'object' && c.leftItems[j].text) {
+                c.leftItems[j].text = await processContentImages(c.leftItems[j].text);
+            }
+        }
+    }
+
+    if (Array.isArray(c.rightItems)) {
+        for (let j = 0; j < c.rightItems.length; j++) {
+            if (typeof c.rightItems[j] === 'string') {
+                c.rightItems[j] = await processContentImages(c.rightItems[j]);
+            } else if (c.rightItems[j] && typeof c.rightItems[j] === 'object' && c.rightItems[j].text) {
+                c.rightItems[j].text = await processContentImages(c.rightItems[j].text);
+            }
+        }
+    }
+
+    return c;
 }
 
 /**

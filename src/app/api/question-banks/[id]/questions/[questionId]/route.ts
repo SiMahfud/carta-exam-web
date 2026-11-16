@@ -3,7 +3,7 @@ import { db } from "@/lib/db";
 import { bankQuestions, questionBanks } from "@/lib/schema";
 import { eq } from "drizzle-orm";
 import { requireAuth } from "@/lib/auth-guard";
-import { deleteQuestionImages } from "@/lib/image-processor";
+import { deleteQuestionImages, processQuestionImages } from "@/lib/image-processor";
 
 // GET /api/question-banks/[bankId]/questions/[questionId]
 export async function GET(
@@ -66,10 +66,12 @@ export async function PUT(
             metadata,
         } = body;
 
+        const processedContent = content ? await processQuestionImages(content) : content;
+
         await db.update(bankQuestions)
             .set({
                 type,
-                content,
+                content: processedContent,
                 answerKey,
                 tags,
                 difficulty,

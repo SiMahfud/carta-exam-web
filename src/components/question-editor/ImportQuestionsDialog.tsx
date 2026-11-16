@@ -210,12 +210,22 @@ export function ImportQuestionsDialog({ bankId, onSuccess }: ImportQuestionsDial
 
         // Matching (Type 3)
         if (jenis === "3") {
-            const getTxt = (idx: number) => cellArray[startIndex + idx]?.innerText?.trim();
+            const getTxt = (idx: number) => cellArray[startIndex + idx]?.innerText?.trim() || "";
+            const getHtml = (idx: number) => {
+                const cell = cellArray[startIndex + idx];
+                if (!cell) return "";
+                const hasImg = cell.querySelector("img") !== null;
+                const hasText = (cell.innerText || "").replace(/\u00a0/g, ' ').trim().length > 0;
+                if (hasImg || hasText) {
+                    return cell.innerHTML.trim();
+                }
+                return "";
+            };
 
             const kdKiri = getTxt(0);
-            const txtKiri = getTxt(1);
+            const txtKiri = getHtml(1);
             const kdKanan = getTxt(2);
-            const txtKanan = getTxt(3);
+            const txtKanan = getHtml(3);
             const keyL = getTxt(4);
             const keyR = getTxt(5);
 
@@ -343,8 +353,8 @@ export function ImportQuestionsDialog({ bankId, onSuccess }: ImportQuestionsDial
                 originalId: item.id
             }));
             const matches = q.matching.pairs.map((pair: any) => {
-                const left = leftItems.find((l: any) => l.originalId === pair.left);
-                const right = rightItems.find((r: any) => r.originalId === pair.right);
+                const left = leftItems.find((l: any) => String(l.originalId).trim().toLowerCase() === String(pair.left).trim().toLowerCase());
+                const right = rightItems.find((r: any) => String(r.originalId).trim().toLowerCase() === String(pair.right).trim().toLowerCase());
                 if (left && right) return { leftId: left.id, rightId: right.id };
                 return null;
             }).filter(Boolean);

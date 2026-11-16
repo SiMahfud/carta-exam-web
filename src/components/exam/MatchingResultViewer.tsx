@@ -156,10 +156,20 @@ export function MatchingResultViewer({ question, studentPairs, correctPairs }: M
         // Calculate initially and on window resize
         calculateLines();
         window.addEventListener("resize", calculateLines);
+
+        let resizeObserver: ResizeObserver | null = null;
+        if (typeof ResizeObserver !== "undefined" && containerRef.current) {
+            resizeObserver = new ResizeObserver(() => {
+                calculateLines();
+            });
+            resizeObserver.observe(containerRef.current);
+        }
+
         const timeout = setTimeout(calculateLines, 100);
 
         return () => {
             window.removeEventListener("resize", calculateLines);
+            resizeObserver?.disconnect();
             clearTimeout(timeout);
         };
     }, [safeStudentPairs, correctPairs, question.id, leftItems, rightItems]);
@@ -231,7 +241,7 @@ export function MatchingResultViewer({ question, studentPairs, correctPairs }: M
                                 `}
                                 style={{ borderColor: hasConnection ? color : undefined }}
                             >
-                                <div className="font-medium text-sm"><MathHtmlRenderer html={getItemText(item)} /></div>
+                                <div className="font-medium text-sm [&_img]:max-h-48 [&_img]:object-contain [&_img]:rounded-md [&_img]:my-1"><MathHtmlRenderer html={getItemText(item)} /></div>
                                 {/* Connection indicator dot */}
                                 <div className={`
                                     w-3 h-3 rounded-full border transition-colors
@@ -273,7 +283,7 @@ export function MatchingResultViewer({ question, studentPairs, correctPairs }: M
                                     w-3 h-3 rounded-full border transition-colors shrink-0
                                     ${hasConnection ? "bg-primary border-primary" : "bg-muted border-muted-foreground/30"}
                                 `} />
-                                <div className="font-medium text-sm flex-1 text-right"><MathHtmlRenderer html={getItemText(item)} /></div>
+                                <div className="font-medium text-sm flex-1 text-right [&_img]:max-h-48 [&_img]:object-contain [&_img]:rounded-md [&_img]:my-1"><MathHtmlRenderer html={getItemText(item)} /></div>
                             </div>
                         );
                     })}

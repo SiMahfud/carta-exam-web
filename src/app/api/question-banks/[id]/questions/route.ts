@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { bankQuestions, questionBanks } from "@/lib/schema";
 import { eq, and, sql } from "drizzle-orm";
-import { processContentImages, deleteQuestionImages } from "@/lib/image-processor";
+import { processContentImages, processQuestionImages, deleteQuestionImages } from "@/lib/image-processor";
 import { BankQuestionSchema } from "@/lib/validations/questions";
 import { z } from "zod";
 import fs from 'fs';
@@ -155,21 +155,8 @@ export async function POST(
                     // 1. Validate
                     const validatedData = BankQuestionSchema.parse(item);
 
-                    // 2. Process Images in Content
-                    if (validatedData.content.question) {
-                        validatedData.content.question = await processContentImages(validatedData.content.question);
-                    }
-
-                    if (validatedData.content.options && Array.isArray(validatedData.content.options)) {
-                        const opts = validatedData.content.options;
-                        for (let j = 0; j < opts.length; j++) {
-                            if (typeof opts[j] === 'string') {
-                                opts[j] = await processContentImages(opts[j] as string);
-                            } else if (typeof opts[j] === 'object' && (opts[j] as any).text) {
-                                (opts[j] as any).text = await processContentImages((opts[j] as any).text);
-                            }
-                        }
-                    }
+                    // 2. Process Images in Content (Question text, options, matching items)
+                    validatedData.content = await processQuestionImages(validatedData.content);
 
                     // 3. Create Question
                     // Ensure strictly increasing timestamp for valid sorting
@@ -210,9 +197,8 @@ export async function POST(
         else {
             const validatedData = BankQuestionSchema.parse(body);
 
-            if (validatedData.content.question) {
-                validatedData.content.question = await processContentImages(validatedData.content.question);
-            }
+            // Process Images in Content (Question text, options, matching items)
+            validatedData.content = await processQuestionImages(validatedData.content);
 
             // Calculate next question number
             let currentQuestionNumber = 0;

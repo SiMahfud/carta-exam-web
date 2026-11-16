@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { deleteQuestionImages } from '../image-processor';
+import { deleteQuestionImages, processContentImages, processQuestionImages } from '../image-processor';
 import fs from 'fs';
 import path from 'path';
 
@@ -10,10 +10,18 @@ vi.mock('fs', async () => {
         default: {
             ...actual,
             existsSync: vi.fn(),
+            mkdirSync: vi.fn(),
             unlinkSync: vi.fn(),
+            promises: {
+                writeFile: vi.fn().mockResolvedValue(undefined),
+            },
         },
         existsSync: vi.fn(),
+        mkdirSync: vi.fn(),
         unlinkSync: vi.fn(),
+        promises: {
+            writeFile: vi.fn().mockResolvedValue(undefined),
+        },
     };
 });
 
@@ -64,6 +72,48 @@ describe('deleteQuestionImages', () => {
         deleteQuestionImages(html);
 
         expect(fs.unlinkSync).not.toHaveBeenCalled();
+    });
+});
+
+describe('processContentImages & processQuestionImages', () => {
+    beforeEach(() => {
+        vi.clearAllMocks();
+        vi.mocked(fs.existsSync).mockReturnValue(true);
+    });
+
+    it('should process base64 images into upload paths in HTML string', async () => {
+        const dummyBase64 = Buffer.from('fake-image-data').toString('base64');
+        const inputHtml = `<p>Test</p><img src="data:image/png;base64,${dummyBase64}" />`;
+
+        const result = await processContentImages(inputHtml);
+
+        expect(result).not.toContain('data:image/png;base64');
+        expect(result).toMatch(/\/uploads\/questions\/\d{4}\/\d{2}\/\d{2}\/[a-f0-9-]+\.png/);
+        expect(fs.promises.writeFile).toHaveBeenCalled();
+    });
+
+    it('should process base64 images in matching leftItems and rightItems', async () => {
+        const dummyBase64 = Buffer.from('fake-matching-image').toString('base64');
+        const content = {
+            question: '<p>Matching Question</p>',
+            leftItems: [
+                { id: '1', text: `<p>Left item <img src="data:image/jpeg;base64,${dummyBase64}" /></p>` },
+                { id: '2', text: 'Text only item' }
+            ],
+            rightItems: [
+                { id: 'a', text: `<img src="data:image/png;base64,${dummyBase64}" />` },
+                { id: 'b', text: 'Another text item' }
+            ]
+        };
+
+        const result = await processQuestionImages(content);
+
+        expect(result.leftItems[0].text).not.toContain('data:image/jpeg;base64');
+        expect(result.leftItems[0].text).toMatch(/\/uploads\/questions\/\d{4}\/\d{2}\/\d{2}\/[a-f0-9-]+\.jpg/);
+        expect(result.rightItems[0].text).not.toContain('data:image/png;base64');
+        expect(result.rightItems[0].text).toMatch(/\/uploads\/questions\/\d{4}\/\d{2}\/\d{2}\/[a-f0-9-]+\.png/);
+        expect(result.leftItems[1].text).toBe('Text only item');
+        expect(result.rightItems[1].text).toBe('Another text item');
     });
 });
 

@@ -116,12 +116,22 @@ export function MatchingQuestionRenderer({ question, answer, onChange, readOnly 
         calculateLines();
         window.addEventListener("resize", calculateLines);
 
-        // Also recalculate after a short delay to ensure DOM is fully rendered
+        // Also recalculate with ResizeObserver when container or contents (e.g. images) resize
+        let resizeObserver: ResizeObserver | null = null;
+        if (typeof ResizeObserver !== "undefined" && containerRef.current) {
+            resizeObserver = new ResizeObserver(() => {
+                calculateLines();
+            });
+            resizeObserver.observe(containerRef.current);
+        }
+
+        // Also recalculate after short delays to ensure DOM is fully rendered
         const timeout1 = setTimeout(calculateLines, 100);
         const timeout2 = setTimeout(calculateLines, 350);
 
         return () => {
             window.removeEventListener("resize", calculateLines);
+            resizeObserver?.disconnect();
             clearTimeout(timeout1);
             clearTimeout(timeout2);
         };
@@ -236,7 +246,7 @@ export function MatchingQuestionRenderer({ question, answer, onChange, readOnly 
                                 `}
                                 style={{ borderColor: isSelected || isConnected ? color : undefined }}
                             >
-                                <div className="font-medium text-foreground/90 w-full">
+                                <div className="font-medium text-foreground/90 w-full [&_img]:max-h-48 [&_img]:object-contain [&_img]:rounded-md [&_img]:my-1">
                                     <MathHtmlRenderer html={itemText} />
                                 </div>
 
@@ -287,7 +297,7 @@ export function MatchingQuestionRenderer({ question, answer, onChange, readOnly 
                                     ${isConnected ? "bg-primary border-primary" : "bg-muted border-muted-foreground/30"}
                                 `} />
 
-                                <div className="font-medium text-foreground/90 flex-1">
+                                <div className="font-medium text-foreground/90 flex-1 [&_img]:max-h-48 [&_img]:object-contain [&_img]:rounded-md [&_img]:my-1">
                                     <MathHtmlRenderer html={itemText} />
                                 </div>
 
