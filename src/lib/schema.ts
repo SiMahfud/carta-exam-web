@@ -25,6 +25,8 @@ export const activityLogs = s.activityLogs;
 export const examTokens = s.examTokens;
 export const schoolSettings = s.schoolSettings;
 export const savedFilters = s.savedFilters;
+export const studentClearances = s.studentClearances;
+export const administrativeTokens = s.administrativeTokens;
 
 // Model Types (Inferred from schema)
 export type User = InferSelectModel<typeof schemaSqlite.users>;
@@ -80,3 +82,10 @@ export type NewSchoolSetting = InferInsertModel<typeof schemaSqlite.schoolSettin
 
 export type SavedFilter = InferSelectModel<typeof schemaSqlite.savedFilters>;
 export type NewSavedFilter = InferInsertModel<typeof schemaSqlite.savedFilters>;
+
+export type StudentClearance = InferSelectModel<typeof schemaSqlite.studentClearances>;
+export type NewStudentClearance = InferInsertModel<typeof schemaSqlite.studentClearances>;
+
+export type AdministrativeToken = InferSelectModel<typeof schemaSqlite.administrativeTokens>;
+export type NewAdministrativeToken = InferInsertModel<typeof schemaSqlite.administrativeTokens>;
+

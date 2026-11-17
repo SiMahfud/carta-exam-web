@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { examSessions, examTemplates, classStudents, submissions } from "@/lib/schema";
+import { examSessions, examTemplates, classStudents, submissions, studentClearances } from "@/lib/schema";
 import { eq, sql } from "drizzle-orm";
 
 // GET /api/student/exams - List exams assigned to current student
@@ -84,6 +84,19 @@ export async function GET(request: Request) {
             .from(submissions)
             .where(eq(submissions.userId, studentId));
 
+        // Get student clearance status
+        const [studentClearance] = await (db as any)
+            .select()
+            .from(studentClearances)
+            .where(eq(studentClearances.studentId, studentId))
+            .limit(1);
+
+        const clearance = {
+            status: studentClearance?.status || "cleared",
+            isLocked: studentClearance?.status === "locked",
+            notes: studentClearance?.notes || null,
+        };
+
         // Enhance sessions with submission status
         const now = new Date();
         const enhancedSessions = assignedSessions.map((session: typeof assignedSessions[0]) => {
@@ -104,6 +117,9 @@ export async function GET(request: Request) {
             return {
                 ...session,
                 examStatus,
+                isClearanceLocked: clearance.isLocked,
+                clearanceStatus: clearance.status,
+                clearanceNotes: clearance.notes,
                 hasSubmission: !!submission,
                 submissionId: submission?.id,
                 score: submission?.score,
@@ -116,7 +132,7 @@ export async function GET(request: Request) {
             ? enhancedSessions.filter((s: typeof enhancedSessions[0]) => s.examStatus === status)
             : enhancedSessions;
 
-        return NextResponse.json({ data: filteredSessions });
+        return NextResponse.json({ data: filteredSessions, clearance });
     } catch (error) {
         console.error("Error fetching student exams:", error);
         return NextResponse.json(

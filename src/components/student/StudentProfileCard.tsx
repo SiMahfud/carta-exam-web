@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { User, ShieldCheck, School, GraduationCap, Calendar, CheckCircle2, Sparkles } from "lucide-react";
+import { User, ShieldCheck, School, GraduationCap, Calendar, CheckCircle2, Sparkles, Lock, FileCheck } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 
@@ -10,6 +10,11 @@ export interface StudentProfile {
     name: string;
     username: string; // NIS or Student ID
     role: string;
+    clearance?: {
+        status: "locked" | "cleared" | "dispensation";
+        notes?: string | null;
+        validUntil?: string | null;
+    } | null;
     primaryClass?: {
         id: string;
         name: string;
@@ -116,6 +121,32 @@ export function StudentProfileCard({ profile, loading, activeExamsCount = 0 }: S
 
                     {/* Right: Quick School Info & Exam Readiness */}
                     <div className="flex flex-wrap items-center gap-2 sm:gap-3 pt-3 lg:pt-0 border-t lg:border-t-0 border-border/50">
+                        {profile.clearance?.status === "locked" ? (
+                            <div className="flex items-center gap-2 bg-amber-500/10 border border-amber-500/30 px-3.5 py-2 rounded-xl text-xs">
+                                <Lock className="w-4 h-4 text-amber-600 dark:text-amber-400" />
+                                <div>
+                                    <div className="text-[10px] text-amber-700 dark:text-amber-300 uppercase font-medium">Administrasi</div>
+                                    <div className="font-bold text-amber-800 dark:text-amber-200">Perlu Verifikasi TU</div>
+                                </div>
+                            </div>
+                        ) : profile.clearance?.status === "dispensation" ? (
+                            <div className="flex items-center gap-2 bg-blue-500/10 border border-blue-500/30 px-3.5 py-2 rounded-xl text-xs">
+                                <FileCheck className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                                <div>
+                                    <div className="text-[10px] text-blue-700 dark:text-blue-300 uppercase font-medium">Administrasi</div>
+                                    <div className="font-bold text-blue-800 dark:text-blue-200">Dispensasi Aktif</div>
+                                </div>
+                            </div>
+                        ) : (
+                            <div className="flex items-center gap-2 bg-emerald-500/10 border border-emerald-500/30 px-3.5 py-2 rounded-xl text-xs">
+                                <ShieldCheck className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                                <div>
+                                    <div className="text-[10px] text-emerald-700 dark:text-emerald-300 uppercase font-medium">Administrasi</div>
+                                    <div className="font-bold text-emerald-800 dark:text-emerald-200">Terverifikasi</div>
+                                </div>
+                            </div>
+                        )}
+
                         <div className="flex items-center gap-2 bg-background/80 border border-border/60 px-3.5 py-2 rounded-xl text-xs">
                             <School className="w-4 h-4 text-primary" />
                             <div>

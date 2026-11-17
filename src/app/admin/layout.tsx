@@ -23,7 +23,8 @@ import {
     Globe,
     CheckCircle2,
     Shield,
-    Sparkles
+    Sparkles,
+    Key
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
@@ -99,6 +100,7 @@ export default function AdminLayout({
         { href: "/admin/exam-templates", label: "Template Ujian", icon: FileText, adminOnly: false },
         { href: "/admin/exam-sessions", label: "Sesi Ujian", icon: Calendar, adminOnly: false },
         { href: "/admin/grading", label: "Penilaian", icon: Edit3, adminOnly: false },
+        { href: "/admin/administrasi", label: "Administrasi Siswa", icon: Key, adminOnly: false },
         // Menu Khusus Administrator Sistem
         { href: "/admin/users", label: "Manajemen User", icon: GraduationCap, adminOnly: true },
         { href: "/admin/settings", label: "Pengaturan Sekolah", icon: Settings, adminOnly: true },

@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { examSessions, examTemplates, submissions, bankQuestions } from "@/lib/schema";
+import { examSessions, examTemplates, submissions, bankQuestions, studentClearances, administrativeTokens } from "@/lib/schema";
 import { eq, inArray, and } from "drizzle-orm";
 import { applyQuestionRandomization, RandomizationRules } from "@/lib/randomization";
 import { requireAuth } from "@/lib/auth-guard";
@@ -15,7 +15,7 @@ export async function POST(
     try {
         const user = await requireAuth(["student", "admin", "teacher"]);
         const body = await request.json();
-        const { token, deviceId: bodyDeviceId } = body;
+        const { token, adminToken: bodyAdminToken, deviceId: bodyDeviceId } = body;
         const deviceId = bodyDeviceId || request.headers.get("X-Device-Id") || null;
 
         // For student role, always use authenticated user ID
@@ -110,6 +110,72 @@ export async function POST(
                 { error: browserError, browserBlocked: true },
                 { status: 403 }
             );
+        }
+
+        // Administrative Clearance Verification
+        // If student is administratively locked, require an administrative dispensation token
+        const [studentClearance] = await (db as any)
+            .select()
+            .from(studentClearances)
+            .where(eq(studentClearances.studentId, studentId))
+            .limit(1);
+
+        if (studentClearance && studentClearance.status === "locked") {
+            const adminToken = bodyAdminToken ? String(bodyAdminToken).trim().toUpperCase() : null;
+
+            if (!adminToken) {
+                return NextResponse.json(
+                    {
+                        error: "Akses ujian Anda memerlukan verifikasi administrasi sekolah. Silakan hubungi bagian Tata Usaha / Petugas Administrasi.",
+                        requireAdminToken: true,
+                        adminNotes: studentClearance.notes || "Silakan temui petugas Tata Usaha untuk mendapatkan Token Dispensasi.",
+                    },
+                    { status: 403 }
+                );
+            }
+
+            // Verify admin token
+            const [validAdminToken] = await (db as any)
+                .select()
+                .from(administrativeTokens)
+                .where(and(
+                    eq(administrativeTokens.token, adminToken),
+                    eq(administrativeTokens.isUsed, false)
+                ))
+                .limit(1);
+
+            const now = new Date();
+            const isTokenExpired = validAdminToken && new Date(validAdminToken.expiresAt) < now;
+            const isWrongStudent = validAdminToken && validAdminToken.studentId && validAdminToken.studentId !== studentId;
+
+            if (!validAdminToken || isTokenExpired || isWrongStudent) {
+                return NextResponse.json(
+                    {
+                        error: "Token administrasi tidak valid atau sudah kadaluarsa. Silakan periksa kembali token dari bagian Tata Usaha.",
+                        requireAdminToken: true,
+                    },
+                    { status: 403 }
+                );
+            }
+
+            // Mark admin token as used
+            await (db as any)
+                .update(administrativeTokens)
+                .set({
+                    isUsed: true,
+                    usedAt: now,
+                })
+                .where(eq(administrativeTokens.id, validAdminToken.id));
+
+            // Update student's clearance status to 'dispensation'
+            await (db as any)
+                .update(studentClearances)
+                .set({
+                    status: "dispensation",
+                    notes: `Dispensasi aktif via Token: ${adminToken}`,
+                    updatedAt: now,
+                })
+                .where(eq(studentClearances.id, studentClearance.id));
         }
 
         // Token validation if required

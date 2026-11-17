@@ -441,3 +441,37 @@ export const savedFilters = mysqlTable("saved_filters", {
     userIdx: index("saved_filters_user_idx").on(table.userId),
     pageIdx: index("saved_filters_page_idx").on(table.page),
 }));
+
+// ============================================================================
+// STUDENT ADMINISTRATIVE CLEARANCE & DISPENSATION TOKENS
+// ============================================================================
+
+export const studentClearances = mysqlTable("student_clearances", {
+    id: varchar("id", { length: 36 }).primaryKey().$defaultFn(() => crypto.randomUUID()),
+    studentId: varchar("student_id", { length: 36 }).notNull().references(() => users.id, { onDelete: "cascade" }),
+    status: varchar("status", { length: 20, enum: ["locked", "cleared", "dispensation"] }).notNull().default("cleared"),
+    notes: text("notes"),
+    validUntil: datetime("valid_until"),
+    updatedBy: varchar("updated_by", { length: 36 }).references(() => users.id, { onDelete: "set null" }),
+    updatedAt: datetime("updated_at").default(sql`CURRENT_TIMESTAMP`),
+}, (table) => ({
+    studentIdx: index("student_clearances_student_idx").on(table.studentId),
+    statusIdx: index("student_clearances_status_idx").on(table.status),
+}));
+
+export const administrativeTokens = mysqlTable("administrative_tokens", {
+    id: varchar("id", { length: 36 }).primaryKey().$defaultFn(() => crypto.randomUUID()),
+    token: varchar("token", { length: 32 }).notNull().unique(),
+    studentId: varchar("student_id", { length: 36 }).references(() => users.id, { onDelete: "cascade" }),
+    expiresAt: datetime("expires_at").notNull(),
+    isUsed: boolean("is_used").default(false),
+    usedAt: datetime("used_at"),
+    notes: text("notes"),
+    createdBy: varchar("created_by", { length: 36 }).references(() => users.id, { onDelete: "set null" }),
+    createdAt: datetime("created_at").default(sql`CURRENT_TIMESTAMP`),
+}, (table) => ({
+    tokenIdx: index("administrative_tokens_token_idx").on(table.token),
+    studentIdx: index("administrative_tokens_student_idx").on(table.studentId),
+    isUsedIdx: index("administrative_tokens_is_used_idx").on(table.isUsed),
+}));
+

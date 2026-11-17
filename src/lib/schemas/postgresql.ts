@@ -433,3 +433,37 @@ export const savedFilters = pgTable("saved_filters", {
     userIdx: index("saved_filters_user_idx").on(table.userId),
     pageIdx: index("saved_filters_page_idx").on(table.page),
 }));
+
+// ============================================================================
+// STUDENT ADMINISTRATIVE CLEARANCE & DISPENSATION TOKENS
+// ============================================================================
+
+export const studentClearances = pgTable("student_clearances", {
+    id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+    studentId: text("student_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+    status: text("status", { enum: ["locked", "cleared", "dispensation"] }).notNull().default("cleared"),
+    notes: text("notes"),
+    validUntil: timestamp("valid_until"),
+    updatedBy: text("updated_by").references(() => users.id, { onDelete: "set null" }),
+    updatedAt: timestamp("updated_at").default(sql`CURRENT_TIMESTAMP`),
+}, (table) => ({
+    studentIdx: index("student_clearances_student_idx").on(table.studentId),
+    statusIdx: index("student_clearances_status_idx").on(table.status),
+}));
+
+export const administrativeTokens = pgTable("administrative_tokens", {
+    id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+    token: text("token").notNull().unique(),
+    studentId: text("student_id").references(() => users.id, { onDelete: "cascade" }),
+    expiresAt: timestamp("expires_at").notNull(),
+    isUsed: boolean("is_used").default(false),
+    usedAt: timestamp("used_at"),
+    notes: text("notes"),
+    createdBy: text("created_by").references(() => users.id, { onDelete: "set null" }),
+    createdAt: timestamp("created_at").default(sql`CURRENT_TIMESTAMP`),
+}, (table) => ({
+    tokenIdx: index("administrative_tokens_token_idx").on(table.token),
+    studentIdx: index("administrative_tokens_student_idx").on(table.studentId),
+    isUsedIdx: index("administrative_tokens_is_used_idx").on(table.isUsed),
+}));
+

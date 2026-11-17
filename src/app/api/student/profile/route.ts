@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/actions/auth";
 import { db } from "@/lib/db";
-import { users, classStudents, classes } from "@/lib/schema";
+import { users, classStudents, classes, studentClearances } from "@/lib/schema";
 import { eq } from "drizzle-orm";
 
 // GET /api/student/profile - Get current logged-in student profile with class details
@@ -51,6 +51,23 @@ export async function GET() {
 
         const primaryClass = enrolledClasses.length > 0 ? enrolledClasses[0] : null;
 
+        // Get student's clearance status
+        const [clearanceData] = await (db as any)
+            .select({
+                status: studentClearances.status,
+                notes: studentClearances.notes,
+                validUntil: studentClearances.validUntil,
+            })
+            .from(studentClearances)
+            .where(eq(studentClearances.studentId, sessionUser.id))
+            .limit(1);
+
+        const clearance = clearanceData || {
+            status: "cleared",
+            notes: null,
+            validUntil: null,
+        };
+
         return NextResponse.json({
             success: true,
             data: {
@@ -59,6 +76,7 @@ export async function GET() {
                 username: userData.username, // NIS or Student Username
                 role: userData.role,
                 createdAt: userData.createdAt,
+                clearance,
                 primaryClass: primaryClass ? {
                     id: primaryClass.id,
                     name: primaryClass.name,

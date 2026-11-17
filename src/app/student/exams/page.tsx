@@ -10,6 +10,7 @@ import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 import { id as idLocale } from "date-fns/locale";
 import { TokenInputDialog } from "@/components/exam/take-exam/TokenInputDialog";
+import { AdminClearanceDialog } from "@/components/exam/take-exam/AdminClearanceDialog";
 import { StudentProfileCard, StudentProfile } from "@/components/student/StudentProfileCard";
 import { getDeviceId } from "@/lib/device";
 
@@ -45,6 +46,13 @@ export default function StudentExamsPage() {
     const [selectedExamId, setSelectedExamId] = useState<string | null>(null);
     const [tokenError, setTokenError] = useState<string | null>(null);
     const [verifyingToken, setVerifyingToken] = useState(false);
+
+    // Administrative Clearance Dialog State
+    const [adminClearanceDialogOpen, setAdminClearanceDialogOpen] = useState(false);
+    const [selectedAdminExamId, setSelectedAdminExamId] = useState<string | null>(null);
+    const [adminClearanceError, setAdminClearanceError] = useState<string | null>(null);
+    const [adminClearanceNotes, setAdminClearanceNotes] = useState<string | null>(null);
+    const [verifyingAdminToken, setVerifyingAdminToken] = useState(false);
 
     const fetchStudentProfile = useCallback(async () => {
         setProfileLoading(true);
@@ -121,12 +129,16 @@ export default function StudentExamsPage() {
         }
     };
 
-    const handleStartExam = async (sessionId: string, token?: string) => {
+    const handleStartExam = async (sessionId: string, token?: string, adminToken?: string) => {
         if (!studentId) return;
 
         if (token) {
             setVerifyingToken(true);
             setTokenError(null);
+        }
+        if (adminToken) {
+            setVerifyingAdminToken(true);
+            setAdminClearanceError(null);
         }
 
         try {
@@ -135,6 +147,9 @@ export default function StudentExamsPage() {
             const body: any = { studentId, deviceId };
             if (token) {
                 body.token = token;
+            }
+            if (adminToken) {
+                body.adminToken = adminToken;
             }
 
             const response = await fetch(`/api/student/exams/${sessionId}/start`, {
@@ -146,6 +161,12 @@ export default function StudentExamsPage() {
             if (response.ok) {
                 const data = await response.json();
                 void data;
+
+                if (adminClearanceDialogOpen) {
+                    setAdminClearanceDialogOpen(false);
+                    setSelectedAdminExamId(null);
+                    setAdminClearanceError(null);
+                }
 
                 if (tokenDialogOpen) {
                     setTokenDialogOpen(false);
@@ -161,13 +182,34 @@ export default function StudentExamsPage() {
                     }
                 }
 
+                fetchStudentProfile();
                 router.push(`/student/exams/${sessionId}`);
             } else {
                 const error = await response.json();
 
+                // 1. Check if blocked by Administrative Clearance
+                if (response.status === 403 && error.requireAdminToken) {
+                    setSelectedAdminExamId(sessionId);
+                    setAdminClearanceNotes(error.adminNotes || null);
+                    if (adminToken) {
+                        setAdminClearanceError(error.error || "Token administrasi salah atau kadaluarsa.");
+                    } else {
+                        setAdminClearanceError(null);
+                    }
+                    setAdminClearanceDialogOpen(true);
+                    return;
+                }
+
+                // 2. Check if regular proctor/exam token is required
                 if (response.status === 403 && error.requireToken) {
+                    if (adminClearanceDialogOpen) {
+                        setAdminClearanceDialogOpen(false);
+                        setSelectedAdminExamId(null);
+                        setAdminClearanceError(null);
+                        fetchStudentProfile();
+                    }
                     if (token) {
-                        setTokenError("Token tidak valid. Silakan coba lagi.");
+                        setTokenError("Token ujian tidak valid. Silakan coba lagi.");
                         if (!tokenDialogOpen) {
                             setSelectedExamId(sessionId);
                             setTokenDialogOpen(true);
@@ -192,12 +234,21 @@ export default function StudentExamsPage() {
             if (token) {
                 setVerifyingToken(false);
             }
+            if (adminToken) {
+                setVerifyingAdminToken(false);
+            }
         }
     };
 
     const handleTokenSubmit = (token: string) => {
         if (selectedExamId) {
             handleStartExam(selectedExamId, token);
+        }
+    };
+
+    const handleAdminTokenSubmit = (adminToken: string) => {
+        if (selectedAdminExamId) {
+            handleStartExam(selectedAdminExamId, undefined, adminToken);
         }
     };
 
@@ -387,7 +438,7 @@ export default function StudentExamsPage() {
                 </div>
             )}
 
-            {/* Token Prompt Dialog if Required */}
+            {/* Regular Proctor Token Prompt Dialog */}
             <TokenInputDialog
                 open={tokenDialogOpen}
                 onCancel={() => {
@@ -399,6 +450,21 @@ export default function StudentExamsPage() {
                 loading={verifyingToken}
                 error={tokenError}
                 examName={exams.find(e => e.id === selectedExamId)?.sessionName}
+            />
+
+            {/* Administrative Clearance Token Dialog */}
+            <AdminClearanceDialog
+                open={adminClearanceDialogOpen}
+                onCancel={() => {
+                    setAdminClearanceDialogOpen(false);
+                    setSelectedAdminExamId(null);
+                    setAdminClearanceError(null);
+                }}
+                onSubmit={handleAdminTokenSubmit}
+                loading={verifyingAdminToken}
+                error={adminClearanceError}
+                adminNotes={adminClearanceNotes}
+                examName={exams.find(e => e.id === selectedAdminExamId)?.sessionName}
             />
         </div>
     );
