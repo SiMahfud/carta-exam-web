@@ -48,8 +48,14 @@ import {
     Clock,
     Sparkles,
     Calendar,
-    ChevronRight
+    ChevronRight,
+    FileSpreadsheet,
+    Download,
+    Printer,
+    Upload
 } from "lucide-react";
+import { ImportClearanceDialog } from "@/components/admin/administrasi/ImportClearanceDialog";
+import { PrintDispensasiModal } from "@/components/admin/administrasi/PrintDispensasiModal";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 import { id as idLocale } from "date-fns/locale";
@@ -124,6 +130,18 @@ export default function AdministrasiSiswaPage() {
     const [tokenNotes, setTokenNotes] = useState("");
     const [generatingToken, setGeneratingToken] = useState(false);
     const [createdTokenResult, setCreatedTokenResult] = useState<string | null>(null);
+
+    // Import Excel & Print Slip Dialog states
+    const [importDialogOpen, setImportDialogOpen] = useState(false);
+    const [printModalOpen, setPrintModalOpen] = useState(false);
+    const [tokenToPrint, setTokenToPrint] = useState<{
+        token: string;
+        studentName?: string | null;
+        studentUsername?: string | null;
+        className?: string | null;
+        expiresAt: string | Date;
+        notes?: string | null;
+    } | null>(null);
 
     // Fetch classes
     useEffect(() => {
@@ -406,7 +424,29 @@ export default function AdministrasiSiswaPage() {
                     </div>
                 </div>
 
-                <div className="flex items-center gap-2 self-end sm:self-auto">
+                <div className="flex flex-wrap items-center gap-2 self-end sm:self-auto">
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setImportDialogOpen(true)}
+                        className="rounded-lg gap-1.5 border-dashed border-primary/40 text-primary hover:bg-primary/5 font-semibold"
+                    >
+                        <FileSpreadsheet className="h-4 w-4" />
+                        Impor Excel
+                    </Button>
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                            const params = new URLSearchParams();
+                            if (selectedClass !== "all") params.set("classId", selectedClass);
+                            window.open(`/api/admin/clearance/export?${params.toString()}`, "_blank");
+                        }}
+                        className="rounded-lg gap-1.5"
+                    >
+                        <Download className="h-4 w-4" />
+                        Ekspor Excel
+                    </Button>
                     <Button
                         variant="outline"
                         size="sm"
@@ -824,15 +864,37 @@ export default function AdministrasiSiswaPage() {
                                                     {tokenItem.notes || "-"}
                                                 </TableCell>
                                                 <TableCell className="text-right">
-                                                    <Button
-                                                        size="sm"
-                                                        variant="ghost"
-                                                        onClick={() => handleRevokeToken(tokenItem.id)}
-                                                        className="h-8 text-destructive hover:bg-destructive/10 text-xs gap-1"
-                                                    >
-                                                        <Trash2 className="h-3.5 w-3.5" />
-                                                        Cabut
-                                                    </Button>
+                                                    <div className="flex items-center justify-end gap-1">
+                                                        <Button
+                                                            size="sm"
+                                                            variant="ghost"
+                                                            onClick={() => {
+                                                                setTokenToPrint({
+                                                                    token: tokenItem.token,
+                                                                    studentName: tokenItem.studentName,
+                                                                    studentUsername: tokenItem.studentUsername,
+                                                                    expiresAt: tokenItem.expiresAt,
+                                                                    notes: tokenItem.notes,
+                                                                });
+                                                                setPrintModalOpen(true);
+                                                            }}
+                                                            className="h-8 text-primary hover:bg-primary/10 text-xs gap-1"
+                                                            title="Cetak Slip Dispensasi"
+                                                        >
+                                                            <Printer className="h-3.5 w-3.5" />
+                                                            Cetak
+                                                        </Button>
+                                                        <Button
+                                                            size="sm"
+                                                            variant="ghost"
+                                                            onClick={() => handleRevokeToken(tokenItem.id)}
+                                                            className="h-8 text-destructive hover:bg-destructive/10 text-xs gap-1"
+                                                            title="Cabut Token"
+                                                        >
+                                                            <Trash2 className="h-3.5 w-3.5" />
+                                                            Cabut
+                                                        </Button>
+                                                    </div>
                                                 </TableCell>
                                             </TableRow>
                                         );
@@ -935,17 +997,38 @@ export default function AdministrasiSiswaPage() {
                             <p className="text-xs text-muted-foreground">
                                 Berikan kode token ini kepada siswa. Siswa dapat memasukkan kode ini pada dialog ujian mereka.
                             </p>
-                            <Button
-                                className="w-full gap-2"
-                                onClick={() => {
-                                    navigator.clipboard.writeText(createdTokenResult);
-                                    toast({ title: "Tersalin!", description: "Kode token berhasil disalin" });
-                                    setTokenDialogOpen(false);
-                                }}
-                            >
-                                <Copy className="h-4 w-4" />
-                                Salin Token & Tutup
-                            </Button>
+                            <div className="flex flex-col sm:flex-row gap-2">
+                                <Button
+                                    className="flex-1 gap-2"
+                                    onClick={() => {
+                                        navigator.clipboard.writeText(createdTokenResult);
+                                        toast({ title: "Tersalin!", description: "Kode token berhasil disalin" });
+                                        setTokenDialogOpen(false);
+                                    }}
+                                >
+                                    <Copy className="h-4 w-4" />
+                                    Salin Token
+                                </Button>
+                                <Button
+                                    variant="outline"
+                                    className="gap-2"
+                                    onClick={() => {
+                                        setTokenToPrint({
+                                            token: createdTokenResult,
+                                            studentName: tokenTargetStudent?.name || "Siswa Terdaftar",
+                                            studentUsername: tokenTargetStudent?.username || "-",
+                                            className: tokenTargetStudent?.class?.name || null,
+                                            expiresAt: new Date(new Date().setHours(23, 59, 59, 999)),
+                                            notes: tokenNotes || "Dispensasi Ujian",
+                                        });
+                                        setTokenDialogOpen(false);
+                                        setPrintModalOpen(true);
+                                    }}
+                                >
+                                    <Printer className="h-4 w-4" />
+                                    Cetak Slip
+                                </Button>
+                            </div>
                         </div>
                     ) : (
                         <div className="space-y-4 py-2">
@@ -1002,6 +1085,26 @@ export default function AdministrasiSiswaPage() {
                     )}
                 </DialogContent>
             </Dialog>
+
+            {/* DIALOG: Import Excel Clearance */}
+            <ImportClearanceDialog
+                open={importDialogOpen}
+                onOpenChange={setImportDialogOpen}
+                onSuccess={() => {
+                    fetchStudents();
+                    toast({
+                        title: "Data Diperbarui",
+                        description: "Status administrasi siswa berhasil diperbarui dari file Excel.",
+                    });
+                }}
+            />
+
+            {/* MODAL: Print Dispensasi Slip */}
+            <PrintDispensasiModal
+                open={printModalOpen}
+                onOpenChange={setPrintModalOpen}
+                tokenData={tokenToPrint}
+            />
         </div>
     );
 }
