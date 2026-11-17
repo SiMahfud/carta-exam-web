@@ -19,6 +19,7 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { EmptyState } from "@/components/ui/empty-state";
 import { DashboardAnalytics } from "@/components/admin/DashboardAnalytics";
+import { TodayExamSchedule } from "@/components/admin/TodayExamSchedule";
 import { useEffect, useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 
@@ -227,6 +228,9 @@ export default function AdminDashboard() {
                     })
                 ) : null}
             </div>
+
+            {/* Jadwal Ujian Hari Ini & Pemilih Tanggal */}
+            <TodayExamSchedule />
 
             {/* Dashboard Analytics & Learning Metrics */}
             <DashboardAnalytics />

@@ -88,9 +88,9 @@ export function DashboardAnalytics() {
         );
     }
 
-    if (!data) return null;
+    if (!data || !data.scoreDistribution) return null;
 
-    const totalSubmissions = data.scoreDistribution.total || 1;
+    const totalSubmissions = data.scoreDistribution?.total || 1;
     const getPercent = (count: number) =>
         Math.round((count / totalSubmissions) * 100);
 
