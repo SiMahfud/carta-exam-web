@@ -35,7 +35,11 @@ export async function POST(
 
         if (submissionData.length === 0) {
             return NextResponse.json(
-                { error: "No active submission" },
+                { 
+                    error: "SESSION_RESET", 
+                    reset: true, 
+                    message: "Sesi ujian Anda telah direset oleh pengawas/admin. Pengerjaan sebelumnya dibatalkan. Silakan mulai ulang dari menu ujian untuk mengerjakan soal terbaru." 
+                },
                 { status: 404 }
             );
         }

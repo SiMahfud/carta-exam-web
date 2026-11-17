@@ -19,6 +19,7 @@ import { SecurityWarningBanner } from "@/components/exam/take-exam/SecurityWarni
 import { FullscreenLockoutOverlay } from "@/components/exam/take-exam/FullscreenLockoutOverlay";
 import { TerminatedExamView } from "@/components/exam/take-exam/TerminatedExamView";
 import { ExamCompletedView } from "@/components/exam/take-exam/ExamCompletedView";
+import { ExamResetView } from "@/components/exam/take-exam/ExamResetView";
 import { QuestionCard } from "@/components/exam/take-exam/QuestionCard";
 import { ViolationDetailDialog, ViolationLogItem } from "@/components/exam/take-exam/ViolationDetailDialog";
 import { SessionExpiredDialog } from "@/components/exam/take-exam/SessionExpiredDialog";
@@ -54,6 +55,8 @@ export default function TakeExamPage() {
     const [isTerminated, setIsTerminated] = useState(false);
     const [isForceCompleted, setIsForceCompleted] = useState(false);
     const [forceCompletedMessage, setForceCompletedMessage] = useState<string>("");
+    const [isExamReset, setIsExamReset] = useState(false);
+    const [resetMessage, setResetMessage] = useState<string>("");
     const [examName, setExamName] = useState<string>("");
     const [minSubmitMinutes, setMinSubmitMinutes] = useState(0);
     const [durationMinutes, setDurationMinutes] = useState<number | undefined>(undefined);
@@ -257,6 +260,54 @@ export default function TakeExamPage() {
         }
     }, [router]);
 
+    const handleExamForceCompleted = useCallback(async (message?: string) => {
+        setExamStarted(false);
+        setIsForceCompleted(true);
+        clearFullscreenGraceTimers();
+        setLockoutState({ isOpen: false });
+        if (message) {
+            setForceCompletedMessage(message);
+        }
+        if (isFullscreen) {
+            try {
+                await exitFullscreen();
+            } catch (e) {
+                console.error("Error exiting fullscreen on force completed:", e);
+            }
+        }
+        toast({
+            title: "Ujian Selesai",
+            description: message || "Ujian Anda telah dikumpulkan oleh pengawas.",
+        });
+    }, [isFullscreen, exitFullscreen, toast, clearFullscreenGraceTimers]);
+
+    const handleExamReset = useCallback(async (message?: string) => {
+        setExamStarted(false);
+        setIsExamReset(true);
+        clearFullscreenGraceTimers();
+        setLockoutState({ isOpen: false });
+        if (message) {
+            setResetMessage(message);
+        }
+        try {
+            if (studentId) {
+                localStorage.removeItem(`carta_exam_backup_${sessionId}_${studentId}`);
+            }
+        } catch { }
+        if (isFullscreen) {
+            try {
+                await exitFullscreen();
+            } catch (e) {
+                console.error("Error exiting fullscreen on reset:", e);
+            }
+        }
+        toast({
+            title: "Ujian Direset",
+            description: message || "Sesi ujian Anda telah direset oleh pengawas.",
+            variant: "destructive",
+        });
+    }, [sessionId, studentId, isFullscreen, exitFullscreen, toast, clearFullscreenGraceTimers]);
+
     const fetchQuestions = useCallback(async (token?: string) => {
         if (!studentId) return;
 
@@ -373,6 +424,10 @@ export default function TakeExamPage() {
                     router.push("/student/exams");
                 }
                 return false;
+            } else if (response.status === 404) {
+                const data = await response.json().catch(() => ({}));
+                handleExamReset(data.message || "Sesi ujian belum dimulai atau telah direset oleh pengawas. Silakan mulai ulang dari menu ujian.");
+                return false;
             } else {
                 throw new Error("Failed to load questions");
             }
@@ -387,7 +442,7 @@ export default function TakeExamPage() {
         } finally {
             setLoading(false);
         }
-    }, [sessionId, studentId, toast, router]);
+    }, [sessionId, studentId, toast, router, handleExamReset]);
 
     const handleSubmit = useCallback(async () => {
         setSubmitting(true);
@@ -421,6 +476,11 @@ export default function TakeExamPage() {
                     variant: "destructive",
                 });
                 setSubmitting(false);
+            } else if (response.status === 404) {
+                const data = await response.json().catch(() => ({}));
+                handleExamReset(data.message || "Sesi ujian Anda telah direset oleh pengawas. Ujian tidak dapat dikumpulkan.");
+                setSubmitting(false);
+                return;
             } else {
                 throw new Error("Failed to submit");
             }
@@ -433,7 +493,7 @@ export default function TakeExamPage() {
             });
             setSubmitting(false);
         }
-    }, [sessionId, studentId, violationCount, isFullscreen, exitFullscreen, toast]);
+    }, [sessionId, studentId, violationCount, isFullscreen, exitFullscreen, toast, handleExamReset]);
 
     const handleAutoSubmit = useCallback(() => {
         toast({
@@ -442,27 +502,6 @@ export default function TakeExamPage() {
         });
         handleSubmit();
     }, [handleSubmit, toast]);
-
-    const handleExamForceCompleted = useCallback(async (message?: string) => {
-        setExamStarted(false);
-        setIsForceCompleted(true);
-        clearFullscreenGraceTimers();
-        setLockoutState({ isOpen: false });
-        if (message) {
-            setForceCompletedMessage(message);
-        }
-        if (isFullscreen) {
-            try {
-                await exitFullscreen();
-            } catch (e) {
-                console.error("Error exiting fullscreen on force completed:", e);
-            }
-        }
-        toast({
-            title: "Ujian Selesai",
-            description: message || "Ujian Anda telah dikumpulkan oleh pengawas.",
-        });
-    }, [isFullscreen, exitFullscreen, toast, clearFullscreenGraceTimers]);
 
     // Security hook
     useExamSecurity({
@@ -541,6 +580,10 @@ export default function TakeExamPage() {
                         });
                         setIsTerminated(true);
                     }
+                } else if (response.status === 404) {
+                    const data = await response.json().catch(() => ({}));
+                    handleExamReset(data.message || "Sesi ujian Anda telah direset oleh pengawas.");
+                    return;
                 }
             } catch (e) {
                 console.error("Heartbeat sync error:", e);
@@ -550,7 +593,7 @@ export default function TakeExamPage() {
         sendHeartbeat();
         const interval = setInterval(sendHeartbeat, 10000);
         return () => clearInterval(interval);
-    }, [examStarted, submitting, isTerminated, isForceCompleted, sessionId, studentId, toast, handleExamForceCompleted]);
+    }, [examStarted, submitting, isTerminated, isForceCompleted, sessionId, studentId, toast, handleExamForceCompleted, handleExamReset]);
 
     // Fullscreen enforcement
     useEffect(() => {
@@ -928,13 +971,16 @@ export default function TakeExamPage() {
                 if (data.status === "completed" || data.completed) {
                     handleExamForceCompleted(data.message || "Ujian telah selesai atau dikumpulkan oleh pengawas.");
                 }
+            } else if (response.status === 404) {
+                const data = await response.json().catch(() => ({}));
+                handleExamReset(data.message || "Sesi ujian Anda telah direset oleh pengawas.");
             }
         } catch (error) {
             console.error("Error saving answer:", error);
         } finally {
             setAutoSaving(false);
         }
-    }, [sessionId, studentId, handleExamForceCompleted]);
+    }, [sessionId, studentId, handleExamForceCompleted, handleExamReset]);
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const handleAnswerChange = useCallback((questionId: string, answer: any) => {
@@ -946,8 +992,19 @@ export default function TakeExamPage() {
             isFlagged: existing?.isFlagged || false
         });
         setAnswers(newAnswers);
+
+        if (studentId) {
+            try {
+                const serialized: Record<string, any> = {};
+                newAnswers.forEach((val, key) => {
+                    serialized[key] = val;
+                });
+                localStorage.setItem(`carta_exam_backup_${sessionId}_${studentId}`, JSON.stringify(serialized));
+            } catch { }
+        }
+
         saveAnswer(questionId, answer, existing?.isFlagged || false);
-    }, [answers, saveAnswer]);
+    }, [answers, saveAnswer, sessionId, studentId]);
 
     const toggleFlag = useCallback(() => {
         const question = questions[currentQuestionIndex];
@@ -957,8 +1014,19 @@ export default function TakeExamPage() {
         existing.isFlagged = !existing.isFlagged;
         newAnswers.set(question.id, existing);
         setAnswers(newAnswers);
+
+        if (studentId) {
+            try {
+                const serialized: Record<string, any> = {};
+                newAnswers.forEach((val, key) => {
+                    serialized[key] = val;
+                });
+                localStorage.setItem(`carta_exam_backup_${sessionId}_${studentId}`, JSON.stringify(serialized));
+            } catch { }
+        }
+
         saveAnswer(question.id, existing.answer, existing.isFlagged);
-    }, [questions, currentQuestionIndex, answers, saveAnswer]);
+    }, [questions, currentQuestionIndex, answers, saveAnswer, sessionId, studentId]);
 
     const handleReauthSuccess = useCallback(async () => {
         setShowSessionExpiredDialog(false);
@@ -1079,6 +1147,17 @@ export default function TakeExamPage() {
             <ExamCompletedView
                 message={forceCompletedMessage || "Ujian Anda telah dikumpulkan oleh pengawas."}
                 onReturn={() => {
+                    window.location.href = "/student/exams";
+                }}
+            />
+        );
+    }
+
+    if (isExamReset) {
+        return (
+            <ExamResetView
+                message={resetMessage || "Sesi ujian Anda telah direset oleh pengawas/admin. Pengerjaan sebelumnya telah dibatalkan agar Anda dapat mengerjakan dari awal dengan format soal terbaru."}
+                onRestart={() => {
                     window.location.href = "/student/exams";
                 }}
             />

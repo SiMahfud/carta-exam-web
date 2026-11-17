@@ -934,10 +934,26 @@ export default function SessionMonitorPage() {
                                                             size="sm"
                                                             className="h-8 px-2 text-xs text-amber-600 border-amber-300 hover:bg-amber-50 dark:border-amber-800 dark:hover:bg-amber-950/40"
                                                             onClick={() => handleSingleProctorAction(student.id, "reset_violations")}
+                                                            title="Reset jumlah pelanggaran siswa ke 0"
                                                         >
-                                                            Reset
+                                                            Reset Pelanggaran
                                                         </Button>
                                                     </>
+                                                )}
+                                                {student.status === "in_progress" && (
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="sm"
+                                                        className="h-8 px-2 text-xs text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-950/40"
+                                                        onClick={() => {
+                                                            if (confirm(`Kumpulkan paksa ujian untuk ${student.name}? Nilai akan dihitung berdasarkan jawaban yang telah tersimpan.`)) {
+                                                                handleSingleProctorAction(student.id, "force_submit");
+                                                            }
+                                                        }}
+                                                        title="Paksa Kumpulkan Ujian & Hitung Nilai Sekarang"
+                                                    >
+                                                        Paksa Selesai
+                                                    </Button>
                                                 )}
                                                 {(student.status === "in_progress" || student.status === "terminated") && (
                                                     <>
@@ -960,6 +976,21 @@ export default function SessionMonitorPage() {
                                                             Reset Device
                                                         </Button>
                                                     </>
+                                                )}
+                                                {student.status !== "not_started" && (
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="sm"
+                                                        className="h-8 px-2 text-xs text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40"
+                                                        onClick={() => {
+                                                            if (confirm(`PERINGATAN: Apakah Anda yakin ingin mereset ujian siswa ${student.name} dari awal? Seluruh jawaban tersimpan akan dihapus dan siswa akan diminta mengerjakan dari awal.`)) {
+                                                                handleSingleProctorAction(student.id, "retake");
+                                                            }
+                                                        }}
+                                                        title="Reset Ujian Siswa (Mulai Ulang dari Awal)"
+                                                    >
+                                                        Ulang Ujian
+                                                    </Button>
                                                 )}
                                             </div>
                                         </td>

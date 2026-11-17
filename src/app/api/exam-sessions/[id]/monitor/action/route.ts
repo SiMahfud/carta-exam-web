@@ -188,6 +188,34 @@ export async function POST(
             });
         }
 
+        if (action === "retake") {
+            await (db as any)
+                .delete(submissions)
+                .where(
+                    and(
+                        eq(submissions.sessionId, params.id),
+                        eq(submissions.userId, studentId)
+                    )
+                );
+
+            await ActivityLogger.examSession.updated(
+                user.id,
+                params.id,
+                `Pengawas mereset ujian siswa (ulang ujian) ID: ${studentId}`
+            );
+
+            try {
+                publishProctorActionEvent(params.id, user.id, "retake", studentId, "Ujian direset untuk pengerjaan ulang dari awal");
+            } catch (e) {
+                console.error("Error publishing proctor action event:", e);
+            }
+
+            return NextResponse.json({
+                success: true,
+                message: "Ujian siswa berhasil direset. Siswa dapat memulai kembali dari awal.",
+            });
+        }
+
         return NextResponse.json({ error: "Action tidak dikenal" }, { status: 400 });
     } catch (err: any) {
         console.error("Proctoring action error:", err);

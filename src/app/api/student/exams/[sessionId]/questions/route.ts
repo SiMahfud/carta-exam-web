@@ -39,7 +39,11 @@ export async function GET(
 
         if (submissionData.length === 0) {
             return NextResponse.json(
-                { error: "No active submission found" },
+                { 
+                    error: "SESSION_RESET", 
+                    reset: true, 
+                    message: "Sesi pengerjaan belum dimulai atau telah direset oleh pengawas. Silakan mulai dari menu ujian." 
+                },
                 { status: 404 }
             );
         }
