@@ -455,6 +455,7 @@ export const studentClearances = sqliteTable("student_clearances", {
 export const administrativeTokens = sqliteTable("administrative_tokens", {
     id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
     token: text("token").notNull().unique(),
+    scope: text("scope", { enum: ["session", "daily", "weekly", "permanent"] }).notNull().default("daily"),
     studentId: text("student_id").references(() => users.id, { onDelete: "cascade" }),
     expiresAt: integer("expires_at", { mode: "timestamp" }).notNull(),
     isUsed: integer("is_used", { mode: "boolean" }).default(false),

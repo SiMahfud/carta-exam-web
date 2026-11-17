@@ -81,6 +81,7 @@ interface StudentItem {
 interface TokenItem {
     id: string;
     token: string;
+    scope?: "session" | "daily" | "weekly" | "permanent";
     studentId?: string | null;
     studentName?: string | null;
     studentUsername?: string | null;
@@ -120,12 +121,14 @@ export default function AdministrasiSiswaPage() {
     const [statusDialogOpen, setStatusDialogOpen] = useState(false);
     const [studentToEdit, setStudentToEdit] = useState<StudentItem | null>(null);
     const [targetStatus, setTargetStatus] = useState<"locked" | "cleared" | "dispensation">("locked");
+    const [dispensationDuration, setDispensationDuration] = useState<"session" | "daily" | "weekly" | "permanent">("daily");
     const [targetNotes, setTargetNotes] = useState("");
     const [updatingStatus, setUpdatingStatus] = useState(false);
 
     // Dialog state for generating token
     const [tokenDialogOpen, setTokenDialogOpen] = useState(false);
     const [tokenTargetStudent, setTokenTargetStudent] = useState<StudentItem | null>(null);
+    const [tokenScope, setTokenScope] = useState<"session" | "daily" | "weekly" | "permanent">("daily");
     const [customTokenValue, setCustomTokenValue] = useState("");
     const [tokenNotes, setTokenNotes] = useState("");
     const [generatingToken, setGeneratingToken] = useState(false);
@@ -136,6 +139,7 @@ export default function AdministrasiSiswaPage() {
     const [printModalOpen, setPrintModalOpen] = useState(false);
     const [tokenToPrint, setTokenToPrint] = useState<{
         token: string;
+        scope?: "session" | "daily" | "weekly" | "permanent" | string | null;
         studentName?: string | null;
         studentUsername?: string | null;
         className?: string | null;
@@ -282,6 +286,22 @@ export default function AdministrasiSiswaPage() {
         if (!studentToEdit) return;
         setUpdatingStatus(true);
         try {
+            let validUntilDate: Date | null = null;
+            if (targetStatus === "dispensation") {
+                if (dispensationDuration === "session") {
+                    validUntilDate = new Date(Date.now() + 4 * 60 * 60 * 1000);
+                } else if (dispensationDuration === "weekly") {
+                    validUntilDate = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+                    validUntilDate.setHours(23, 59, 59, 999);
+                } else if (dispensationDuration === "permanent") {
+                    validUntilDate = null;
+                } else {
+                    // daily
+                    validUntilDate = new Date();
+                    validUntilDate.setHours(23, 59, 59, 999);
+                }
+            }
+
             const res = await fetch("/api/admin/clearance", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
@@ -289,6 +309,7 @@ export default function AdministrasiSiswaPage() {
                     studentIds: [studentToEdit.id],
                     status: targetStatus,
                     notes: targetNotes,
+                    validUntil: validUntilDate?.toISOString(),
                 }),
             });
 
@@ -322,6 +343,7 @@ export default function AdministrasiSiswaPage() {
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
                     studentId: tokenTargetStudent?.id || null,
+                    scope: tokenScope,
                     customToken: customTokenValue.trim() || undefined,
                     notes: tokenNotes.trim() || (tokenTargetStudent ? `Dispensasi untuk ${tokenTargetStudent.name}` : "Token Dispensasi Umum"),
                 }),
@@ -333,7 +355,7 @@ export default function AdministrasiSiswaPage() {
                 setCreatedTokenResult(newToken);
                 toast({
                     title: "Token Berhasil Dibuat",
-                    description: `Token: ${newToken}`,
+                    description: `Token: ${newToken} (${tokenScope === 'session' ? 'Per Sesi' : tokenScope === 'weekly' ? '1 Pekan' : tokenScope === 'permanent' ? 'Permanen' : 'Harian'})`,
                 });
                 fetchTokens();
                 if (tokenTargetStudent) {
@@ -829,6 +851,28 @@ export default function AdministrasiSiswaPage() {
                                                             {isCopied ? <Check className="h-3.5 w-3.5 text-emerald-600" /> : <Copy className="h-3.5 w-3.5" />}
                                                         </Button>
                                                     </div>
+                                                    <div className="mt-1">
+                                                        {tokenItem.scope === "session" && (
+                                                            <Badge variant="outline" className="text-[10px] bg-purple-500/10 text-purple-700 dark:text-purple-300 border-purple-500/30">
+                                                                Per Sesi / Jam
+                                                            </Badge>
+                                                        )}
+                                                        {tokenItem.scope === "weekly" && (
+                                                            <Badge variant="outline" className="text-[10px] bg-teal-500/10 text-teal-700 dark:text-teal-300 border-teal-500/30">
+                                                                1 Pekan (7 Hari)
+                                                            </Badge>
+                                                        )}
+                                                        {tokenItem.scope === "permanent" && (
+                                                            <Badge variant="outline" className="text-[10px] bg-indigo-500/10 text-indigo-700 dark:text-indigo-300 border-indigo-500/30">
+                                                                Permanen
+                                                            </Badge>
+                                                        )}
+                                                        {(!tokenItem.scope || tokenItem.scope === "daily") && (
+                                                            <Badge variant="outline" className="text-[10px] bg-blue-500/10 text-blue-700 dark:text-blue-300 border-blue-500/30">
+                                                                Harian (1 Hari)
+                                                            </Badge>
+                                                        )}
+                                                    </div>
                                                 </TableCell>
                                                 <TableCell>
                                                     {tokenItem.studentName ? (
@@ -871,6 +915,7 @@ export default function AdministrasiSiswaPage() {
                                                             onClick={() => {
                                                                 setTokenToPrint({
                                                                     token: tokenItem.token,
+                                                                    scope: tokenItem.scope,
                                                                     studentName: tokenItem.studentName,
                                                                     studentUsername: tokenItem.studentUsername,
                                                                     expiresAt: tokenItem.expiresAt,
@@ -933,6 +978,32 @@ export default function AdministrasiSiswaPage() {
                                 </SelectContent>
                             </Select>
                         </div>
+
+                        {targetStatus === "dispensation" && (
+                            <div className="space-y-2 p-3 bg-blue-500/10 border border-blue-500/20 rounded-xl">
+                                <Label htmlFor="dispensation-duration">Masa Berlaku Dispensasi</Label>
+                                <Select
+                                    value={dispensationDuration}
+                                    onValueChange={(val: any) => setDispensationDuration(val)}
+                                >
+                                    <SelectTrigger id="dispensation-duration" className="bg-background">
+                                        <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="session">Per Sesi (1 Sesi Ujian / 4 Jam)</SelectItem>
+                                        <SelectItem value="daily">Harian (Berlaku Hari Ini s.d. 23:59)</SelectItem>
+                                        <SelectItem value="weekly">Mingguan (1 Pekan / 7 Hari)</SelectItem>
+                                        <SelectItem value="permanent">Selamanya (Sampai Diubah Petugas)</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                                <p className="text-[11px] text-blue-700 dark:text-blue-300">
+                                    {dispensationDuration === "session" && "Siswa hanya bisa membuka 1 sesi. Setelah itu status kembali terkunci."}
+                                    {dispensationDuration === "daily" && "Besok pagi sistem otomatis mengunci siswa kembali."}
+                                    {dispensationDuration === "weekly" && "Dispensasi aktif selama 7 hari kalender."}
+                                    {dispensationDuration === "permanent" && "Aktif terus sampai diubah lagi oleh petugas TU."}
+                                </p>
+                            </div>
+                        )}
 
                         <div className="space-y-2">
                             <Label htmlFor="clearance-notes">Catatan Petugas TU</Label>
@@ -1015,6 +1086,7 @@ export default function AdministrasiSiswaPage() {
                                     onClick={() => {
                                         setTokenToPrint({
                                             token: createdTokenResult,
+                                            scope: tokenScope,
                                             studentName: tokenTargetStudent?.name || "Siswa Terdaftar",
                                             studentUsername: tokenTargetStudent?.username || "-",
                                             className: tokenTargetStudent?.class?.name || null,
@@ -1039,6 +1111,27 @@ export default function AdministrasiSiswaPage() {
                                     <div className="font-mono text-muted-foreground">NIS: {tokenTargetStudent.username} - Kelas: {tokenTargetStudent.class?.name || "-"}</div>
                                 </div>
                             )}
+
+                            <div className="space-y-2">
+                                <Label htmlFor="token-scope">Masa Berlaku Dispensasi</Label>
+                                <Select value={tokenScope} onValueChange={(val: any) => setTokenScope(val)}>
+                                    <SelectTrigger id="token-scope">
+                                        <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="session">Per Sesi / Jam (Hanya 1 Sesi Ujian Saat Ini)</SelectItem>
+                                        <SelectItem value="daily">Harian (Hanya Berlaku Hari Ini s.d. 23:59)</SelectItem>
+                                        <SelectItem value="weekly">Mingguan (1 Pekan / 7 Hari ke Depan)</SelectItem>
+                                        <SelectItem value="permanent">Selamanya (Sampai Diubah Petugas)</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                                <p className="text-[11px] text-muted-foreground">
+                                    {tokenScope === "session" && "Siswa hanya bisa membuka 1 sesi ujian saat ini. Sesi berikutnya akan terkunci lagi."}
+                                    {tokenScope === "daily" && "Siswa bebas mengikuti semua ujian hari ini. Besok pagi akan otomatis terkunci kembali."}
+                                    {tokenScope === "weekly" && "Dispensasi aktif selama 7 hari untuk seluruh rangkaian ujian pekan ini."}
+                                    {tokenScope === "permanent" && "Dispensasi aktif terus menerus sampai pihak TU mengubah statusnya secara manual."}
+                                </p>
+                            </div>
 
                             <div className="space-y-2">
                                 <Label htmlFor="custom-token">Kode Token (Opsional)</Label>

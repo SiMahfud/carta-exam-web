@@ -21,6 +21,7 @@ export const GET = (req: Request) => apiHandler(async () => {
         .select({
             id: administrativeTokens.id,
             token: administrativeTokens.token,
+            scope: administrativeTokens.scope,
             studentId: administrativeTokens.studentId,
             studentName: users.name,
             studentUsername: users.username,
@@ -43,7 +44,10 @@ export const GET = (req: Request) => apiHandler(async () => {
 export const POST = (req: Request) => apiHandler(async () => {
     const user = await requireAuth(["admin", "teacher"]);
     const body = await req.json();
-    const { studentId, customToken, notes, expiresAt } = body;
+    const { studentId, customToken, notes, expiresAt, scope: bodyScope } = body;
+    const scope = (bodyScope && ["session", "daily", "weekly", "permanent"].includes(bodyScope))
+        ? bodyScope
+        : "daily";
 
     let token = customToken ? String(customToken).trim().toUpperCase() : generateRandomToken(6);
 
@@ -61,19 +65,33 @@ export const POST = (req: Request) => apiHandler(async () => {
         attempts++;
     }
 
-    // Default expiration: end of current day (23:59:59)
+    // Set token expiration based on scope if not explicitly overridden
     let expirationDate: Date;
     if (expiresAt) {
         expirationDate = new Date(expiresAt);
     } else {
         expirationDate = new Date();
-        expirationDate.setHours(23, 59, 59, 999);
+        if (scope === "session") {
+            // Valid for next 4 hours
+            expirationDate = new Date(Date.now() + 4 * 60 * 60 * 1000);
+        } else if (scope === "weekly") {
+            // Valid for next 7 days
+            expirationDate = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+            expirationDate.setHours(23, 59, 59, 999);
+        } else if (scope === "permanent") {
+            // Valid for 30 days
+            expirationDate = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+        } else {
+            // Daily: until 23:59:59 tonight
+            expirationDate.setHours(23, 59, 59, 999);
+        }
     }
 
     const id = crypto.randomUUID();
     const newToken = {
         id,
         token,
+        scope,
         studentId: studentId || null,
         expiresAt: expirationDate,
         isUsed: false,

@@ -462,6 +462,7 @@ export const studentClearances = mysqlTable("student_clearances", {
 export const administrativeTokens = mysqlTable("administrative_tokens", {
     id: varchar("id", { length: 36 }).primaryKey().$defaultFn(() => crypto.randomUUID()),
     token: varchar("token", { length: 32 }).notNull().unique(),
+    scope: varchar("scope", { length: 20, enum: ["session", "daily", "weekly", "permanent"] }).notNull().default("daily"),
     studentId: varchar("student_id", { length: 36 }).references(() => users.id, { onDelete: "cascade" }),
     expiresAt: datetime("expires_at").notNull(),
     isUsed: boolean("is_used").default(false),

@@ -91,14 +91,19 @@ export async function GET(request: Request) {
             .where(eq(studentClearances.studentId, studentId))
             .limit(1);
 
+        const now = new Date();
+        const isLocked = studentClearance && (
+            studentClearance.status === "locked" ||
+            (studentClearance.status === "dispensation" && studentClearance.validUntil && new Date(studentClearance.validUntil) < now)
+        );
+
         const clearance = {
-            status: studentClearance?.status || "cleared",
-            isLocked: studentClearance?.status === "locked",
+            status: isLocked ? "locked" : (studentClearance?.status || "cleared"),
+            isLocked: !!isLocked,
             notes: studentClearance?.notes || null,
         };
 
         // Enhance sessions with submission status
-        const now = new Date();
         const enhancedSessions = assignedSessions.map((session: typeof assignedSessions[0]) => {
             const submission = studentSubmissions.find((s: typeof studentSubmissions[0]) => s.sessionId === session.id);
 

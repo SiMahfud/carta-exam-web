@@ -113,14 +113,19 @@ export async function POST(
         }
 
         // Administrative Clearance Verification
-        // If student is administratively locked, require an administrative dispensation token
+        // If student is administratively locked or dispensation expired, require an administrative dispensation token
         const [studentClearance] = await (db as any)
             .select()
             .from(studentClearances)
             .where(eq(studentClearances.studentId, studentId))
             .limit(1);
 
-        if (studentClearance && studentClearance.status === "locked") {
+        const isClearanceBlocked = studentClearance && (
+            studentClearance.status === "locked" ||
+            (studentClearance.status === "dispensation" && studentClearance.validUntil && new Date(studentClearance.validUntil) < now)
+        );
+
+        if (isClearanceBlocked) {
             const adminToken = bodyAdminToken ? String(bodyAdminToken).trim().toUpperCase() : null;
 
             if (!adminToken) {
@@ -144,7 +149,6 @@ export async function POST(
                 ))
                 .limit(1);
 
-            const now = new Date();
             const isTokenExpired = validAdminToken && new Date(validAdminToken.expiresAt) < now;
             const isWrongStudent = validAdminToken && validAdminToken.studentId && validAdminToken.studentId !== studentId;
 
@@ -167,12 +171,40 @@ export async function POST(
                 })
                 .where(eq(administrativeTokens.id, validAdminToken.id));
 
-            // Update student's clearance status to 'dispensation'
+            // Determine dispensation validity based on token scope:
+            // - session: only valid for this session (status remains locked for next sessions)
+            // - daily: valid until 23:59:59 tonight
+            // - weekly: valid for next 7 days
+            // - permanent: valid indefinitely
+            const tokenScope = validAdminToken.scope || "daily";
+            let newStatus = "dispensation";
+            let validUntilDate: Date | null = null;
+            let noteText = `Dispensasi aktif via Token: ${adminToken}`;
+
+            if (tokenScope === "session") {
+                newStatus = "locked"; // remains locked for next sessions!
+                noteText = `Dispensasi sesi ini via Token: ${adminToken}`;
+            } else if (tokenScope === "weekly") {
+                validUntilDate = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+                validUntilDate.setHours(23, 59, 59, 999);
+                noteText = `Dispensasi 1 pekan via Token: ${adminToken}`;
+            } else if (tokenScope === "permanent") {
+                validUntilDate = null;
+                noteText = `Dispensasi penuh via Token: ${adminToken}`;
+            } else {
+                // daily (default)
+                validUntilDate = new Date();
+                validUntilDate.setHours(23, 59, 59, 999);
+                noteText = `Dispensasi harian via Token: ${adminToken}`;
+            }
+
+            // Update student's clearance status
             await (db as any)
                 .update(studentClearances)
                 .set({
-                    status: "dispensation",
-                    notes: `Dispensasi aktif via Token: ${adminToken}`,
+                    status: newStatus,
+                    validUntil: validUntilDate,
+                    notes: noteText,
                     updatedAt: now,
                 })
                 .where(eq(studentClearances.id, studentClearance.id));

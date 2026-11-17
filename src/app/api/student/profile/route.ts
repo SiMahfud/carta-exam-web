@@ -62,10 +62,14 @@ export async function GET() {
             .where(eq(studentClearances.studentId, sessionUser.id))
             .limit(1);
 
-        const clearance = clearanceData || {
-            status: "cleared",
-            notes: null,
-            validUntil: null,
+        const now = new Date();
+        const isExpired = clearanceData && clearanceData.status === "dispensation" && clearanceData.validUntil && new Date(clearanceData.validUntil) < now;
+        const clearanceStatus = isExpired ? "locked" : (clearanceData?.status || "cleared");
+
+        const clearance = {
+            status: clearanceStatus,
+            notes: clearanceData?.notes || null,
+            validUntil: clearanceData?.validUntil || null,
         };
 
         return NextResponse.json({

@@ -17,6 +17,7 @@ interface PrintDispensasiModalProps {
     onOpenChange: (open: boolean) => void;
     tokenData: {
         token: string;
+        scope?: "session" | "daily" | "weekly" | "permanent" | string | null;
         studentName?: string | null;
         studentUsername?: string | null;
         className?: string | null;
@@ -88,10 +89,19 @@ export function PrintDispensasiModal({
                         </div>
                     </div>
 
-                    {/* Expiration and Notes */}
+                    {/* Expiration, Scope and Notes */}
                     <div className="text-[11px] space-y-1 border-t pt-2 border-slate-200">
                         <div className="flex justify-between">
-                            <span className="text-slate-500">Masa Berlaku:</span>
+                            <span className="text-slate-500">Lingkup Dispensasi:</span>
+                            <span className="font-bold text-slate-900">
+                                {tokenData.scope === "session" ? "1 Sesi Ujian Saja (Per Jam/Mapel)" :
+                                 tokenData.scope === "weekly" ? "Mingguan (1 Pekan Penuh)" :
+                                 tokenData.scope === "permanent" ? "Bebas Sepanjang Ujian" :
+                                 "Harian (1 Hari Ini)"}
+                            </span>
+                        </div>
+                        <div className="flex justify-between">
+                            <span className="text-slate-500">Batas Kedaluwarsa:</span>
                             <span className="font-medium text-slate-800">
                                 s.d. {format(new Date(tokenData.expiresAt), "dd MMM yyyy, HH:mm", { locale: idLocale })}
                             </span>

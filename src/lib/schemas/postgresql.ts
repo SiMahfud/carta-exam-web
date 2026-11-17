@@ -454,6 +454,7 @@ export const studentClearances = pgTable("student_clearances", {
 export const administrativeTokens = pgTable("administrative_tokens", {
     id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
     token: text("token").notNull().unique(),
+    scope: text("scope", { enum: ["session", "daily", "weekly", "permanent"] }).notNull().default("daily"),
     studentId: text("student_id").references(() => users.id, { onDelete: "cascade" }),
     expiresAt: timestamp("expires_at").notNull(),
     isUsed: boolean("is_used").default(false),
