@@ -6,7 +6,14 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { ArrowLeft, RefreshCw, Users, PlayCircle, CheckCircle, AlertTriangle, Clock, Eye, Key, Copy, RotateCcw } from "lucide-react";
+import { ArrowLeft, RefreshCw, Users, PlayCircle, CheckCircle, AlertTriangle, Clock, Eye, Key, Copy, RotateCcw, MoreHorizontal } from "lucide-react";
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuSeparator,
+    DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import {
     AlertDialog,
     AlertDialogAction,
@@ -595,26 +602,26 @@ export default function SessionMonitorPage() {
         <div className="space-y-6">
             {/* Header */}
             <div className="flex flex-col md:flex-row justify-between gap-4 items-start md:items-center">
-                <div className="flex items-center gap-4">
+                <div className="flex items-center gap-3 sm:gap-4">
                     <Link href="/admin/exam-sessions">
-                        <Button variant="ghost" size="icon">
+                        <Button variant="ghost" size="icon" className="h-8 w-8 sm:h-9 sm:w-9">
                             <ArrowLeft className="h-4 w-4" />
                         </Button>
                     </Link>
                     <div>
-                        <div className="flex items-center gap-2">
-                            <h2 className="text-2xl font-bold tracking-tight">{session.name}</h2>
-                            <Badge variant={session.status === 'active' ? 'default' : 'secondary'}>
+                        <div className="flex items-center gap-2 flex-wrap">
+                            <h2 className="text-xl sm:text-2xl font-bold tracking-tight break-words">{session.name}</h2>
+                            <Badge variant={session.status === 'active' ? 'default' : 'secondary'} className="text-xs">
                                 {session.status === 'active' ? 'Sedang Berlangsung' : session.status}
                             </Badge>
                         </div>
-                        <p className="text-muted-foreground flex items-center gap-2 text-sm mt-1">
+                        <p className="text-muted-foreground flex items-center gap-2 text-xs sm:text-sm mt-1">
                             <Clock className="h-3 w-3" />
                             {format(new Date(session.startTime), "d MMM HH:mm", { locale: idLocale })} - {format(new Date(session.endTime), "HH:mm")}
                         </p>
                     </div>
                 </div>
-                <div className="flex gap-2 items-center flex-wrap">
+                <div className="flex gap-2 items-center flex-wrap w-full sm:w-auto">
                     <Button
                         variant={liveAutoRefresh ? "default" : "outline"}
                         size="sm"
@@ -675,41 +682,41 @@ export default function SessionMonitorPage() {
             </div>
 
             {/* Stats Cards */}
-            <div className="grid gap-4 md:grid-cols-4">
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
                 <Card>
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">Total Peserta</CardTitle>
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 p-3 sm:p-4 pb-1 sm:pb-2">
+                        <CardTitle className="text-xs sm:text-sm font-medium">Total Peserta</CardTitle>
                         <Users className="h-4 w-4 text-muted-foreground" />
                     </CardHeader>
-                    <CardContent>
-                        <div className="text-2xl font-bold">{stats.total}</div>
+                    <CardContent className="p-3 sm:p-4 pt-0 sm:pt-0">
+                        <div className="text-xl sm:text-2xl font-bold">{stats.total}</div>
                     </CardContent>
                 </Card>
                 <Card>
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">Sedang Mengerjakan</CardTitle>
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 p-3 sm:p-4 pb-1 sm:pb-2">
+                        <CardTitle className="text-xs sm:text-sm font-medium">Mengerjakan</CardTitle>
                         <PlayCircle className="h-4 w-4 text-blue-500" />
                     </CardHeader>
-                    <CardContent>
-                        <div className="text-2xl font-bold">{stats.inProgress}</div>
+                    <CardContent className="p-3 sm:p-4 pt-0 sm:pt-0">
+                        <div className="text-xl sm:text-2xl font-bold">{stats.inProgress}</div>
                     </CardContent>
                 </Card>
                 <Card>
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">Selesai</CardTitle>
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 p-3 sm:p-4 pb-1 sm:pb-2">
+                        <CardTitle className="text-xs sm:text-sm font-medium">Selesai</CardTitle>
                         <CheckCircle className="h-4 w-4 text-green-500" />
                     </CardHeader>
-                    <CardContent>
-                        <div className="text-2xl font-bold">{stats.completed}</div>
+                    <CardContent className="p-3 sm:p-4 pt-0 sm:pt-0">
+                        <div className="text-xl sm:text-2xl font-bold">{stats.completed}</div>
                     </CardContent>
                 </Card>
                 <Card>
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">Pelanggaran</CardTitle>
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 p-3 sm:p-4 pb-1 sm:pb-2">
+                        <CardTitle className="text-xs sm:text-sm font-medium">Pelanggaran</CardTitle>
                         <AlertTriangle className="h-4 w-4 text-yellow-500" />
                     </CardHeader>
-                    <CardContent>
-                        <div className="text-2xl font-bold">{stats.violations}</div>
+                    <CardContent className="p-3 sm:p-4 pt-0 sm:pt-0">
+                        <div className="text-xl sm:text-2xl font-bold">{stats.violations}</div>
                     </CardContent>
                 </Card>
             </div>
@@ -769,19 +776,19 @@ export default function SessionMonitorPage() {
             )}
 
             {/* Filters and Actions */}
-            <Card className="p-4">
-                <div className="flex flex-col lg:flex-row gap-4 justify-between">
+            <Card className="p-3 sm:p-4">
+                <div className="flex flex-col lg:flex-row gap-3 sm:gap-4 justify-between">
                     {/* Search and Filter */}
-                    <div className="flex flex-wrap gap-3 items-center">
+                    <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 w-full lg:w-auto">
                         <input
                             type="text"
                             placeholder="Cari nama siswa..."
-                            className="flex h-9 w-full sm:w-52 rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+                            className="flex h-9 w-full sm:w-56 rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
                         />
                         <select
-                            className="flex h-9 rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring disabled:cursor-not-allowed disabled:opacity-50 w-36"
+                            className="flex h-9 w-full sm:w-40 rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
                             value={classFilter}
                             onChange={(e) => setClassFilter(e.target.value)}
                         >
@@ -793,13 +800,13 @@ export default function SessionMonitorPage() {
                     </div>
 
                     {/* Actions */}
-                    <div className="flex flex-wrap gap-2 items-center">
-                        <span className="text-sm text-muted-foreground whitespace-nowrap">
+                    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between sm:justify-end gap-2 pt-2 lg:pt-0 border-t lg:border-t-0">
+                        <span className="text-xs sm:text-sm text-muted-foreground whitespace-nowrap">
                             {selectedStudentIds.length} dipilih
                         </span>
-                        <div className="flex flex-wrap gap-2 items-center">
+                        <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
                             <select
-                                className="flex h-9 rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring disabled:cursor-not-allowed disabled:opacity-50 w-44"
+                                className="flex h-9 rounded-md border border-input bg-background px-2 sm:px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring disabled:cursor-not-allowed disabled:opacity-50 flex-1 sm:w-44"
                                 value={selectedAction}
                                 onChange={(e) => setSelectedAction(e.target.value)}
                                 disabled={selectedStudentIds.length === 0}
@@ -814,7 +821,7 @@ export default function SessionMonitorPage() {
                             </select>
                             {selectedAction === 'add_time' && (
                                 <select
-                                    className="flex h-9 rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring w-28"
+                                    className="flex h-9 rounded-md border border-input bg-background px-2 sm:px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring w-24 sm:w-28"
                                     value={selectedMinutes}
                                     onChange={(e) => setSelectedMinutes(parseInt(e.target.value))}
                                 >
@@ -829,6 +836,7 @@ export default function SessionMonitorPage() {
                                 size="sm"
                                 onClick={() => setActionDialogOpen(true)}
                                 disabled={!selectedAction || selectedStudentIds.length === 0}
+                                className="h-9 px-3"
                             >
                                 Terapkan
                             </Button>
@@ -839,12 +847,18 @@ export default function SessionMonitorPage() {
 
             {/* Student List */}
             <Card>
-                <CardHeader>
-                    <CardTitle>Daftar Peserta</CardTitle>
+                <CardHeader className="p-4 sm:p-6 pb-3 sm:pb-4 flex flex-row items-center justify-between">
+                    <div>
+                        <CardTitle className="text-base sm:text-lg">Daftar Peserta</CardTitle>
+                        <p className="text-xs text-muted-foreground mt-0.5">
+                            Menampilkan {filteredStudents.length} dari {students.length} peserta
+                        </p>
+                    </div>
                 </CardHeader>
-                <CardContent>
-                    <div className="rounded-md border">
-                        <table className="w-full text-sm">
+                <CardContent className="p-0 sm:p-6 sm:pt-0">
+                    {/* Desktop & Tablet View (Table) */}
+                    <div className="hidden md:block rounded-md border overflow-x-auto">
+                        <table className="w-full text-sm min-w-[700px]">
                             <thead>
                                 <tr className="border-b bg-muted/50">
                                     <th className="p-4 w-10">
@@ -896,7 +910,7 @@ export default function SessionMonitorPage() {
                                                         student.hasEssays ? " • belum termasuk essay" : ""
                                                     }${
                                                         student.totalQuestions
-                                                            ? ` • ${student.answeredCount ?? 0}/${student.totalQuestions} soal dijawab`
+                                                             ? ` • ${student.answeredCount ?? 0}/${student.totalQuestions} soal dijawab`
                                                             : ""
                                                     }`}
                                                 >
@@ -936,26 +950,11 @@ export default function SessionMonitorPage() {
                                                             onClick={() => handleSingleProctorAction(student.id, "reset_violations")}
                                                             title="Reset jumlah pelanggaran siswa ke 0"
                                                         >
-                                                            Reset Pelanggaran
+                                                            Reset
                                                         </Button>
                                                     </>
                                                 )}
-                                                {student.status === "in_progress" && (
-                                                    <Button
-                                                        variant="ghost"
-                                                        size="sm"
-                                                        className="h-8 px-2 text-xs text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-950/40"
-                                                        onClick={() => {
-                                                            if (confirm(`Kumpulkan paksa ujian untuk ${student.name}? Nilai akan dihitung berdasarkan jawaban yang telah tersimpan.`)) {
-                                                                handleSingleProctorAction(student.id, "force_submit");
-                                                            }
-                                                        }}
-                                                        title="Paksa Kumpulkan Ujian & Hitung Nilai Sekarang"
-                                                    >
-                                                        Paksa Selesai
-                                                    </Button>
-                                                )}
-                                                {(student.status === "in_progress" || student.status === "terminated") && (
+                                                {student.status === "terminated" && (
                                                     <>
                                                         <Button
                                                             variant="ghost"
@@ -978,19 +977,54 @@ export default function SessionMonitorPage() {
                                                     </>
                                                 )}
                                                 {student.status !== "not_started" && (
-                                                    <Button
-                                                        variant="ghost"
-                                                        size="sm"
-                                                        className="h-8 px-2 text-xs text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40"
-                                                        onClick={() => {
-                                                            if (confirm(`PERINGATAN: Apakah Anda yakin ingin mereset ujian siswa ${student.name} dari awal? Seluruh jawaban tersimpan akan dihapus dan siswa akan diminta mengerjakan dari awal.`)) {
-                                                                handleSingleProctorAction(student.id, "retake");
-                                                            }
-                                                        }}
-                                                        title="Reset Ujian Siswa (Mulai Ulang dari Awal)"
-                                                    >
-                                                        Ulang Ujian
-                                                    </Button>
+                                                    <DropdownMenu>
+                                                        <DropdownMenuTrigger asChild>
+                                                            <Button
+                                                                variant="ghost"
+                                                                size="sm"
+                                                                className="h-8 w-8 p-0 text-muted-foreground hover:text-foreground"
+                                                                title="Menu Aksi Tambahan"
+                                                            >
+                                                                <MoreHorizontal className="h-4 w-4" />
+                                                            </Button>
+                                                        </DropdownMenuTrigger>
+                                                        <DropdownMenuContent align="end" className="w-44">
+                                                            {student.status === "in_progress" && (
+                                                                <DropdownMenuItem
+                                                                    className="text-emerald-600 focus:text-emerald-600 cursor-pointer text-xs"
+                                                                    onClick={() => {
+                                                                        if (confirm(`Kumpulkan paksa ujian untuk ${student.name}? Nilai akan dihitung dari jawaban yang tersimpan saat ini.`)) {
+                                                                            handleSingleProctorAction(student.id, "force_submit");
+                                                                        }
+                                                                    }}
+                                                                >
+                                                                    <CheckCircle className="h-3.5 w-3.5 mr-2" />
+                                                                    Paksa Selesai
+                                                                </DropdownMenuItem>
+                                                            )}
+                                                            {student.status === "in_progress" && (
+                                                                <DropdownMenuItem
+                                                                    className="text-purple-600 focus:text-purple-600 cursor-pointer text-xs"
+                                                                    onClick={() => handleSingleProctorAction(student.id, "reset_device")}
+                                                                >
+                                                                    <Key className="h-3.5 w-3.5 mr-2" />
+                                                                    Reset Device
+                                                                </DropdownMenuItem>
+                                                            )}
+                                                            <DropdownMenuSeparator />
+                                                            <DropdownMenuItem
+                                                                className="text-rose-600 focus:text-rose-600 cursor-pointer text-xs"
+                                                                onClick={() => {
+                                                                    if (confirm(`PERINGATAN: Apakah Anda yakin ingin mereset ujian siswa ${student.name} dari awal? Seluruh jawaban tersimpan akan dihapus dan siswa akan diminta mengerjakan ulang dari awal.`)) {
+                                                                        handleSingleProctorAction(student.id, "retake");
+                                                                    }
+                                                                }}
+                                                            >
+                                                                <RotateCcw className="h-3.5 w-3.5 mr-2" />
+                                                                Ulang Ujian (Reset)
+                                                            </DropdownMenuItem>
+                                                        </DropdownMenuContent>
+                                                    </DropdownMenu>
                                                 )}
                                             </div>
                                         </td>
@@ -1006,12 +1040,212 @@ export default function SessionMonitorPage() {
                             </tbody>
                         </table>
                     </div>
+
+                    {/* Mobile View (Card List) */}
+                    <div className="block md:hidden border rounded-md overflow-hidden">
+                        {/* Mobile Select All Bar */}
+                        {filteredStudents.length > 0 && (
+                            <div className="flex items-center justify-between p-3 border-b bg-muted/40">
+                                <label className="flex items-center gap-2 text-xs font-medium cursor-pointer select-none">
+                                    <input
+                                        type="checkbox"
+                                        checked={filteredStudents.length > 0 && selectedStudentIds.length === filteredStudents.length}
+                                        onChange={(e) => handleSelectAll(e.target.checked)}
+                                        className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+                                    />
+                                    <span>Pilih Semua ({filteredStudents.length})</span>
+                                </label>
+                                <span className="text-xs text-muted-foreground">
+                                    {selectedStudentIds.length} dipilih
+                                </span>
+                            </div>
+                        )}
+
+                        {/* Mobile Student Cards */}
+                        <div className="divide-y divide-border">
+                            {filteredStudents.map((student) => (
+                                <div
+                                    key={student.id}
+                                    className={`p-3 space-y-2 transition-colors ${
+                                        selectedStudentIds.includes(student.id) ? "bg-primary/5" : "hover:bg-muted/30"
+                                    }`}
+                                >
+                                    {/* Top Row: Checkbox, Name, Class & Status Badge */}
+                                    <div className="flex items-start justify-between gap-2">
+                                        <div className="flex items-start gap-2.5 min-w-0">
+                                            <input
+                                                type="checkbox"
+                                                checked={selectedStudentIds.includes(student.id)}
+                                                onChange={(e) => handleSelectStudent(student.id, e.target.checked)}
+                                                className="h-4 w-4 mt-0.5 rounded border-gray-300 text-primary focus:ring-primary flex-shrink-0"
+                                            />
+                                            <div className="min-w-0">
+                                                <p className="font-semibold text-sm leading-tight break-words">
+                                                    {student.name}
+                                                </p>
+                                                <span className="text-xs text-muted-foreground font-mono">
+                                                    {student.className}
+                                                </span>
+                                            </div>
+                                        </div>
+                                        <div className="flex-shrink-0">
+                                            {getStatusBadge(student.status)}
+                                        </div>
+                                    </div>
+
+                                    {/* Metrics Grid: Mulai, Pelanggaran, Nilai */}
+                                    <div className="grid grid-cols-3 gap-2 py-1.5 px-2.5 bg-muted/30 rounded-md text-xs">
+                                        <div>
+                                            <span className="text-[10px] text-muted-foreground block uppercase font-medium">Mulai</span>
+                                            <span className="font-mono text-xs">
+                                                {student.startTime ? format(new Date(student.startTime), "HH:mm") : "-"}
+                                            </span>
+                                        </div>
+                                        <div>
+                                            <span className="text-[10px] text-muted-foreground block uppercase font-medium">Pelanggaran</span>
+                                            {student.violationCount > 0 ? (
+                                                <Badge variant="destructive" className="h-4 px-1.5 text-[10px]">
+                                                    {student.violationCount}
+                                                </Badge>
+                                            ) : (
+                                                <span className="text-muted-foreground">-</span>
+                                            )}
+                                        </div>
+                                        <div>
+                                            <span className="text-[10px] text-muted-foreground block uppercase font-medium">Nilai</span>
+                                            {student.status === "in_progress" ? (
+                                                <div className="inline-flex items-center gap-1">
+                                                    <span className="font-semibold text-blue-600 dark:text-blue-400">
+                                                        {student.score !== null ? student.score : 0}
+                                                    </span>
+                                                    <Badge
+                                                        variant="outline"
+                                                        className="text-[9px] px-1 py-0 h-3.5 border-blue-300 text-blue-600 bg-blue-50 dark:bg-blue-950/40 dark:text-blue-400 font-normal"
+                                                    >
+                                                        Smt
+                                                    </Badge>
+                                                </div>
+                                            ) : student.score !== null ? (
+                                                <span className="font-semibold">{student.score}</span>
+                                            ) : (
+                                                <span className="text-muted-foreground">-</span>
+                                            )}
+                                        </div>
+                                    </div>
+
+                                    {/* Action Row */}
+                                    <div className="flex items-center justify-between gap-1 pt-1">
+                                        <div className="flex items-center gap-1.5 flex-wrap">
+                                            {student.violationCount > 0 && (
+                                                <>
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="sm"
+                                                        className="h-7 px-2 text-xs"
+                                                        onClick={() => handleViewViolations(student)}
+                                                    >
+                                                        <Eye className="h-3 w-3 mr-1" />
+                                                        Lihat
+                                                    </Button>
+                                                    <Button
+                                                        variant="outline"
+                                                        size="sm"
+                                                        className="h-7 px-2 text-xs text-amber-600 border-amber-300 hover:bg-amber-50 dark:border-amber-800 dark:hover:bg-amber-950/40"
+                                                        onClick={() => handleSingleProctorAction(student.id, "reset_violations")}
+                                                    >
+                                                        Reset
+                                                    </Button>
+                                                </>
+                                            )}
+                                            {student.status === "terminated" && (
+                                                <>
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="sm"
+                                                        className="h-7 px-2 text-xs text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-950/40"
+                                                        onClick={() => handleSingleProctorAction(student.id, "unlock_session")}
+                                                    >
+                                                        Buka Kunci
+                                                    </Button>
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="sm"
+                                                        className="h-7 px-2 text-xs text-purple-600 hover:bg-purple-50 dark:hover:bg-purple-950/40"
+                                                        onClick={() => handleSingleProctorAction(student.id, "reset_device")}
+                                                    >
+                                                        Reset Device
+                                                    </Button>
+                                                </>
+                                            )}
+                                        </div>
+
+                                        {student.status !== "not_started" && (
+                                            <DropdownMenu>
+                                                <DropdownMenuTrigger asChild>
+                                                    <Button
+                                                        variant="outline"
+                                                        size="sm"
+                                                        className="h-7 px-2.5 text-xs text-muted-foreground ml-auto"
+                                                    >
+                                                        <MoreHorizontal className="h-3.5 w-3.5 mr-1" />
+                                                        Aksi
+                                                    </Button>
+                                                </DropdownMenuTrigger>
+                                                <DropdownMenuContent align="end" className="w-48">
+                                                    {student.status === "in_progress" && (
+                                                        <DropdownMenuItem
+                                                            className="text-emerald-600 focus:text-emerald-600 cursor-pointer text-xs"
+                                                            onClick={() => {
+                                                                if (confirm(`Kumpulkan paksa ujian untuk ${student.name}? Nilai akan dihitung dari jawaban yang tersimpan saat ini.`)) {
+                                                                    handleSingleProctorAction(student.id, "force_submit");
+                                                                }
+                                                            }}
+                                                        >
+                                                            <CheckCircle className="h-3.5 w-3.5 mr-2" />
+                                                            Paksa Selesai
+                                                        </DropdownMenuItem>
+                                                    )}
+                                                    {student.status === "in_progress" && (
+                                                        <DropdownMenuItem
+                                                            className="text-purple-600 focus:text-purple-600 cursor-pointer text-xs"
+                                                            onClick={() => handleSingleProctorAction(student.id, "reset_device")}
+                                                        >
+                                                            <Key className="h-3.5 w-3.5 mr-2" />
+                                                            Reset Device
+                                                        </DropdownMenuItem>
+                                                    )}
+                                                    <DropdownMenuSeparator />
+                                                    <DropdownMenuItem
+                                                        className="text-rose-600 focus:text-rose-600 cursor-pointer text-xs"
+                                                        onClick={() => {
+                                                            if (confirm(`PERINGATAN: Apakah Anda yakin ingin mereset ujian siswa ${student.name} dari awal? Seluruh jawaban tersimpan akan dihapus dan siswa akan diminta mengerjakan ulang dari awal.`)) {
+                                                                handleSingleProctorAction(student.id, "retake");
+                                                            }
+                                                        }}
+                                                    >
+                                                        <RotateCcw className="h-3.5 w-3.5 mr-2" />
+                                                        Ulang Ujian (Reset)
+                                                    </DropdownMenuItem>
+                                                </DropdownMenuContent>
+                                            </DropdownMenu>
+                                        )}
+                                    </div>
+                                </div>
+                            ))}
+
+                            {filteredStudents.length === 0 && (
+                                <div className="p-6 text-center text-sm text-muted-foreground">
+                                    Tidak ada peserta yang sesuai filter
+                                </div>
+                            )}
+                        </div>
+                    </div>
                 </CardContent>
             </Card>
 
             {/* Action Confirmation Dialog */}
             <Dialog open={actionDialogOpen} onOpenChange={setActionDialogOpen}>
-                <DialogContent>
+                <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto p-4 sm:p-6">
                     <DialogHeader>
                         <DialogTitle>Konfirmasi Aksi</DialogTitle>
                         <DialogDescription>
@@ -1025,7 +1259,7 @@ export default function SessionMonitorPage() {
                             </strong> pada {selectedStudentIds.length} peserta yang dipilih?
                         </DialogDescription>
                     </DialogHeader>
-                    <div className="flex justify-end gap-4 mt-4">
+                    <div className="flex justify-end gap-3 mt-4">
                         <Button variant="outline" onClick={() => setActionDialogOpen(false)}>
                             Batal
                         </Button>
@@ -1038,7 +1272,7 @@ export default function SessionMonitorPage() {
 
             {/* Violations Dialog */}
             <Dialog open={violationsDialogOpen} onOpenChange={setViolationsDialogOpen}>
-                <DialogContent className="max-w-2xl">
+                <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto p-4 sm:p-6">
                     <DialogHeader>
                         <DialogTitle>Detail Pelanggaran</DialogTitle>
                         <DialogDescription>
@@ -1056,27 +1290,27 @@ export default function SessionMonitorPage() {
                                 Tidak ada pelanggaran
                             </div>
                         ) : (
-                            <div className="space-y-3 max-h-96 overflow-y-auto">
+                            <div className="space-y-3 max-h-[60vh] overflow-y-auto pr-1">
                                 {violations.map((violation, idx) => (
-                                    <div key={idx} className="flex gap-4 p-4 bg-muted/30 rounded-lg border">
+                                    <div key={idx} className="flex gap-3 sm:gap-4 p-3 sm:p-4 bg-muted/30 rounded-lg border">
                                         <div className="flex-shrink-0">
-                                            <div className="w-10 h-10 rounded-full bg-destructive/20 flex items-center justify-center">
-                                                <AlertTriangle className="h-5 w-5 text-destructive" />
+                                            <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-destructive/20 flex items-center justify-center">
+                                                <AlertTriangle className="h-4 w-4 sm:h-5 sm:w-5 text-destructive" />
                                             </div>
                                         </div>
-                                        <div className="flex-1">
-                                            <div className="flex justify-between items-start">
-                                                <div>
-                                                    <h4 className="font-semibold text-sm">
+                                        <div className="flex-1 min-w-0">
+                                            <div className="flex justify-between items-start gap-2">
+                                                <div className="min-w-0">
+                                                    <h4 className="font-semibold text-xs sm:text-sm truncate">
                                                         {getViolationTypeLabel(violation.type)}
                                                     </h4>
                                                     {violation.details && (
-                                                        <p className="text-sm text-muted-foreground mt-1">
+                                                        <p className="text-xs sm:text-sm text-muted-foreground mt-1 break-words">
                                                             {violation.details}
                                                         </p>
                                                     )}
                                                 </div>
-                                                <Badge variant="outline" className="text-xs">
+                                                <Badge variant="outline" className="text-[10px] sm:text-xs flex-shrink-0">
                                                     {format(new Date(violation.timestamp), "HH:mm:ss")}
                                                 </Badge>
                                             </div>
@@ -1091,7 +1325,7 @@ export default function SessionMonitorPage() {
 
             {/* Dialog Konfirmasi Sinkronkan Skor */}
             <AlertDialog open={resyncDialogOpen} onOpenChange={setResyncDialogOpen}>
-                <AlertDialogContent>
+                <AlertDialogContent className="max-w-md max-h-[90vh] overflow-y-auto p-4 sm:p-6">
                     <AlertDialogHeader>
                         <AlertDialogTitle className="flex items-center gap-2">
                             <RotateCcw className="h-5 w-5 text-primary" />
