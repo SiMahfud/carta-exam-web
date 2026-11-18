@@ -1189,7 +1189,7 @@ export default function TakeExamPage() {
         return (
             <TerminatedExamView
                 violationCount={violationCount}
-                message={terminatedMessage || "Ujian Anda telah dihentikan karena melebihi batas pelanggaran yang diizinkan."}
+                message={terminatedMessage || "Ujian Anda telah dihentikan karena terdeteksi meninggalkan halaman ujian atau melebihi batas pelanggaran."}
                 onReturn={() => router.push("/student/exams")}
                 onRetry={async () => {
                     setLoading(true);

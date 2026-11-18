@@ -172,7 +172,7 @@ export async function POST(
 
         let terminateMessage = "Batas pelanggaran tercapai. Ujian dihentikan.";
         if (isAwayTimeout) {
-            terminateMessage = `Ujian dihentikan karena meninggalkan halaman ujian selama ${awaySeconds || configuredMaxAway} detik (batas maksimal ${configuredMaxAway} detik). Hubungi pengawas untuk membuka kembali ujian Anda.`;
+            terminateMessage = "Ujian dihentikan karena terdeteksi meninggalkan halaman ujian terlalu lama. Hubungi pengawas untuk membuka kembali ujian Anda.";
         }
 
         // Update submission

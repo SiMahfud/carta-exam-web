@@ -206,7 +206,9 @@ export function ViolationDetailDialog({
                                             </div>
                                             {log.details && (
                                                 <p className="text-muted-foreground text-[11px] mt-0.5 break-words">
-                                                    {log.details}
+                                                    {log.type === "AWAY_TIMEOUT" || log.type === "away_timeout"
+                                                        ? "Terdeteksi meninggalkan halaman ujian terlalu lama."
+                                                        : log.details}
                                                 </p>
                                             )}
                                         </div>
