@@ -129,7 +129,7 @@ export function FullscreenLockoutOverlay({
                             ? "Aplikasi mengambang (pop-up window) atau aplikasi luar terdeteksi aktif. Harap tutup semua aplikasi luar sebelum melanjutkan."
                             : isGracePeriod
                             ? "Jangan panik! Jika tidak sengaja menekan tombol kembali, segera ketuk layar untuk kembali ke layar penuh tanpa tercatat sebagai pelanggaran."
-                            : "Batas toleransi telah habis. Keluar dari layar penuh telah dicatat dalam log ujian. Harap segera kembali ke mode layar penuh untuk melanjutkan."}
+                            : "Keluar dari mode layar penuh telah dicatat sebagai pelanggaran dalam log ujian. Harap segera kembali ke mode layar penuh untuk melanjutkan."}
                     </p>
 
                     {/* Informative Tap-to-recover instruction box */}
