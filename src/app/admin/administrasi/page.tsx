@@ -111,6 +111,7 @@ export default function AdministrasiSiswaPage() {
     const [selectedStatus, setSelectedStatus] = useState("all");
     const [selectedStudentIds, setSelectedStudentIds] = useState<string[]>([]);
     const [stats, setStats] = useState({ total: 0, locked: 0, dispensation: 0, cleared: 0 });
+    const [togglingIds, setTogglingIds] = useState<Record<string, boolean>>({});
 
     // Tokens state
     const [tokens, setTokens] = useState<TokenItem[]>([]);
@@ -216,63 +217,173 @@ export default function AdministrasiSiswaPage() {
         }
     }, [activeTab, fetchStudents, fetchTokens]);
 
-    // Quick single toggle
+    // Quick single toggle with Optimistic UI & AJAX (No full reload)
     const handleQuickToggle = async (student: StudentItem, newStatus: "locked" | "cleared") => {
+        const studentId = student.id;
+        const oldStatus = student.clearance.status;
+        if (oldStatus === newStatus) return;
+
+        const oldNotes = student.clearance.notes;
+        const newNotes = newStatus === "cleared"
+            ? "Bebas administrasi"
+            : (oldNotes && oldNotes !== "Bebas administrasi" ? oldNotes : "Belum menyelesaikan administrasi");
+
+        // 1. Mark this specific row as toggling
+        setTogglingIds(prev => ({ ...prev, [studentId]: true }));
+
+        // 2. Optimistic UI update for student
+        setStudents(prev => prev.map(s => {
+            if (s.id === studentId) {
+                return {
+                    ...s,
+                    clearance: {
+                        ...s.clearance,
+                        status: newStatus,
+                        notes: newNotes,
+                        updatedAt: new Date().toISOString()
+                    }
+                };
+            }
+            return s;
+        }));
+
+        // 3. Optimistic UI update for stats counters
+        setStats(prev => {
+            const next = { ...prev };
+            if (oldStatus === "locked") next.locked = Math.max(0, next.locked - 1);
+            else if (oldStatus === "dispensation") next.dispensation = Math.max(0, next.dispensation - 1);
+            else if (oldStatus === "cleared") next.cleared = Math.max(0, next.cleared - 1);
+
+            if (newStatus === "locked") next.locked += 1;
+            else if (newStatus === "cleared") next.cleared += 1;
+
+            return next;
+        });
+
         try {
             const res = await fetch("/api/admin/clearance", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
-                    studentIds: [student.id],
+                    studentIds: [studentId],
                     status: newStatus,
-                    notes: newStatus === "cleared" ? "Bebas administrasi" : student.clearance.notes || "Belum menyelesaikan administrasi",
+                    notes: newNotes,
                 }),
             });
 
-            if (res.ok) {
-                toast({
-                    title: "Status Berhasil Diperbarui",
-                    description: `Siswa ${student.name} sekarang berstatus: ${newStatus === "cleared" ? "Bebas Ujian" : "Terkunci"}`,
-                });
-                fetchStudents();
-            } else {
-                throw new Error("Gagal memperbarui status");
+            if (!res.ok) {
+                const errData = await res.json().catch(() => ({}));
+                throw new Error(errData.error || "Gagal mengubah status di server");
             }
-        } catch (error: any) {
+
             toast({
-                title: "Gagal",
-                description: error.message || "Gagal mengubah status",
+                title: newStatus === "cleared" ? "Akses Dibuka" : "Akses Dikunci",
+                description: `Status ${student.name} sekarang: ${newStatus === "cleared" ? "Bebas Ujian" : "Terkunci"}`,
+            });
+        } catch (error: any) {
+            // Rollback optimistic updates on error
+            setStudents(prev => prev.map(s => {
+                if (s.id === studentId) {
+                    return {
+                        ...s,
+                        clearance: {
+                            ...s.clearance,
+                            status: oldStatus,
+                            notes: oldNotes,
+                        }
+                    };
+                }
+                return s;
+            }));
+
+            setStats(prev => {
+                const next = { ...prev };
+                if (newStatus === "locked") next.locked = Math.max(0, next.locked - 1);
+                else if (newStatus === "cleared") next.cleared = Math.max(0, next.cleared - 1);
+
+                if (oldStatus === "locked") next.locked += 1;
+                else if (oldStatus === "dispensation") next.dispensation += 1;
+                else if (oldStatus === "cleared") next.cleared += 1;
+
+                return next;
+            });
+
+            toast({
+                title: "Gagal Mengubah Status",
+                description: error.message || "Gagal mengubah status administrasi",
                 variant: "destructive",
+            });
+        } finally {
+            setTogglingIds(prev => {
+                const copy = { ...prev };
+                delete copy[studentId];
+                return copy;
             });
         }
     };
 
-    // Bulk update
+    // Bulk update with Optimistic UI & AJAX (No full reload)
     const handleBulkUpdate = async (status: "locked" | "cleared") => {
         if (selectedStudentIds.length === 0) return;
+        const targetIds = [...selectedStudentIds];
+        const prevStudents = [...students];
+        const prevStats = { ...stats };
+
+        // Optimistically update students
+        setStudents(prev => prev.map(s => {
+            if (targetIds.includes(s.id)) {
+                return {
+                    ...s,
+                    clearance: {
+                        ...s.clearance,
+                        status,
+                        notes: status === "cleared" ? "Bebas administrasi masal" : "Terkunci administrasi masal",
+                        updatedAt: new Date().toISOString()
+                    }
+                };
+            }
+            return s;
+        }));
+
+        // Recalculate stats optimistically
+        let locked = 0;
+        let dispensation = 0;
+        let cleared = 0;
+        prevStudents.forEach(s => {
+            const sStatus = targetIds.includes(s.id) ? status : s.clearance.status;
+            if (sStatus === "locked") locked++;
+            else if (sStatus === "dispensation") dispensation++;
+            else if (sStatus === "cleared") cleared++;
+        });
+        setStats(prev => ({ ...prev, locked, dispensation, cleared }));
+
+        setSelectedStudentIds([]);
 
         try {
             const res = await fetch("/api/admin/clearance", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
-                    studentIds: selectedStudentIds,
+                    studentIds: targetIds,
                     status,
                     notes: status === "cleared" ? "Bebas administrasi masal" : "Terkunci administrasi masal",
                 }),
             });
 
-            if (res.ok) {
-                toast({
-                    title: "Pembaruan Masal Berhasil",
-                    description: `${selectedStudentIds.length} siswa berhasil diubah ke status: ${status === "cleared" ? "Bebas Ujian" : "Terkunci"}`,
-                });
-                setSelectedStudentIds([]);
-                fetchStudents();
-            } else {
-                throw new Error("Gagal pembaruan masal");
+            if (!res.ok) {
+                const errData = await res.json().catch(() => ({}));
+                throw new Error(errData.error || "Gagal pembaruan masal");
             }
+
+            toast({
+                title: "Pembaruan Masal Berhasil",
+                description: `${targetIds.length} siswa berhasil diubah ke status: ${status === "cleared" ? "Bebas Ujian" : "Terkunci"}`,
+            });
         } catch (error: any) {
+            // Rollback on error
+            setStudents(prevStudents);
+            setStats(prevStats);
+            setSelectedStudentIds(targetIds);
             toast({
                 title: "Gagal",
                 description: error.message || "Gagal memperbarui masal",
@@ -281,10 +392,12 @@ export default function AdministrasiSiswaPage() {
         }
     };
 
-    // Save student status dialog
+    // Save student status dialog with AJAX (No full reload)
     const handleSaveStatusDialog = async () => {
         if (!studentToEdit) return;
         setUpdatingStatus(true);
+        const oldStatus = studentToEdit.clearance.status;
+
         try {
             let validUntilDate: Date | null = null;
             if (targetStatus === "dispensation") {
@@ -313,16 +426,49 @@ export default function AdministrasiSiswaPage() {
                 }),
             });
 
-            if (res.ok) {
-                toast({
-                    title: "Berhasil",
-                    description: "Status administrasi dan catatan berhasil disimpan",
-                });
-                setStatusDialogOpen(false);
-                fetchStudents();
-            } else {
-                throw new Error("Gagal menyimpan");
+            if (!res.ok) {
+                const errData = await res.json().catch(() => ({}));
+                throw new Error(errData.error || "Gagal menyimpan");
             }
+
+            // Update student locally
+            setStudents(prev => prev.map(s => {
+                if (s.id === studentToEdit.id) {
+                    return {
+                        ...s,
+                        clearance: {
+                            ...s.clearance,
+                            status: targetStatus,
+                            notes: targetNotes,
+                            validUntil: validUntilDate?.toISOString() || null,
+                            updatedAt: new Date().toISOString()
+                        }
+                    };
+                }
+                return s;
+            }));
+
+            // Update stats
+            if (oldStatus !== targetStatus) {
+                setStats(prev => {
+                    const next = { ...prev };
+                    if (oldStatus === "locked") next.locked = Math.max(0, next.locked - 1);
+                    else if (oldStatus === "dispensation") next.dispensation = Math.max(0, next.dispensation - 1);
+                    else if (oldStatus === "cleared") next.cleared = Math.max(0, next.cleared - 1);
+
+                    if (targetStatus === "locked") next.locked += 1;
+                    else if (targetStatus === "dispensation") next.dispensation += 1;
+                    else if (targetStatus === "cleared") next.cleared += 1;
+
+                    return next;
+                });
+            }
+
+            toast({
+                title: "Berhasil",
+                description: `Status ${studentToEdit.name} berhasil disimpan.`,
+            });
+            setStatusDialogOpen(false);
         } catch (error: any) {
             toast({
                 title: "Gagal",
@@ -334,7 +480,7 @@ export default function AdministrasiSiswaPage() {
         }
     };
 
-    // Generate Token
+    // Generate Token with AJAX (No full student reload)
     const handleGenerateToken = async () => {
         setGeneratingToken(true);
         try {
@@ -349,21 +495,42 @@ export default function AdministrasiSiswaPage() {
                 }),
             });
 
-            if (res.ok) {
-                const json = await res.json();
-                const newToken = json.data?.data?.token || json.data?.token || customTokenValue;
-                setCreatedTokenResult(newToken);
-                toast({
-                    title: "Token Berhasil Dibuat",
-                    description: `Token: ${newToken} (${tokenScope === 'session' ? 'Per Sesi' : tokenScope === 'weekly' ? '1 Pekan' : tokenScope === 'permanent' ? 'Permanen' : 'Harian'})`,
-                });
-                fetchTokens();
-                if (tokenTargetStudent) {
-                    fetchStudents();
-                }
-            } else {
-                throw new Error("Gagal membuat token");
+            if (!res.ok) {
+                const errData = await res.json().catch(() => ({}));
+                throw new Error(errData.error || "Gagal membuat token");
             }
+
+            const json = await res.json();
+            const tokenData = json.data?.data || json.data || {};
+            const newToken = tokenData?.token || customTokenValue;
+            setCreatedTokenResult(newToken);
+
+            toast({
+                title: "Token Berhasil Dibuat",
+                description: `Token: ${newToken} (${tokenScope === 'session' ? 'Per Sesi' : tokenScope === 'weekly' ? '1 Pekan' : tokenScope === 'permanent' ? 'Permanen' : 'Harian'})`,
+            });
+
+            // Prepend new token to tokens list immediately
+            if (tokenData && tokenData.id) {
+                const formattedToken: TokenItem = {
+                    id: tokenData.id,
+                    token: tokenData.token || newToken,
+                    scope: tokenData.scope || tokenScope,
+                    studentId: tokenData.studentId || tokenTargetStudent?.id || null,
+                    studentName: tokenTargetStudent?.name || null,
+                    studentUsername: tokenTargetStudent?.username || null,
+                    expiresAt: tokenData.expiresAt ? new Date(tokenData.expiresAt).toISOString() : new Date().toISOString(),
+                    isUsed: false,
+                    usedAt: null,
+                    notes: tokenData.notes || tokenNotes,
+                    createdAt: tokenData.createdAt ? new Date(tokenData.createdAt).toISOString() : new Date().toISOString(),
+                };
+                setTokens(prev => [formattedToken, ...prev]);
+            } else {
+                fetchTokens();
+            }
+
+            // NOTE: Do NOT call fetchStudents() - keeps the student list undisturbed without reloading!
         } catch (error: any) {
             toast({
                 title: "Gagal",
@@ -375,8 +542,12 @@ export default function AdministrasiSiswaPage() {
         }
     };
 
-    // Revoke Token
+    // Revoke Token with AJAX & Optimistic UI
     const handleRevokeToken = async (id: string) => {
+        const prevTokens = [...tokens];
+        // Optimistically remove from tokens list
+        setTokens(prev => prev.filter(t => t.id !== id));
+
         try {
             const res = await fetch(`/api/admin/clearance/tokens/${id}`, {
                 method: "DELETE",
@@ -387,11 +558,13 @@ export default function AdministrasiSiswaPage() {
                     title: "Token Dicabut",
                     description: "Token telah berhasil dihapus / dicabut.",
                 });
-                fetchTokens();
             } else {
-                throw new Error("Gagal mencabut token");
+                const errData = await res.json().catch(() => ({}));
+                throw new Error(errData.error || "Gagal mencabut token");
             }
         } catch (error: any) {
+            // Rollback
+            setTokens(prevTokens);
             toast({
                 title: "Gagal",
                 description: error.message || "Gagal mencabut token",
@@ -734,62 +907,79 @@ export default function AdministrasiSiswaPage() {
                                                     </div>
                                                 </TableCell>
                                                 <TableCell className="text-right">
-                                                    <div className="flex items-center justify-end gap-1.5">
-                                                        {isLocked ? (
-                                                            <>
-                                                                <Button
-                                                                    size="sm"
-                                                                    variant="outline"
-                                                                    onClick={() => handleQuickToggle(student, "cleared")}
-                                                                    className="h-8 text-xs text-emerald-600 border-emerald-300 hover:bg-emerald-50 gap-1"
-                                                                    title="Buka Kunci Langsung"
-                                                                >
-                                                                    <Unlock className="w-3.5 h-3.5" />
-                                                                    Buka Kunci
-                                                                </Button>
+                                                    {(() => {
+                                                        const isToggling = !!togglingIds[student.id];
+                                                        return (
+                                                            <div className="flex items-center justify-end gap-1.5">
+                                                                {isLocked ? (
+                                                                    <>
+                                                                        <Button
+                                                                            size="sm"
+                                                                            variant="outline"
+                                                                            onClick={() => handleQuickToggle(student, "cleared")}
+                                                                            disabled={isToggling}
+                                                                            className="h-8 text-xs text-emerald-600 border-emerald-300 hover:bg-emerald-50 gap-1 min-w-[95px]"
+                                                                            title="Buka Kunci Langsung"
+                                                                        >
+                                                                            {isToggling ? (
+                                                                                <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                                                                            ) : (
+                                                                                <Unlock className="w-3.5 h-3.5" />
+                                                                            )}
+                                                                            Buka Kunci
+                                                                        </Button>
+                                                                        <Button
+                                                                            size="sm"
+                                                                            variant="ghost"
+                                                                            disabled={isToggling}
+                                                                            onClick={() => {
+                                                                                setTokenTargetStudent(student);
+                                                                                setCustomTokenValue("");
+                                                                                setTokenNotes(`Dispensasi untuk ${student.name} (${student.username})`);
+                                                                                setCreatedTokenResult(null);
+                                                                                setTokenDialogOpen(true);
+                                                                            }}
+                                                                            className="h-8 text-xs text-blue-600 hover:bg-blue-50 gap-1"
+                                                                            title="Buat Token Dispensasi Khusus"
+                                                                        >
+                                                                            <Key className="w-3.5 h-3.5" />
+                                                                            Token
+                                                                        </Button>
+                                                                    </>
+                                                                ) : (
+                                                                    <Button
+                                                                        size="sm"
+                                                                        variant="outline"
+                                                                        onClick={() => handleQuickToggle(student, "locked")}
+                                                                        disabled={isToggling}
+                                                                        className="h-8 text-xs text-amber-700 border-amber-300 hover:bg-amber-50 gap-1 min-w-[75px]"
+                                                                        title="Kunci Akses Ujian Siswa"
+                                                                    >
+                                                                        {isToggling ? (
+                                                                            <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                                                                        ) : (
+                                                                            <Lock className="w-3.5 h-3.5" />
+                                                                        )}
+                                                                        Kunci
+                                                                    </Button>
+                                                                )}
                                                                 <Button
                                                                     size="sm"
                                                                     variant="ghost"
+                                                                    disabled={isToggling}
                                                                     onClick={() => {
-                                                                        setTokenTargetStudent(student);
-                                                                        setCustomTokenValue("");
-                                                                        setTokenNotes(`Dispensasi untuk ${student.name} (${student.username})`);
-                                                                        setCreatedTokenResult(null);
-                                                                        setTokenDialogOpen(true);
+                                                                        setStudentToEdit(student);
+                                                                        setTargetStatus(student.clearance.status);
+                                                                        setTargetNotes(student.clearance.notes || "");
+                                                                        setStatusDialogOpen(true);
                                                                     }}
-                                                                    className="h-8 text-xs text-blue-600 hover:bg-blue-50 gap-1"
-                                                                    title="Buat Token Dispensasi Khusus"
+                                                                    className="h-8 text-xs text-muted-foreground hover:text-foreground"
                                                                 >
-                                                                    <Key className="w-3.5 h-3.5" />
-                                                                    Token
+                                                                    Detail
                                                                 </Button>
-                                                            </>
-                                                        ) : (
-                                                            <Button
-                                                                size="sm"
-                                                                variant="outline"
-                                                                onClick={() => handleQuickToggle(student, "locked")}
-                                                                className="h-8 text-xs text-amber-700 border-amber-300 hover:bg-amber-50 gap-1"
-                                                                title="Kunci Akses Ujian Siswa"
-                                                            >
-                                                                <Lock className="w-3.5 h-3.5" />
-                                                                Kunci
-                                                            </Button>
-                                                        )}
-                                                        <Button
-                                                            size="sm"
-                                                            variant="ghost"
-                                                            onClick={() => {
-                                                                setStudentToEdit(student);
-                                                                setTargetStatus(student.clearance.status);
-                                                                setTargetNotes(student.clearance.notes || "");
-                                                                setStatusDialogOpen(true);
-                                                            }}
-                                                            className="h-8 text-xs text-muted-foreground hover:text-foreground"
-                                                        >
-                                                            Detail
-                                                        </Button>
-                                                    </div>
+                                                            </div>
+                                                        );
+                                                    })()}
                                                 </TableCell>
                                             </TableRow>
                                         );
@@ -1101,6 +1291,14 @@ export default function AdministrasiSiswaPage() {
                                     Cetak Slip
                                 </Button>
                             </div>
+                            <Button
+                                variant="ghost"
+                                size="sm"
+                                className="w-full text-xs text-muted-foreground hover:text-foreground"
+                                onClick={() => setTokenDialogOpen(false)}
+                            >
+                                Selesai / Tutup
+                            </Button>
                         </div>
                     ) : (
                         <div className="space-y-4 py-2">
