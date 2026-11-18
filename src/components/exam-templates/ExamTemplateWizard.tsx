@@ -71,6 +71,7 @@ export default function ExamTemplateWizard({ initialData, onSubmit, isEditMode =
             requireSeb: false,
             requireExambro: false,
             watermarkAntiTamper: true,
+            maxAwaySeconds: 15,
         },
         // New field defaults
         targetType: 'all',

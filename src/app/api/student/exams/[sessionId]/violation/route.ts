@@ -99,6 +99,10 @@ export async function POST(
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const cooldownSeconds = Math.max(1, Number((violationSettings as any)?.cooldownSeconds) || 5);
         const cooldownMs = cooldownSeconds * 1000;
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const configuredMaxAway = Number((violationSettings as any)?.maxAwaySeconds) || 15;
+        const awaySeconds = Number(body.awaySeconds) || 0;
+        const isAwayTimeout = type === "AWAY_TIMEOUT" || Boolean(body.immediateTerminate) || (awaySeconds >= configuredMaxAway && awaySeconds > 0);
 
         // Parse current violation log
         let currentLog: any[] = [];
@@ -119,7 +123,8 @@ export async function POST(
 
         // Server-side Cooldown Check: Ignore repeat violations of the same type within cooldown period,
         // or rapid micro-bursts of different types within 500ms
-        if (currentLog.length > 0) {
+        // IMPORTANT: NEVER skip AWAY_TIMEOUT / immediateTerminate!
+        if (!isAwayTimeout && currentLog.length > 0) {
             const lastEntry = currentLog[currentLog.length - 1];
             if (lastEntry && lastEntry.timestamp) {
                 const lastTime = new Date(lastEntry.timestamp).getTime();
@@ -141,20 +146,34 @@ export async function POST(
             }
         }
 
+        let logDetails = details;
+        if (isAwayTimeout) {
+            logDetails = logDetails || `Meninggalkan ujian selama ${awaySeconds || configuredMaxAway} detik (melebihi batas maksimal ${configuredMaxAway} detik)`;
+        }
+
         const newLog = [
             ...currentLog,
             {
-                type,
-                details,
+                type: isAwayTimeout ? "AWAY_TIMEOUT" : type,
+                details: logDetails,
                 timestamp: new Date().toISOString(),
             }
         ];
 
         const newViolationCount = (submission.violationCount || 0) + 1;
 
-        // Only terminate if mode is 'strict' AND max violations reached
-        // In 'lenient' (Toleran) mode, we just log and warn
-        const shouldTerminate = violationMode === 'strict' && newViolationCount >= maxViolations;
+        // Terminate if:
+        // 1. violationMode is strict AND (max violations reached OR isAwayTimeout)
+        // 2. violationMode is lenient AND isAwayTimeout (exceeding max away time terminates)
+        const shouldTerminate = violationMode !== 'disabled' && (
+            (violationMode === 'strict' && newViolationCount >= maxViolations) ||
+            isAwayTimeout
+        );
+
+        let terminateMessage = "Batas pelanggaran tercapai. Ujian dihentikan.";
+        if (isAwayTimeout) {
+            terminateMessage = `Ujian dihentikan karena meninggalkan halaman ujian selama ${awaySeconds || configuredMaxAway} detik (batas maksimal ${configuredMaxAway} detik). Hubungi pengawas untuk membuka kembali ujian Anda.`;
+        }
 
         // Update submission
         await db.update(submissions)
@@ -172,9 +191,9 @@ export async function POST(
                 sessionId,
                 studentId,
                 user.name || "Siswa",
-                type,
+                isAwayTimeout ? "AWAY_TIMEOUT" : type,
                 newViolationCount,
-                details,
+                logDetails,
                 shouldTerminate
             );
         } catch (e) {
@@ -187,7 +206,7 @@ export async function POST(
             shouldTerminate,
             violationLog: newLog,
             message: shouldTerminate
-                ? "Batas pelanggaran tercapai. Ujian dihentikan."
+                ? terminateMessage
                 : `Pelanggaran dicatat. ${newViolationCount}/${maxViolations}`
         });
     } catch (error: any) {

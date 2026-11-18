@@ -103,6 +103,8 @@ const VIOLATION_LABELS: Record<string, string> = {
     BACK_BUTTON: "Tombol Kembali",
     WATERMARK_TAMPERING: "Manipulasi Watermark",
     DEVICE_MISMATCH: "Perangkat Tidak Cocok / Sesi Ganda",
+    AWAY_TIMEOUT: "Keluar Melebihi Batas Waktu",
+    away_timeout: "Keluar Melebihi Batas Waktu",
 };
 
 function getViolationTypeLabel(type: string): string {

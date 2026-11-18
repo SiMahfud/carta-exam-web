@@ -25,6 +25,7 @@ function getViolationLabel(type: string): string {
         BACK_BUTTON: "Menekan Tombol Kembali",
         WATERMARK_TAMPERING: "Mencoba Memanipulasi/Menghapus Watermark",
         DEVICE_MISMATCH: "Perangkat Tidak Cocok / Sesi Ganda",
+        AWAY_TIMEOUT: "Meninggalkan Ujian Melebihi Batas Waktu",
         // From lockdown.ts
         tab_switch: "Pindah Tab",
         window_blur: "Keluar dari Jendela Ujian",
@@ -36,6 +37,7 @@ function getViolationLabel(type: string): string {
         cut: "Mencoba Cut",
         screenshot_attempt: "Mencoba Screenshot",
         watermark_tampering: "Mencoba Memanipulasi/Menghapus Watermark",
+        away_timeout: "Meninggalkan Ujian Melebihi Batas Waktu",
     };
     return labels[type] || type;
 }

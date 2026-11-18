@@ -293,6 +293,45 @@ export function StepConfiguration({ formData, setFormData }: StepConfigurationPr
                                     ))}
                                 </div>
                             </div>
+
+                            {/* Max Away Timeout */}
+                            <div className="p-4 border rounded-lg space-y-3">
+                                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                                    <div className="space-y-0.5">
+                                        <Label className="text-base">Batas Waktu Keluar Ujian (Auto-Block)</Label>
+                                        <p className="text-sm text-muted-foreground">
+                                            Jika siswa meninggalkan halaman ujian (minimize, beralih tab/aplikasi) melebihi batas waktu ini, ujian langsung dihentikan dan diblokir otomatis.
+                                        </p>
+                                    </div>
+                                    <div className="flex items-center gap-2 shrink-0">
+                                        <Input
+                                            type="number"
+                                            min="5"
+                                            max="300"
+                                            className="w-24 text-right"
+                                            value={formData.violationSettings.maxAwaySeconds ?? 15}
+                                            onChange={(e) => updateViolationSetting('maxAwaySeconds', Math.max(5, parseInt(e.target.value) || 15))}
+                                        />
+                                        <span className="text-sm text-muted-foreground font-medium">detik</span>
+                                    </div>
+                                </div>
+                                <div className="flex flex-wrap gap-2 pt-1">
+                                    {[10, 15, 20, 30].map((sec) => (
+                                        <button
+                                            key={sec}
+                                            type="button"
+                                            onClick={() => updateViolationSetting('maxAwaySeconds', sec)}
+                                            className={`px-3 py-1.5 text-xs rounded-md border transition-colors ${
+                                                (formData.violationSettings.maxAwaySeconds ?? 15) === sec
+                                                    ? 'bg-primary text-primary-foreground border-primary font-medium'
+                                                    : 'hover:bg-muted'
+                                            }`}
+                                        >
+                                            {sec} detik {sec === 15 ? '(Default)' : ''}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
                         </>
                     )}
                 </div>

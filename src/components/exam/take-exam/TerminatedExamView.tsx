@@ -4,11 +4,12 @@ import { Button } from "@/components/ui/button";
 
 interface TerminatedExamViewProps {
     violationCount: number;
+    message?: string;
     onReturn: () => void;
     onRetry?: () => void;
 }
 
-export function TerminatedExamView({ violationCount, onReturn, onRetry }: TerminatedExamViewProps) {
+export function TerminatedExamView({ violationCount, message, onReturn, onRetry }: TerminatedExamViewProps) {
     return (
         <div className="flex items-center justify-center min-h-screen bg-background">
             <Card className="max-w-md mx-4 p-8 text-center shadow-lg border-red-200 dark:border-red-900/50">
@@ -19,7 +20,7 @@ export function TerminatedExamView({ violationCount, onReturn, onRetry }: Termin
                 </div>
                 <h2 className="text-2xl font-bold text-red-600 dark:text-red-400 mb-2">Ujian Dihentikan</h2>
                 <p className="text-muted-foreground mb-4">
-                    Ujian Anda telah dihentikan karena melebihi batas pelanggaran yang diizinkan.
+                    {message || "Ujian Anda telah dihentikan karena melebihi batas pelanggaran yang diizinkan."}
                 </p>
                 <div className="bg-red-50 dark:bg-red-950/40 border border-red-200/60 dark:border-red-900/40 rounded-xl p-4 mb-6">
                     <p className="text-sm text-red-700 dark:text-red-300">

@@ -13,6 +13,19 @@ describe("TerminatedExamView", () => {
         expect(screen.getByRole("button", { name: /Kembali ke Daftar Ujian/i })).toBeInTheDocument();
     });
 
+    it("renders custom termination message when provided", () => {
+        const handleReturn = vi.fn();
+        render(
+            <TerminatedExamView 
+                violationCount={1} 
+                message="Ujian dihentikan karena meninggalkan halaman ujian selama 25 detik" 
+                onReturn={handleReturn} 
+            />
+        );
+
+        expect(screen.getByText(/Ujian dihentikan karena meninggalkan halaman ujian selama 25 detik/i)).toBeInTheDocument();
+    });
+
     it("triggers onReturn callback when button clicked", () => {
         const handleReturn = vi.fn();
         render(<TerminatedExamView violationCount={5} onReturn={handleReturn} />);

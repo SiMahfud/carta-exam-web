@@ -71,6 +71,7 @@ function getViolationLabel(type: string): string {
         BACK_BUTTON: "Menekan Tombol Kembali (HP)",
         WATERMARK_TAMPERING: "Manipulasi Watermark Keamanan",
         DEVICE_MISMATCH: "Perangkat Tidak Cocok",
+        AWAY_TIMEOUT: "Keluar Ujian Melebihi Batas Waktu",
         // Lowercase variant
         tab_switch: "Pindah Tab Browser",
         window_blur: "Keluar dari Jendela Ujian",
@@ -82,6 +83,7 @@ function getViolationLabel(type: string): string {
         cut: "Mencoba Cut Teks",
         screenshot_attempt: "Mencoba Screenshot",
         watermark_tampering: "Manipulasi Watermark Keamanan",
+        away_timeout: "Keluar Ujian Melebihi Batas Waktu",
     };
     return labels[type] || type;
 }

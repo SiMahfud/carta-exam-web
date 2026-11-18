@@ -53,6 +53,7 @@ export default function TakeExamPage() {
     const [showViolationBanner, setShowViolationBanner] = useState(false);
     const [lastViolationType, setLastViolationType] = useState<string>("");
     const [isTerminated, setIsTerminated] = useState(false);
+    const [terminatedMessage, setTerminatedMessage] = useState<string>("");
     const [isForceCompleted, setIsForceCompleted] = useState(false);
     const [forceCompletedMessage, setForceCompletedMessage] = useState<string>("");
     const [isExamReset, setIsExamReset] = useState(false);
@@ -120,22 +121,32 @@ export default function TakeExamPage() {
         });
     };
 
+    // Track waktu ketika siswa keluar dari jendela ujian (untuk auto-block jika melebihi batas waktu)
+    const awayStartTimeRef = useRef<number | null>(null);
+
     // Track last violation timestamp on client for unified debouncing across all listeners
     const lastClientViolationTime = useRef<number>(0);
 
     // Log security violations to backend and check for termination
-    const logSecurityViolation = useCallback(async (type: string, details?: string) => {
+    const logSecurityViolation = useCallback(async (
+        type: string,
+        details?: string,
+        options?: { immediateTerminate?: boolean; awaySeconds?: number }
+    ) => {
         if (!examStarted || submitting || isTerminated || isForceCompleted) return;
 
+        const isImmediate = type === "AWAY_TIMEOUT" || Boolean(options?.immediateTerminate);
         const now = Date.now();
         const cooldownSeconds = Math.max(1, Number(violationSettings?.cooldownSeconds) || 5);
         const cooldownMs = cooldownSeconds * 1000;
 
-        // Prevent client-side multi-trigger bursts within cooldown window
-        const burstWindow = Math.min(cooldownMs, 2000);
-        if (now - lastClientViolationTime.current < burstWindow) {
-            console.log(`[ExamSecurity] Skipped violation ${type} - within client burst window`);
-            return;
+        // Prevent client-side multi-trigger bursts within cooldown window (kecuali pelanggaran timeout)
+        if (!isImmediate) {
+            const burstWindow = Math.min(cooldownMs, 2000);
+            if (now - lastClientViolationTime.current < burstWindow) {
+                console.log(`[ExamSecurity] Skipped violation ${type} - within client burst window`);
+                return;
+            }
         }
         lastClientViolationTime.current = now;
 
@@ -143,7 +154,14 @@ export default function TakeExamPage() {
             const response = await fetch(`/api/student/exams/${sessionId}/violation`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ studentId, type, details, timestamp: new Date().toISOString() }),
+                body: JSON.stringify({
+                    studentId,
+                    type,
+                    details,
+                    timestamp: new Date().toISOString(),
+                    immediateTerminate: options?.immediateTerminate,
+                    awaySeconds: options?.awaySeconds
+                }),
             });
 
             if (response.ok) {
@@ -171,6 +189,9 @@ export default function TakeExamPage() {
 
                 if (data.shouldTerminate) {
                     setIsTerminated(true);
+                    if (data.message) {
+                        setTerminatedMessage(data.message);
+                    }
                     if (isFullscreen) {
                         await exitFullscreen();
                     }
@@ -249,6 +270,7 @@ export default function TakeExamPage() {
         try {
             if (studentId) {
                 localStorage.removeItem(`carta_exam_backup_${sessionId}_${studentId}`);
+                localStorage.removeItem(`carta_exam_away_${sessionId}_${studentId}`);
             }
         } catch { }
         if (isFullscreen) {
@@ -373,6 +395,9 @@ export default function TakeExamPage() {
                 if (data.terminated) {
                     setIsTerminated(true);
                     setViolationCount(data.violationCount || 0);
+                    if (data.message) {
+                        setTerminatedMessage(data.message);
+                    }
                 } else if (data.completed) {
                     toast({
                         title: "Ujian Selesai",
@@ -423,6 +448,12 @@ export default function TakeExamPage() {
                     title: "Berhasil",
                     description: "Ujian berhasil dikumpulkan",
                 });
+
+                try {
+                    if (studentId) {
+                        localStorage.removeItem(`carta_exam_away_${sessionId}_${studentId}`);
+                    }
+                } catch { }
 
                 window.location.href = "/student/exams";
             } else if (response.status === 401) {
@@ -622,7 +653,48 @@ export default function TakeExamPage() {
         };
 
         const handleVisibilityChange = () => {
-            if (document.visibilityState === 'visible' && examStarted && !submitting) {
+            if (!examStarted || submitting || isTerminated || isForceCompleted) return;
+
+            const storageKey = `carta_exam_away_${sessionId}_${studentId}`;
+
+            if (document.hidden) {
+                // Siswa meninggalkan halaman ujian (minimize, beralih aplikasi, buka tab lain)
+                const now = Date.now();
+                awayStartTimeRef.current = now;
+                try {
+                    localStorage.setItem(storageKey, now.toString());
+                } catch { }
+            } else if (document.visibilityState === 'visible') {
+                // Siswa kembali ke halaman ujian
+                let awayStart = awayStartTimeRef.current;
+                if (!awayStart) {
+                    try {
+                        const stored = localStorage.getItem(storageKey);
+                        if (stored) awayStart = parseInt(stored, 10);
+                    } catch { }
+                }
+
+                // Bersihkan penanda waktu keluar
+                awayStartTimeRef.current = null;
+                try {
+                    localStorage.removeItem(storageKey);
+                } catch { }
+
+                if (awayStart && !isNaN(awayStart)) {
+                    const awaySeconds = Math.round((Date.now() - awayStart) / 1000);
+                    const maxAway = Number(violationSettings?.maxAwaySeconds) || 15;
+
+                    if (awaySeconds >= maxAway) {
+                        // Terlalu lama di luar ujian -> Blokir / Terminate seketika!
+                        logSecurityViolation(
+                            "AWAY_TIMEOUT",
+                            `Meninggalkan ujian selama ${awaySeconds} detik (melebihi batas maksimal ${maxAway} detik)`,
+                            { immediateTerminate: true, awaySeconds }
+                        );
+                        return;
+                    }
+                }
+
                 const splitRes = checkSplitOrFloatingScreen();
 
                 // On devices that support fullscreen (Android/Desktop), check fullscreen state
@@ -682,10 +754,42 @@ export default function TakeExamPage() {
             document.removeEventListener("visibilitychange", handleVisibilityChange);
             window.removeEventListener("beforeunload", handleBeforeUnload);
         };
-    }, [examStarted, submitting, fullscreenSupported, logSecurityViolation, triggerFullscreenLockout]);
+    }, [examStarted, submitting, isTerminated, isForceCompleted, fullscreenSupported, sessionId, studentId, violationSettings, logSecurityViolation, triggerFullscreenLockout]);
+
+    // Cek apakah ada catatan waktu keluar sebelumnya yang melebihi batas (misal tab Safari reload di iOS)
+    useEffect(() => {
+        if (!examStarted || !studentId || submitting || isTerminated || isForceCompleted) return;
+
+        const storageKey = `carta_exam_away_${sessionId}_${studentId}`;
+        try {
+            const stored = localStorage.getItem(storageKey);
+            if (stored) {
+                const awayStart = parseInt(stored, 10);
+                localStorage.removeItem(storageKey);
+
+                if (!isNaN(awayStart)) {
+                    const awaySeconds = Math.round((Date.now() - awayStart) / 1000);
+                    const maxAway = Number(violationSettings?.maxAwaySeconds) || 15;
+
+                    if (awaySeconds >= maxAway) {
+                        logSecurityViolation(
+                            "AWAY_TIMEOUT",
+                            `Meninggalkan ujian selama ${awaySeconds} detik (melebihi batas maksimal ${maxAway} detik)`,
+                            { immediateTerminate: true, awaySeconds }
+                        );
+                    }
+                }
+            }
+        } catch { }
+    }, [examStarted, studentId, sessionId, submitting, isTerminated, isForceCompleted, violationSettings, logSecurityViolation]);
 
     // Handle Start from PreExamDialog
     const handleStartExam = async (token?: string) => {
+        try {
+            if (studentId) {
+                localStorage.removeItem(`carta_exam_away_${sessionId}_${studentId}`);
+            }
+        } catch { }
         const splitRes = checkSplitOrFloatingScreen();
         if (splitRes.isSplitScreen || splitRes.isFloatingWindow) {
             toast({
@@ -1085,6 +1189,7 @@ export default function TakeExamPage() {
         return (
             <TerminatedExamView
                 violationCount={violationCount}
+                message={terminatedMessage || "Ujian Anda telah dihentikan karena melebihi batas pelanggaran yang diizinkan."}
                 onReturn={() => router.push("/student/exams")}
                 onRetry={async () => {
                     setLoading(true);

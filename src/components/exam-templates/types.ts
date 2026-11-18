@@ -23,6 +23,7 @@ export interface ViolationSettings {
     requireSeb?: boolean;
     requireExambro?: boolean;
     watermarkAntiTamper?: boolean;
+    maxAwaySeconds?: number; // Batas maksimal detik meninggalkan ujian sebelum di-terminate (default: 15)
 }
 
 export interface ExamTemplateFormData {
