@@ -67,25 +67,64 @@ export const GET = (req: Request) => apiHandler(async () => {
         .where(and(...conditions))
         .orderBy(classes.name, users.name);
 
-    // Map clearance status: default to "cleared" if no clearance record exists
-    const mappedStudents = studentsData.map((item: any) => ({
-        id: item.id,
-        name: item.name,
-        username: item.username,
-        class: item.classId ? {
-            id: item.classId,
-            name: item.className,
-            grade: item.classGrade,
-        } : null,
-        clearance: {
-            id: item.clearanceId,
-            status: item.status || "cleared",
-            notes: item.notes,
-            validUntil: item.validUntil,
-            updatedAt: item.updatedAt,
-            updatedBy: item.updatedBy,
+    const now = new Date();
+
+    // Auto-sync: Find any dispensations whose validUntil has expired, and lock them in database
+    const expiredClearances = studentsData.filter(
+        (item: any) =>
+            item.status === "dispensation" &&
+            item.validUntil &&
+            new Date(item.validUntil) < now
+    );
+
+    if (expiredClearances.length > 0) {
+        const expiredIds = expiredClearances
+            .map((item: any) => item.clearanceId)
+            .filter(Boolean);
+
+        if (expiredIds.length > 0) {
+            try {
+                await (db as any)
+                    .update(studentClearances)
+                    .set({
+                        status: "locked",
+                        updatedAt: now,
+                    })
+                    .where(inArray(studentClearances.id, expiredIds));
+            } catch (err) {
+                console.error("Error auto-locking expired dispensations:", err);
+            }
         }
-    }));
+    }
+
+    // Map clearance status: default to "cleared" if no clearance record exists,
+    // and reflect "locked" if dispensation has expired
+    const mappedStudents = studentsData.map((item: any) => {
+        const isExpired =
+            item.status === "dispensation" &&
+            item.validUntil &&
+            new Date(item.validUntil) < now;
+        const effectiveStatus = isExpired ? "locked" : (item.status || "cleared");
+
+        return {
+            id: item.id,
+            name: item.name,
+            username: item.username,
+            class: item.classId ? {
+                id: item.classId,
+                name: item.className,
+                grade: item.classGrade,
+            } : null,
+            clearance: {
+                id: item.clearanceId,
+                status: effectiveStatus,
+                notes: item.notes,
+                validUntil: item.validUntil,
+                updatedAt: item.updatedAt,
+                updatedBy: item.updatedBy,
+            }
+        };
+    });
 
     // Filter by status if specified
     const filtered = status !== "all"

@@ -80,6 +80,7 @@ export async function GET(request: NextRequest) {
                 className: classes.name,
                 status: studentClearances.status,
                 notes: studentClearances.notes,
+                validUntil: studentClearances.validUntil,
             })
             .from(users)
             .leftJoin(classStudents, eq(users.id, classStudents.studentId))
@@ -92,8 +93,10 @@ export async function GET(request: NextRequest) {
             ? studentsData.filter((s: any) => s.classId === classId)
             : studentsData;
 
+        const now = new Date();
         const rows = filteredData.map((s: any) => {
-            const statusKey = s.status || "cleared";
+            const isExpired = s.status === "dispensation" && s.validUntil && new Date(s.validUntil) < now;
+            const statusKey = isExpired ? "locked" : (s.status || "cleared");
             let statusLabel = "Bebas Ujian";
             if (statusKey === "locked") statusLabel = "Terkunci";
             if (statusKey === "dispensation") statusLabel = "Dispensasi";
