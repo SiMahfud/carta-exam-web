@@ -652,6 +652,43 @@ export default function TakeExamPage() {
             }
         };
 
+        const handleReturnFromAway = () => {
+            const storageKey = `carta_exam_away_${sessionId}_${studentId}`;
+            let awayStart = awayStartTimeRef.current;
+            if (!awayStart) {
+                try {
+                    const stored = localStorage.getItem(storageKey);
+                    if (stored) awayStart = parseInt(stored, 10);
+                } catch { }
+            }
+
+            // Bersihkan penanda waktu keluar
+            awayStartTimeRef.current = null;
+            try {
+                localStorage.removeItem(storageKey);
+            } catch { }
+
+            if (awayStart && !isNaN(awayStart)) {
+                const awaySeconds = Math.round((Date.now() - awayStart) / 1000);
+                const maxAway = Number(violationSettings?.maxAwaySeconds) || 15;
+
+                if (awaySeconds >= maxAway) {
+                    const durationText = awaySeconds >= 60
+                        ? `${awaySeconds} detik (${Math.floor(awaySeconds / 60)} menit${awaySeconds % 60 > 0 ? ` ${awaySeconds % 60} detik` : ""})`
+                        : `${awaySeconds} detik`;
+
+                    // Terlalu lama di luar ujian -> Blokir / Terminate seketika dengan durasi riil!
+                    logSecurityViolation(
+                        "AWAY_TIMEOUT",
+                        `Meninggalkan ujian selama ${durationText} (melebihi batas maksimal ${maxAway} detik)`,
+                        { immediateTerminate: true, awaySeconds }
+                    );
+                    return true;
+                }
+            }
+            return false;
+        };
+
         const handleVisibilityChange = () => {
             if (!examStarted || submitting || isTerminated || isForceCompleted) return;
 
@@ -668,34 +705,8 @@ export default function TakeExamPage() {
                 }
             } else if (document.visibilityState === 'visible') {
                 // Siswa kembali ke halaman ujian
-                let awayStart = awayStartTimeRef.current;
-                if (!awayStart) {
-                    try {
-                        const stored = localStorage.getItem(storageKey);
-                        if (stored) awayStart = parseInt(stored, 10);
-                    } catch { }
-                }
-
-                // Bersihkan penanda waktu keluar
-                awayStartTimeRef.current = null;
-                try {
-                    localStorage.removeItem(storageKey);
-                } catch { }
-
-                if (awayStart && !isNaN(awayStart)) {
-                    const awaySeconds = Math.round((Date.now() - awayStart) / 1000);
-                    const maxAway = Number(violationSettings?.maxAwaySeconds) || 15;
-
-                    if (awaySeconds >= maxAway) {
-                        // Terlalu lama di luar ujian -> Blokir / Terminate seketika!
-                        logSecurityViolation(
-                            "AWAY_TIMEOUT",
-                            `Meninggalkan ujian selama ${awaySeconds} detik (melebihi batas maksimal ${maxAway} detik)`,
-                            { immediateTerminate: true, awaySeconds }
-                        );
-                        return;
-                    }
-                }
+                const timedOut = handleReturnFromAway();
+                if (timedOut) return;
 
                 const splitRes = checkSplitOrFloatingScreen();
 
@@ -750,34 +761,7 @@ export default function TakeExamPage() {
 
         const handleWindowFocus = () => {
             if (!examStarted || submitting || isTerminated || isForceCompleted) return;
-
-            const storageKey = `carta_exam_away_${sessionId}_${studentId}`;
-            let awayStart = awayStartTimeRef.current;
-            if (!awayStart) {
-                try {
-                    const stored = localStorage.getItem(storageKey);
-                    if (stored) awayStart = parseInt(stored, 10);
-                } catch { }
-            }
-
-            // Bersihkan penanda waktu keluar
-            awayStartTimeRef.current = null;
-            try {
-                localStorage.removeItem(storageKey);
-            } catch { }
-
-            if (awayStart && !isNaN(awayStart)) {
-                const awaySeconds = Math.round((Date.now() - awayStart) / 1000);
-                const maxAway = Number(violationSettings?.maxAwaySeconds) || 15;
-
-                if (awaySeconds >= maxAway) {
-                    logSecurityViolation(
-                        "AWAY_TIMEOUT",
-                        `Meninggalkan ujian selama ${awaySeconds} detik (melebihi batas maksimal ${maxAway} detik)`,
-                        { immediateTerminate: true, awaySeconds }
-                    );
-                }
-            }
+            handleReturnFromAway();
         };
 
         // Pengecekan berkala jika siswa berada di luar fokus atau membuka floating window / split-screen
@@ -793,26 +777,6 @@ export default function TakeExamPage() {
                         const storageKey = `carta_exam_away_${sessionId}_${studentId}`;
                         localStorage.setItem(storageKey, now.toString());
                     } catch { }
-                }
-            }
-
-            // Jika waktu meninggalkan ujian telah melebihi batas waktu maksimal, langsung blokir seketika
-            if (awayStartTimeRef.current) {
-                const awaySeconds = Math.round((Date.now() - awayStartTimeRef.current) / 1000);
-                const maxAway = Number(violationSettings?.maxAwaySeconds) || 15;
-
-                if (awaySeconds >= maxAway) {
-                    const storageKey = `carta_exam_away_${sessionId}_${studentId}`;
-                    awayStartTimeRef.current = null;
-                    try {
-                        localStorage.removeItem(storageKey);
-                    } catch { }
-
-                    logSecurityViolation(
-                        "AWAY_TIMEOUT",
-                        `Meninggalkan ujian selama ${awaySeconds} detik (melebihi batas maksimal ${maxAway} detik)`,
-                        { immediateTerminate: true, awaySeconds }
-                    );
                 }
             }
         }, 1000);
@@ -863,9 +827,13 @@ export default function TakeExamPage() {
                     const maxAway = Number(violationSettings?.maxAwaySeconds) || 15;
 
                     if (awaySeconds >= maxAway) {
+                        const durationText = awaySeconds >= 60
+                            ? `${awaySeconds} detik (${Math.floor(awaySeconds / 60)} menit${awaySeconds % 60 > 0 ? ` ${awaySeconds % 60} detik` : ""})`
+                            : `${awaySeconds} detik`;
+
                         logSecurityViolation(
                             "AWAY_TIMEOUT",
-                            `Meninggalkan ujian selama ${awaySeconds} detik (melebihi batas maksimal ${maxAway} detik)`,
+                            `Meninggalkan ujian selama ${durationText} (melebihi batas maksimal ${maxAway} detik)`,
                             { immediateTerminate: true, awaySeconds }
                         );
                     }
