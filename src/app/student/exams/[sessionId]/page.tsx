@@ -8,7 +8,7 @@ import { useExamSecurity } from "@/hooks/use-exam-security";
 import { useWakeLock } from "@/hooks/use-wake-lock";
 import { getDeviceId } from "@/lib/device";
 import { useWatermark } from "@/lib/lockdown";
-import { checkSplitOrFloatingScreen } from "@/lib/mobile-security";
+import { checkSplitOrFloatingScreen, isTypingActive } from "@/lib/mobile-security";
 
 // Components
 import { ExamHeader } from "@/components/exam/take-exam/ExamHeader";
@@ -660,10 +660,12 @@ export default function TakeExamPage() {
             if (document.hidden) {
                 // Siswa meninggalkan halaman ujian (minimize, beralih aplikasi, buka tab lain)
                 const now = Date.now();
-                awayStartTimeRef.current = now;
-                try {
-                    localStorage.setItem(storageKey, now.toString());
-                } catch { }
+                if (!awayStartTimeRef.current) {
+                    awayStartTimeRef.current = now;
+                    try {
+                        localStorage.setItem(storageKey, now.toString());
+                    } catch { }
+                }
             } else if (document.visibilityState === 'visible') {
                 // Siswa kembali ke halaman ujian
                 let awayStart = awayStartTimeRef.current;
@@ -731,6 +733,90 @@ export default function TakeExamPage() {
             }
         };
 
+        const handleWindowBlur = () => {
+            if (!examStarted || submitting || isTerminated || isForceCompleted) return;
+            // Jangan picu jika sedang mengetik pada input/textarea/keyboard mobile
+            if (isTypingActive()) return;
+
+            const storageKey = `carta_exam_away_${sessionId}_${studentId}`;
+            const now = Date.now();
+            if (!awayStartTimeRef.current) {
+                awayStartTimeRef.current = now;
+                try {
+                    localStorage.setItem(storageKey, now.toString());
+                } catch { }
+            }
+        };
+
+        const handleWindowFocus = () => {
+            if (!examStarted || submitting || isTerminated || isForceCompleted) return;
+
+            const storageKey = `carta_exam_away_${sessionId}_${studentId}`;
+            let awayStart = awayStartTimeRef.current;
+            if (!awayStart) {
+                try {
+                    const stored = localStorage.getItem(storageKey);
+                    if (stored) awayStart = parseInt(stored, 10);
+                } catch { }
+            }
+
+            // Bersihkan penanda waktu keluar
+            awayStartTimeRef.current = null;
+            try {
+                localStorage.removeItem(storageKey);
+            } catch { }
+
+            if (awayStart && !isNaN(awayStart)) {
+                const awaySeconds = Math.round((Date.now() - awayStart) / 1000);
+                const maxAway = Number(violationSettings?.maxAwaySeconds) || 15;
+
+                if (awaySeconds >= maxAway) {
+                    logSecurityViolation(
+                        "AWAY_TIMEOUT",
+                        `Meninggalkan ujian selama ${awaySeconds} detik (melebihi batas maksimal ${maxAway} detik)`,
+                        { immediateTerminate: true, awaySeconds }
+                    );
+                }
+            }
+        };
+
+        // Pengecekan berkala jika siswa berada di luar fokus atau membuka floating window / split-screen
+        const awayCheckInterval = setInterval(() => {
+            if (!examStarted || submitting || isTerminated || isForceCompleted) return;
+
+            // Jika jendela kehilangan fokus dan tidak sedang mengetik, catat waktu mulai jika belum tercatat
+            if (typeof document !== "undefined" && !document.hasFocus() && !document.hidden && !isTypingActive()) {
+                if (!awayStartTimeRef.current) {
+                    const now = Date.now();
+                    awayStartTimeRef.current = now;
+                    try {
+                        const storageKey = `carta_exam_away_${sessionId}_${studentId}`;
+                        localStorage.setItem(storageKey, now.toString());
+                    } catch { }
+                }
+            }
+
+            // Jika waktu meninggalkan ujian telah melebihi batas waktu maksimal, langsung blokir seketika
+            if (awayStartTimeRef.current) {
+                const awaySeconds = Math.round((Date.now() - awayStartTimeRef.current) / 1000);
+                const maxAway = Number(violationSettings?.maxAwaySeconds) || 15;
+
+                if (awaySeconds >= maxAway) {
+                    const storageKey = `carta_exam_away_${sessionId}_${studentId}`;
+                    awayStartTimeRef.current = null;
+                    try {
+                        localStorage.removeItem(storageKey);
+                    } catch { }
+
+                    logSecurityViolation(
+                        "AWAY_TIMEOUT",
+                        `Meninggalkan ujian selama ${awaySeconds} detik (melebihi batas maksimal ${maxAway} detik)`,
+                        { immediateTerminate: true, awaySeconds }
+                    );
+                }
+            }
+        }, 1000);
+
         const handleBeforeUnload = (e: BeforeUnloadEvent) => {
             if (examStarted && !submitting) {
                 e.preventDefault();
@@ -744,14 +830,19 @@ export default function TakeExamPage() {
         document.addEventListener("mozfullscreenchange", handleFullscreenChange);
         window.addEventListener("popstate", handlePopState);
         document.addEventListener("visibilitychange", handleVisibilityChange);
+        window.addEventListener("blur", handleWindowBlur);
+        window.addEventListener("focus", handleWindowFocus);
         window.addEventListener("beforeunload", handleBeforeUnload);
 
         return () => {
+            clearInterval(awayCheckInterval);
             document.removeEventListener("fullscreenchange", handleFullscreenChange);
             document.removeEventListener("webkitfullscreenchange", handleFullscreenChange);
             document.removeEventListener("mozfullscreenchange", handleFullscreenChange);
             window.removeEventListener("popstate", handlePopState);
             document.removeEventListener("visibilitychange", handleVisibilityChange);
+            window.removeEventListener("blur", handleWindowBlur);
+            window.removeEventListener("focus", handleWindowFocus);
             window.removeEventListener("beforeunload", handleBeforeUnload);
         };
     }, [examStarted, submitting, isTerminated, isForceCompleted, fullscreenSupported, sessionId, studentId, violationSettings, logSecurityViolation, triggerFullscreenLockout]);
