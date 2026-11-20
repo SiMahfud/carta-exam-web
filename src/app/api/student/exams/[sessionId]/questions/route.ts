@@ -51,12 +51,26 @@ export async function GET(
         let submission = submissionData[0];
 
         if (submission.status === "terminated") {
+            let terminateMsg = "Ujian Anda telah dihentikan karena melebihi batas pelanggaran. Hubungi pengawas untuk melanjutkan.";
+            try {
+                let log = submission.violationLog;
+                if (typeof log === "string") {
+                    try { log = JSON.parse(log); } catch { }
+                }
+                if (Array.isArray(log) && log.length > 0) {
+                    const lastLog = log[log.length - 1];
+                    if (lastLog?.details) {
+                        terminateMsg = lastLog.details;
+                    }
+                }
+            } catch { }
+
             return NextResponse.json(
                 {
                     error: "Ujian dihentikan karena pelanggaran",
                     terminated: true,
                     violationCount: submission.violationCount || 0,
-                    message: "Ujian Anda telah dihentikan karena melebihi batas pelanggaran. Hubungi pengawas untuk melanjutkan."
+                    message: terminateMsg
                 },
                 { status: 403 }
             );

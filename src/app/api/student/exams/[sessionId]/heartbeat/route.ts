@@ -48,12 +48,27 @@ export async function POST(
 
         // Check if submission is still active
         if (submission.status !== "in_progress") {
+            let terminateMessage = "Ujian dihentikan karena pelanggaran.";
+            if (submission.status === "terminated") {
+                try {
+                    let log = submission.violationLog;
+                    if (typeof log === "string") {
+                        try { log = JSON.parse(log); } catch { }
+                    }
+                    if (Array.isArray(log) && log.length > 0) {
+                        const lastLog = log[log.length - 1];
+                        if (lastLog?.details) {
+                            terminateMessage = lastLog.details;
+                        }
+                    }
+                } catch { }
+            }
             return NextResponse.json({
                 status: submission.status,
                 remainingSeconds: 0,
                 serverTime: new Date().toISOString(),
                 message: submission.status === "terminated"
-                    ? "Ujian dihentikan karena pelanggaran."
+                    ? terminateMessage
                     : "Ujian Anda telah dikumpulkan oleh pengawas atau telah selesai."
             });
         }

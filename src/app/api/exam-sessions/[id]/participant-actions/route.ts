@@ -73,6 +73,22 @@ export async function POST(
                     );
                 break;
 
+            case "lock_session":
+                // Lock session for selected students who are in_progress
+                await db.update(submissions)
+                    .set({
+                        status: "terminated",
+                        endTime: new Date()
+                    })
+                    .where(
+                        and(
+                            eq(submissions.sessionId, sessionId),
+                            inArray(submissions.userId, studentIds),
+                            eq(submissions.status, "in_progress")
+                        )
+                    );
+                break;
+
             case "add_time":
                 // Add time: increment bonusTimeMinutes
                 if (!minutes || typeof minutes !== 'number' || minutes <= 0) {

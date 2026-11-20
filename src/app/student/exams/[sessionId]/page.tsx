@@ -550,6 +550,9 @@ export default function TakeExamPage() {
                     const data = await response.json();
                     if (data.status === "terminated") {
                         setIsTerminated(true);
+                        if (data.message) {
+                            setTerminatedMessage(data.message);
+                        }
                     } else if (data.status === "completed") {
                         handleExamForceCompleted(data.message || "Ujian Anda telah dikumpulkan oleh pengawas.");
                         return;
@@ -1050,6 +1053,11 @@ export default function TakeExamPage() {
                 const data = await response.json();
                 if (data.status === "completed" || data.completed) {
                     handleExamForceCompleted(data.message || "Ujian telah selesai atau dikumpulkan oleh pengawas.");
+                } else if (data.status === "terminated" || data.terminated) {
+                    setIsTerminated(true);
+                    if (data.message) {
+                        setTerminatedMessage(data.message);
+                    }
                 }
             } else if (response.status === 404) {
                 const data = await response.json().catch(() => ({}));

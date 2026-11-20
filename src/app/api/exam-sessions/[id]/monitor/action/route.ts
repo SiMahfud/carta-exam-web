@@ -4,7 +4,7 @@ import { submissions, examSessions, answers, bankQuestions } from "@/lib/schema"
 import { eq, and, inArray } from "drizzle-orm";
 import { requireAuth } from "@/lib/auth-guard";
 import { ActivityLogger } from "@/lib/activity-logger";
-import { publishProctorActionEvent, publishStudentSubmitEvent } from "@/lib/proctoring-events";
+import { publishProctorActionEvent, publishStudentSubmitEvent, publishViolationEvent } from "@/lib/proctoring-events";
 import { safeJsonParse } from "@/lib/json-utils";
 
 export async function POST(
@@ -74,6 +74,68 @@ export async function POST(
             return NextResponse.json({
                 success: true,
                 message: "Jumlah pelanggaran berhasil direset ke 0.",
+            });
+        }
+
+        if (action === "lock_session") {
+            const reason = body.reason?.trim() || "Dikunci sementara oleh pengawas karena pelanggaran di luar sistem (misal: membawa HP kedua / browsing).";
+
+            let existingLog: any[] = [];
+            try {
+                if (typeof sub.violationLog === 'string') {
+                    existingLog = JSON.parse(sub.violationLog);
+                } else if (Array.isArray(sub.violationLog)) {
+                    existingLog = sub.violationLog;
+                }
+            } catch {
+                existingLog = [];
+            }
+
+            const newLog = [
+                ...existingLog,
+                {
+                    type: "PROCTOR_LOCK",
+                    details: reason,
+                    timestamp: new Date().toISOString()
+                }
+            ];
+
+            const newViolationCount = (sub.violationCount || 0) + 1;
+
+            await (db as any)
+                .update(submissions)
+                .set({
+                    status: "terminated",
+                    endTime: new Date(),
+                    violationCount: newViolationCount,
+                    violationLog: newLog,
+                })
+                .where(eq(submissions.id, sub.id));
+
+            await ActivityLogger.examSession.updated(
+                user.id,
+                params.id,
+                `Pengawas mengunci sementara ujian siswa ID: ${studentId}. Alasan: ${reason}`
+            );
+
+            try {
+                publishProctorActionEvent(params.id, user.id, "lock_session", studentId, reason);
+                publishViolationEvent(
+                    params.id,
+                    studentId,
+                    studentSubmission[0]?.userId || "Siswa",
+                    "PROCTOR_LOCK",
+                    newViolationCount,
+                    reason,
+                    true
+                );
+            } catch (e) {
+                console.error("Error publishing proctor lock event:", e);
+            }
+
+            return NextResponse.json({
+                success: true,
+                message: "Ujian siswa berhasil dikunci sementara.",
             });
         }
 

@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { ArrowLeft, RefreshCw, Users, PlayCircle, CheckCircle, AlertTriangle, Clock, Eye, Key, Copy, RotateCcw, MoreHorizontal } from "lucide-react";
+import { ArrowLeft, RefreshCw, Users, PlayCircle, CheckCircle, AlertTriangle, Clock, Eye, Key, Copy, RotateCcw, MoreHorizontal, Lock } from "lucide-react";
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -105,6 +105,8 @@ const VIOLATION_LABELS: Record<string, string> = {
     DEVICE_MISMATCH: "Perangkat Tidak Cocok / Sesi Ganda",
     AWAY_TIMEOUT: "Keluar Melebihi Batas Waktu",
     away_timeout: "Keluar Melebihi Batas Waktu",
+    PROCTOR_LOCK: "Dikunci Pengawas (Kecurangan Luar)",
+    proctor_lock: "Dikunci Pengawas (Kecurangan Luar)",
 };
 
 function getViolationTypeLabel(type: string): string {
@@ -137,6 +139,12 @@ export default function SessionMonitorPage() {
     const [selectedStudent, setSelectedStudent] = useState<StudentProgress | null>(null);
     const [violations, setViolations] = useState<Violation[]>([]);
     const [loadingViolations, setLoadingViolations] = useState(false);
+
+    // Single Student Lock Dialog state
+    const [lockDialogOpen, setLockDialogOpen] = useState(false);
+    const [studentToLock, setStudentToLock] = useState<StudentProgress | null>(null);
+    const [lockReason, setLockReason] = useState<string>("Terdeteksi membawa HP kedua untuk browsing");
+    const [processingLock, setProcessingLock] = useState(false);
 
     // Token state
     const [accessToken, setAccessToken] = useState<string | null>(null);
@@ -255,6 +263,54 @@ export default function SessionMonitorPage() {
                 description: error.message || "Terjadi kesalahan jaringan.",
                 variant: "destructive",
             });
+        }
+    };
+
+    const handleOpenLockDialog = (student: StudentProgress) => {
+        setStudentToLock(student);
+        setLockReason("Terdeteksi membawa HP kedua untuk browsing");
+        setLockDialogOpen(true);
+    };
+
+    const handleConfirmLock = async () => {
+        if (!studentToLock) return;
+        setProcessingLock(true);
+        try {
+            const response = await fetch(`/api/exam-sessions/${params.id}/monitor/action`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    studentId: studentToLock.id,
+                    action: "lock_session",
+                    reason: lockReason.trim() || "Dikunci sementara oleh pengawas karena pelanggaran di luar sistem.",
+                }),
+            });
+
+            if (response.ok) {
+                const res = await response.json();
+                toast({
+                    title: "Ujian Siswa Dikunci",
+                    description: res.message || `Ujian ${studentToLock.name} berhasil dikunci sementara.`,
+                });
+                setLockDialogOpen(false);
+                setStudentToLock(null);
+                fetchData(true);
+            } else {
+                const err = await response.json();
+                toast({
+                    title: "Gagal Mengunci Ujian",
+                    description: err.error || "Gagal mengunci ujian siswa.",
+                    variant: "destructive",
+                });
+            }
+        } catch (error: any) {
+            toast({
+                title: "Error",
+                description: error.message || "Terjadi kesalahan jaringan.",
+                variant: "destructive",
+            });
+        } finally {
+            setProcessingLock(false);
         }
     };
 
@@ -814,6 +870,7 @@ export default function SessionMonitorPage() {
                                 disabled={selectedStudentIds.length === 0}
                             >
                                 <option value="">Pilih Aksi...</option>
+                                <option value="lock_session">Kunci Sementara (Suspend)</option>
                                 <option value="add_time">Tambah Waktu</option>
                                 <option value="reset_time">Reset Waktu</option>
                                 <option value="reset_violations">Reset Pelanggaran</option>
@@ -934,6 +991,18 @@ export default function SessionMonitorPage() {
                                         </td>
                                         <td className="p-4">
                                             <div className="flex items-center gap-1">
+                                                {student.status === "in_progress" && (
+                                                    <Button
+                                                        variant="outline"
+                                                        size="sm"
+                                                        className="h-8 px-2 text-xs text-rose-600 border-rose-300 hover:bg-rose-50 dark:border-rose-800 dark:hover:bg-rose-950/40"
+                                                        onClick={() => handleOpenLockDialog(student)}
+                                                        title="Kunci Sementara Ujian Siswa (Pelanggaran Fisik / Luar Sistem)"
+                                                    >
+                                                        <Lock className="h-3.5 w-3.5 mr-1" />
+                                                        Kunci
+                                                    </Button>
+                                                )}
                                                 {student.violationCount > 0 && (
                                                     <>
                                                         <Button
@@ -991,6 +1060,15 @@ export default function SessionMonitorPage() {
                                                             </Button>
                                                         </DropdownMenuTrigger>
                                                         <DropdownMenuContent align="end" className="w-44">
+                                                            {student.status === "in_progress" && (
+                                                                <DropdownMenuItem
+                                                                    className="text-rose-600 focus:text-rose-600 cursor-pointer text-xs"
+                                                                    onClick={() => handleOpenLockDialog(student)}
+                                                                >
+                                                                    <Lock className="h-3.5 w-3.5 mr-2" />
+                                                                    Kunci Sementara
+                                                                </DropdownMenuItem>
+                                                            )}
                                                             {student.status === "in_progress" && (
                                                                 <DropdownMenuItem
                                                                     className="text-emerald-600 focus:text-emerald-600 cursor-pointer text-xs"
@@ -1138,6 +1216,18 @@ export default function SessionMonitorPage() {
                                     {/* Action Row */}
                                     <div className="flex items-center justify-between gap-1 pt-1">
                                         <div className="flex items-center gap-1.5 flex-wrap">
+                                            {student.status === "in_progress" && (
+                                                <Button
+                                                    variant="outline"
+                                                    size="sm"
+                                                    className="h-7 px-2 text-xs text-rose-600 border-rose-300 hover:bg-rose-50 dark:border-rose-800 dark:hover:bg-rose-950/40"
+                                                    onClick={() => handleOpenLockDialog(student)}
+                                                    title="Kunci Sementara"
+                                                >
+                                                    <Lock className="h-3 w-3 mr-1" />
+                                                    Kunci
+                                                </Button>
+                                            )}
                                             {student.violationCount > 0 && (
                                                 <>
                                                     <Button
@@ -1194,6 +1284,15 @@ export default function SessionMonitorPage() {
                                                     </Button>
                                                 </DropdownMenuTrigger>
                                                 <DropdownMenuContent align="end" className="w-48">
+                                                    {student.status === "in_progress" && (
+                                                        <DropdownMenuItem
+                                                            className="text-rose-600 focus:text-rose-600 cursor-pointer text-xs"
+                                                            onClick={() => handleOpenLockDialog(student)}
+                                                        >
+                                                            <Lock className="h-3.5 w-3.5 mr-2" />
+                                                            Kunci Sementara
+                                                        </DropdownMenuItem>
+                                                    )}
                                                     {student.status === "in_progress" && (
                                                         <DropdownMenuItem
                                                             className="text-emerald-600 focus:text-emerald-600 cursor-pointer text-xs"
@@ -1253,6 +1352,7 @@ export default function SessionMonitorPage() {
                         <DialogDescription>
                             Apakah Anda yakin ingin melakukan aksi <strong>
                                 {selectedAction === 'add_time' ? `Tambah Waktu (+${selectedMinutes} menit)` :
+                                    selectedAction === 'lock_session' ? 'Kunci Sementara (Suspend)' :
                                     selectedAction === 'reset_time' ? 'Reset Waktu' :
                                         selectedAction === 'reset_violations' ? 'Reset Pelanggaran' :
                                             selectedAction === 'reset_permission' ? 'Izinkan Lanjut Ujian' :
@@ -1321,6 +1421,88 @@ export default function SessionMonitorPage() {
                                 ))}
                             </div>
                         )}
+                    </div>
+                </DialogContent>
+            </Dialog>
+
+            {/* Dialog Kunci Sementara Ujian Siswa */}
+            <Dialog open={lockDialogOpen} onOpenChange={setLockDialogOpen}>
+                <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto p-4 sm:p-6">
+                    <DialogHeader>
+                        <div className="flex items-center gap-2 text-rose-600 mb-1">
+                            <div className="p-2 rounded-full bg-rose-100 dark:bg-rose-950/50">
+                                <Lock className="h-5 w-5" />
+                            </div>
+                            <DialogTitle className="text-lg">Kunci Sementara Ujian Siswa</DialogTitle>
+                        </div>
+                        <DialogDescription className="text-xs text-muted-foreground">
+                            Kunci layar ujian siswa secara seketika (misal: terdeteksi membawa HP ke-2, mencontek, atau pelanggaran di luar sistem).
+                        </DialogDescription>
+                    </DialogHeader>
+
+                    <div className="space-y-4 py-2">
+                        <div className="bg-muted/50 p-3 rounded-lg border text-sm">
+                            <p className="font-semibold text-foreground">{studentToLock?.name}</p>
+                            <p className="text-xs text-muted-foreground">Kelas: {studentToLock?.className}</p>
+                        </div>
+
+                        <div className="space-y-2">
+                            <label className="text-xs font-semibold text-foreground">
+                                Pilih Alasan Pelanggaran / Catatan:
+                            </label>
+                            <div className="flex flex-wrap gap-1.5 mb-2">
+                                {[
+                                    "Terdeteksi membawa HP kedua untuk browsing",
+                                    "Membuka contekan / catatan fisik",
+                                    "Bekerja sama / mencontek teman",
+                                    "Membuka tab / aplikasi lain",
+                                ].map((preset) => (
+                                    <button
+                                        key={preset}
+                                        type="button"
+                                        onClick={() => setLockReason(preset)}
+                                        className={`text-[11px] px-2.5 py-1 rounded-full border transition-colors ${
+                                            lockReason === preset
+                                                ? "bg-rose-600 text-white border-rose-600 font-medium"
+                                                : "bg-background hover:bg-muted text-muted-foreground border-border"
+                                        }`}
+                                    >
+                                        {preset}
+                                    </button>
+                                ))}
+                            </div>
+                            <textarea
+                                rows={2}
+                                className="w-full text-xs rounded-md border border-input bg-background p-2.5 focus:outline-none focus:ring-2 focus:ring-ring"
+                                value={lockReason}
+                                onChange={(e) => setLockReason(e.target.value)}
+                                placeholder="Tuliskan catatan atau alasan penguncian..."
+                            />
+                        </div>
+
+                        <div className="p-3 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-900/40 rounded-lg text-xs text-amber-800 dark:text-amber-300">
+                            <strong>Catatan:</strong> Layar ujian di HP siswa akan langsung terkunci ke layar peringatan merah. Semua jawaban yang telah diisi siswa <u>tetap tersimpan aman</u>. Pengawas dapat mengklik tombol <strong>Buka Kunci</strong> kapan saja untuk mengizinkan siswa melanjutkan ujian.
+                        </div>
+                    </div>
+
+                    <div className="flex justify-end gap-2 mt-2">
+                        <Button
+                            type="button"
+                            variant="outline"
+                            onClick={() => setLockDialogOpen(false)}
+                            disabled={processingLock}
+                        >
+                            Batal
+                        </Button>
+                        <Button
+                            type="button"
+                            variant="destructive"
+                            onClick={handleConfirmLock}
+                            disabled={processingLock}
+                            className="bg-rose-600 hover:bg-rose-700"
+                        >
+                            {processingLock ? "Mengunci..." : "Kunci Ujian Sekarang"}
+                        </Button>
                     </div>
                 </DialogContent>
             </Dialog>

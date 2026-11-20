@@ -50,12 +50,30 @@ export async function POST(
 
         // Check if submission is still in progress
         if (submission.status !== "in_progress") {
+            let msg = "Ujian telah selesai atau dikumpulkan oleh pengawas. Jawaban tidak dapat diubah lagi.";
+            if (submission.status === "terminated") {
+                msg = "Ujian Anda telah dihentikan sementara oleh pengawas. Jawaban tidak dapat disimpan.";
+                try {
+                    let log = submission.violationLog;
+                    if (typeof log === "string") {
+                        try { log = JSON.parse(log); } catch { }
+                    }
+                    if (Array.isArray(log) && log.length > 0) {
+                        const lastLog = log[log.length - 1];
+                        if (lastLog?.details) {
+                            msg = lastLog.details;
+                        }
+                    }
+                } catch { }
+            }
+
             return NextResponse.json(
                 {
-                    error: "Ujian telah selesai",
+                    error: submission.status === "terminated" ? "Ujian dihentikan sementara" : "Ujian telah selesai",
                     status: submission.status,
+                    terminated: submission.status === "terminated",
                     completed: submission.status === "completed",
-                    message: "Ujian telah selesai atau dikumpulkan oleh pengawas. Jawaban tidak dapat diubah lagi."
+                    message: msg
                 },
                 { status: 403 }
             );
