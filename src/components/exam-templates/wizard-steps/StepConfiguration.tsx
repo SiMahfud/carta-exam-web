@@ -332,6 +332,54 @@ export function StepConfiguration({ formData, setFormData }: StepConfigurationPr
                                     ))}
                                 </div>
                             </div>
+
+                            {/* Late Entry Tolerance */}
+                            <div className="p-4 border rounded-lg space-y-3">
+                                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                                    <div className="space-y-0.5">
+                                        <div className="flex items-center gap-2">
+                                            <Label className="text-base font-semibold">Batas Keterlambatan Masuk (Auto-Block)</Label>
+                                            <span className="text-[10px] bg-red-100 dark:bg-red-950/60 text-red-600 dark:text-red-400 px-2 py-0.5 rounded-full font-medium">Anti-Bocoran</span>
+                                        </div>
+                                        <p className="text-sm text-muted-foreground">
+                                            Kunci otomatis akses bagi siswa yang belum memulai ujian setelah sekian menit sejak sesi dibuka. Mencegah siswa menunda masuk untuk mencari jawaban di browser. Isi 0 untuk menonaktifkan batasan.
+                                        </p>
+                                    </div>
+                                    <div className="flex items-center gap-2 shrink-0">
+                                        <Input
+                                            type="number"
+                                            min="0"
+                                            max="120"
+                                            className="w-24 text-right"
+                                            value={formData.violationSettings.lateToleranceMinutes ?? 10}
+                                            onChange={(e) => updateViolationSetting('lateToleranceMinutes', Math.max(0, parseInt(e.target.value) || 0))}
+                                        />
+                                        <span className="text-sm text-muted-foreground font-medium">menit</span>
+                                    </div>
+                                </div>
+                                <div className="flex flex-wrap gap-2 pt-1">
+                                    {[
+                                        { val: 0, label: "Nonaktif (Bebas)" },
+                                        { val: 5, label: "5 menit" },
+                                        { val: 10, label: "10 menit (Standar)" },
+                                        { val: 15, label: "15 menit" },
+                                        { val: 30, label: "30 menit" },
+                                    ].map((opt) => (
+                                        <button
+                                            key={opt.val}
+                                            type="button"
+                                            onClick={() => updateViolationSetting('lateToleranceMinutes', opt.val)}
+                                            className={`px-3 py-1.5 text-xs rounded-md border transition-colors ${
+                                                (formData.violationSettings.lateToleranceMinutes ?? 10) === opt.val
+                                                    ? 'bg-primary text-primary-foreground border-primary font-medium'
+                                                    : 'hover:bg-muted'
+                                            }`}
+                                        >
+                                            {opt.label}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
                         </>
                     )}
                 </div>

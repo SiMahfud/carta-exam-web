@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { examSessions, users, classStudents, submissions, classes, answers, bankQuestions } from "@/lib/schema";
+import { examSessions, users, classStudents, submissions, classes, answers, bankQuestions, examTemplates } from "@/lib/schema";
 import { eq, inArray } from "drizzle-orm";
 import { requireAuth } from "@/lib/auth-guard";
 
@@ -28,6 +28,27 @@ export async function GET(
                 { error: "Akses ditolak. Anda hanya dapat memantau sesi ujian yang Anda buat sendiri." },
                 { status: 403 }
             );
+        }
+
+        // Fetch template to check lateToleranceMinutes
+        let lateToleranceMinutes = 0;
+        try {
+            const templateResult = await db.select({
+                violationSettings: examTemplates.violationSettings,
+            })
+                .from(examTemplates)
+                .where(eq(examTemplates.id, session.templateId))
+                .limit(1);
+
+            if (templateResult.length > 0) {
+                let vSettings: any = templateResult[0].violationSettings;
+                if (typeof vSettings === "string") {
+                    try { vSettings = JSON.parse(vSettings); } catch { }
+                }
+                lateToleranceMinutes = Number(vSettings?.lateToleranceMinutes ?? 0);
+            }
+        } catch (e) {
+            console.error("Error reading template violationSettings:", e);
         }
 
         // 2. Get assigned students
@@ -199,6 +220,11 @@ export async function GET(
         }
 
         // 4. Map status to students
+        const now = new Date();
+        const sessionStartTime = new Date(session.startTime).getTime();
+        const diffMinutes = (now.getTime() - sessionStartTime) / (1000 * 60);
+        const isPastLateTolerance = lateToleranceMinutes > 0 && diffMinutes > lateToleranceMinutes;
+
         const studentProgress = students.map((student: typeof students[0]) => {
             const submission = submissionsResult.find((s: typeof submissionsResult[0]) => s.userId === student.id);
 
@@ -211,12 +237,26 @@ export async function GET(
             let answeredCount = 0;
             let totalQuestions = 0;
             let hasEssays = false;
+            let isLate = false;
+            let isLateEntry = false;
 
             if (submission) {
                 status = submission.status || "in_progress";
                 startTime = submission.startTime;
                 endTime = submission.endTime;
                 violationCount = submission.violationCount || 0;
+
+                if (status === "terminated") {
+                    try {
+                        let log = submission.violationLog;
+                        if (typeof log === "string") {
+                            try { log = JSON.parse(log); } catch { }
+                        }
+                        if (Array.isArray(log)) {
+                            isLateEntry = log.some((l: any) => l.type === "LATE_ENTRY" || l.type === "late_entry");
+                        }
+                    } catch { }
+                }
 
                 const qIds = parseQuestionOrder(submission.questionOrder);
                 totalQuestions = qIds.length;
@@ -247,6 +287,8 @@ export async function GET(
                     score = submission.score;
                     answeredCount = totalQuestions;
                 }
+            } else {
+                isLate = isPastLateTolerance;
             }
 
             return {
@@ -260,6 +302,8 @@ export async function GET(
                 answeredCount,
                 totalQuestions,
                 hasEssays,
+                isLate,
+                isLateEntry,
             };
         });
 
@@ -279,6 +323,7 @@ export async function GET(
                 status: session.status,
                 startTime: session.startTime,
                 endTime: session.endTime,
+                lateToleranceMinutes,
             },
             stats,
             students: studentProgress

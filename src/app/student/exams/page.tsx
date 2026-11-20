@@ -221,6 +221,17 @@ export default function StudentExamsPage() {
                     return;
                 }
 
+                // 3. Check if locked due to late entry or proctor lock
+                if (response.status === 403 && (error.terminated || error.lateBlocked)) {
+                    toast({
+                        title: "Akses Ujian Terkunci",
+                        description: error.message || "Batas waktu toleransi keterlambatan masuk telah berakhir. Hubungi pengawas di ruangan.",
+                        variant: "destructive",
+                    });
+                    router.push(`/student/exams/${sessionId}`);
+                    return;
+                }
+
                 throw new Error(error.error || "Gagal memulai ujian");
             }
         } catch (error: unknown) {

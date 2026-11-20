@@ -48,6 +48,8 @@ interface StudentProgress {
     answeredCount?: number;
     totalQuestions?: number;
     hasEssays?: boolean;
+    isLate?: boolean;
+    isLateEntry?: boolean;
 }
 
 interface SessionStats {
@@ -64,6 +66,7 @@ interface SessionData {
     status: string;
     startTime: string;
     endTime: string;
+    lateToleranceMinutes?: number;
 }
 
 interface Violation {
@@ -107,6 +110,8 @@ const VIOLATION_LABELS: Record<string, string> = {
     away_timeout: "Keluar Melebihi Batas Waktu",
     PROCTOR_LOCK: "Dikunci Pengawas (Kecurangan Luar)",
     proctor_lock: "Dikunci Pengawas (Kecurangan Luar)",
+    LATE_ENTRY: "Terlambat Masuk (> Batas Waktu)",
+    late_entry: "Terlambat Masuk (> Batas Waktu)",
 };
 
 function getViolationTypeLabel(type: string): string {
@@ -619,16 +624,30 @@ export default function SessionMonitorPage() {
         }
     };
 
-    const getStatusBadge = (status: string) => {
-        switch (status) {
+    const getStatusBadge = (student: StudentProgress) => {
+        switch (student.status) {
             case "in_progress":
                 return <Badge className="bg-blue-500">Mengerjakan</Badge>;
             case "completed":
                 return <Badge className="bg-green-500">Selesai</Badge>;
             case "terminated":
+                if (student.isLateEntry) {
+                    return (
+                        <Badge className="bg-amber-600 hover:bg-amber-700 text-white border-none font-medium">
+                            Terkunci (Terlambat)
+                        </Badge>
+                    );
+                }
                 return <Badge className="bg-red-600">Dihentikan</Badge>;
             case "not_started":
             default:
+                if (student.isLate) {
+                    return (
+                        <Badge variant="outline" className="border-rose-400 text-rose-600 bg-rose-50 dark:bg-rose-950/40 font-medium">
+                            Belum Mulai (Terlambat)
+                        </Badge>
+                    );
+                }
                 return <Badge variant="outline">Belum Mulai</Badge>;
         }
     };
@@ -672,6 +691,11 @@ export default function SessionMonitorPage() {
                             <Badge variant={session.status === 'active' ? 'default' : 'secondary'} className="text-xs">
                                 {session.status === 'active' ? 'Sedang Berlangsung' : session.status}
                             </Badge>
+                            {session.lateToleranceMinutes && session.lateToleranceMinutes > 0 ? (
+                                <Badge variant="outline" className="text-xs border-amber-400 text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/40">
+                                    Toleransi Terlambat: {session.lateToleranceMinutes} mnt
+                                </Badge>
+                            ) : null}
                         </div>
                         <p className="text-muted-foreground flex items-center gap-2 text-xs sm:text-sm mt-1">
                             <Clock className="h-3 w-3" />
@@ -950,7 +974,7 @@ export default function SessionMonitorPage() {
                                         </td>
                                         <td className="p-4 font-medium">{student.name}</td>
                                         <td className="p-4 text-muted-foreground">{student.className}</td>
-                                        <td className="p-4">{getStatusBadge(student.status)}</td>
+                                        <td className="p-4">{getStatusBadge(student)}</td>
                                         <td className="p-4 text-muted-foreground">
                                             {student.startTime ? format(new Date(student.startTime), "HH:mm") : "-"}
                                         </td>
@@ -991,6 +1015,18 @@ export default function SessionMonitorPage() {
                                         </td>
                                         <td className="p-4">
                                             <div className="flex items-center gap-1">
+                                                {student.status === "not_started" && (
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="sm"
+                                                        className="h-8 px-2 text-xs text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40"
+                                                        onClick={() => handleOpenLockDialog(student)}
+                                                        title="Kunci Akses Siswa (Sebelum Mulai)"
+                                                    >
+                                                        <Lock className="h-3.5 w-3.5 mr-1" />
+                                                        Kunci
+                                                    </Button>
+                                                )}
                                                 {student.status === "in_progress" && (
                                                     <Button
                                                         variant="outline"
@@ -1028,13 +1064,17 @@ export default function SessionMonitorPage() {
                                                 {student.status === "terminated" && (
                                                     <>
                                                         <Button
-                                                            variant="ghost"
+                                                            variant={student.isLateEntry ? "default" : "ghost"}
                                                             size="sm"
-                                                            className="h-8 px-2 text-xs text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-950/40"
+                                                            className={`h-8 px-2 text-xs ${
+                                                                student.isLateEntry
+                                                                    ? "bg-emerald-600 hover:bg-emerald-700 text-white font-medium"
+                                                                    : "text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-950/40"
+                                                            }`}
                                                             onClick={() => handleSingleProctorAction(student.id, "unlock_session")}
-                                                            title="Buka Kunci Sesi Ujian"
+                                                            title={student.isLateEntry ? "Izinkan Siswa Masuk (Dispensasi Terlambat)" : "Buka Kunci Sesi Ujian"}
                                                         >
-                                                            Buka Kunci
+                                                            {student.isLateEntry ? "Izinkan Masuk" : "Buka Kunci"}
                                                         </Button>
                                                         <Button
                                                             variant="ghost"
@@ -1169,7 +1209,7 @@ export default function SessionMonitorPage() {
                                             </div>
                                         </div>
                                         <div className="flex-shrink-0">
-                                            {getStatusBadge(student.status)}
+                                            {getStatusBadge(student)}
                                         </div>
                                     </div>
 
@@ -1216,6 +1256,18 @@ export default function SessionMonitorPage() {
                                     {/* Action Row */}
                                     <div className="flex items-center justify-between gap-1 pt-1">
                                         <div className="flex items-center gap-1.5 flex-wrap">
+                                            {student.status === "not_started" && (
+                                                <Button
+                                                    variant="ghost"
+                                                    size="sm"
+                                                    className="h-7 px-2 text-xs text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40"
+                                                    onClick={() => handleOpenLockDialog(student)}
+                                                    title="Kunci Akses Siswa"
+                                                >
+                                                    <Lock className="h-3 w-3 mr-1" />
+                                                    Kunci
+                                                </Button>
+                                            )}
                                             {student.status === "in_progress" && (
                                                 <Button
                                                     variant="outline"
@@ -1252,12 +1304,16 @@ export default function SessionMonitorPage() {
                                             {student.status === "terminated" && (
                                                 <>
                                                     <Button
-                                                        variant="ghost"
+                                                        variant={student.isLateEntry ? "default" : "ghost"}
                                                         size="sm"
-                                                        className="h-7 px-2 text-xs text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-950/40"
+                                                        className={`h-7 px-2 text-xs ${
+                                                            student.isLateEntry
+                                                                ? "bg-emerald-600 hover:bg-emerald-700 text-white font-medium"
+                                                                : "text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-950/40"
+                                                        }`}
                                                         onClick={() => handleSingleProctorAction(student.id, "unlock_session")}
                                                     >
-                                                        Buka Kunci
+                                                        {student.isLateEntry ? "Izinkan Masuk" : "Buka Kunci"}
                                                     </Button>
                                                     <Button
                                                         variant="ghost"

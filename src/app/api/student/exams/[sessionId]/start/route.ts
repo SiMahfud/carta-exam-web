@@ -5,7 +5,7 @@ import { eq, inArray, and } from "drizzle-orm";
 import { applyQuestionRandomization, RandomizationRules } from "@/lib/randomization";
 import { requireAuth } from "@/lib/auth-guard";
 import { validateBrowserRequirements } from "@/lib/browser-detection";
-import { publishStudentStartEvent } from "@/lib/proctoring-events";
+import { publishStudentStartEvent, publishViolationEvent } from "@/lib/proctoring-events";
 
 // POST /api/student/exams/[sessionId]/start - Start taking an exam
 export async function POST(
@@ -38,6 +38,33 @@ export async function POST(
             .limit(1);
 
         if (existingSubmission.length > 0) {
+            const sub = existingSubmission[0];
+            if (sub.status === "terminated") {
+                let terminateMessage = "Akses ujian Anda telah dikunci atau dihentikan. Silakan hubungi pengawas di ruangan.";
+                try {
+                    let log = sub.violationLog;
+                    if (typeof log === "string") {
+                        try { log = JSON.parse(log); } catch { }
+                    }
+                    if (Array.isArray(log) && log.length > 0) {
+                        const lastLog = log[log.length - 1];
+                        if (lastLog?.details) {
+                            terminateMessage = lastLog.details;
+                        }
+                    }
+                } catch { }
+
+                return NextResponse.json(
+                    {
+                        error: "LATE_ENTRY",
+                        terminated: true,
+                        lateBlocked: true,
+                        message: terminateMessage
+                    },
+                    { status: 403 }
+                );
+            }
+
             return NextResponse.json(
                 { error: "Exam already started" },
                 { status: 400 }
@@ -342,9 +369,63 @@ export async function POST(
             }
         }
 
+        // Check late tolerance
+        const lateToleranceMinutes = Number(violationSettings?.lateToleranceMinutes ?? 0);
+        const sessionStartTime = new Date(session.startTime).getTime();
+        const diffMinutes = (now.getTime() - sessionStartTime) / (1000 * 60);
+        const isLate = lateToleranceMinutes > 0 && diffMinutes > lateToleranceMinutes;
+
         // Create submission
         const totalMax = selectedQuestions.reduce((sum: number, q: any) => sum + (q.defaultPoints || 0), 0);
         const submissionId = crypto.randomUUID();
+
+        if (isLate) {
+            const reason = `Batas waktu toleransi keterlambatan masuk (${lateToleranceMinutes} menit) telah berakhir. Sesi dimulai pukul ${new Date(session.startTime).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}.`;
+
+            await db.insert(submissions).values({
+                id: submissionId,
+                userId: studentId,
+                sessionId: params.sessionId,
+                status: "terminated",
+                startTime: now,
+                endTime: now,
+                questionOrder,
+                totalPoints: totalMax,
+                earnedPoints: 0,
+                score: 0,
+                flaggedQuestions: [],
+                violationCount: 1,
+                violationLog: [{
+                    type: "LATE_ENTRY",
+                    details: reason,
+                    timestamp: now.toISOString(),
+                }],
+                deviceId: deviceId || null,
+                gradingStatus: "auto",
+            });
+
+            try {
+                publishViolationEvent(
+                    params.sessionId,
+                    studentId,
+                    user.name || "Siswa",
+                    "LATE_ENTRY",
+                    1,
+                    reason,
+                    true
+                );
+            } catch (e) {
+                console.error("Error publishing late entry event:", e);
+            }
+
+            return NextResponse.json({
+                error: "LATE_ENTRY",
+                terminated: true,
+                lateBlocked: true,
+                message: `Batas waktu toleransi keterlambatan masuk (${lateToleranceMinutes} menit) telah berakhir. Akses ujian Anda terkunci otomatis. Silakan lapor ke pengawas di ruangan untuk meminta izin masuk.`
+            }, { status: 403 });
+        }
+
         await db.insert(submissions).values({
             id: submissionId,
             userId: studentId,

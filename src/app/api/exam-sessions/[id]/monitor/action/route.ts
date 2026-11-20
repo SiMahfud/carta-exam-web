@@ -45,6 +45,51 @@ export async function POST(
             .limit(1);
 
         if (studentSubmission.length === 0) {
+            if (action === "lock_session") {
+                const reason = body.reason?.trim() || "Dikunci oleh pengawas sebelum memulai ujian karena pelanggaran di luar sistem (misal: membawa HP kedua / browsing).";
+                const subId = crypto.randomUUID();
+                await (db as any).insert(submissions).values({
+                    id: subId,
+                    userId: studentId,
+                    sessionId: params.id,
+                    status: "terminated",
+                    endTime: new Date(),
+                    violationCount: 1,
+                    violationLog: [{
+                        type: "PROCTOR_LOCK",
+                        details: reason,
+                        timestamp: new Date().toISOString()
+                    }],
+                    gradingStatus: "auto",
+                });
+
+                await ActivityLogger.examSession.updated(
+                    user.id,
+                    params.id,
+                    `Pengawas mengunci siswa yang belum mulai ID: ${studentId}. Alasan: ${reason}`
+                );
+
+                try {
+                    publishProctorActionEvent(params.id, user.id, "lock_session", studentId, reason);
+                    publishViolationEvent(
+                        params.id,
+                        studentId,
+                        "Siswa",
+                        "PROCTOR_LOCK",
+                        1,
+                        reason,
+                        true
+                    );
+                } catch (e) {
+                    console.error("Error publishing proctor lock event:", e);
+                }
+
+                return NextResponse.json({
+                    success: true,
+                    message: "Siswa berhasil dikunci dari ujian.",
+                });
+            }
+
             return NextResponse.json(
                 { error: "Data pengerjaan siswa tidak ditemukan" },
                 { status: 404 }
