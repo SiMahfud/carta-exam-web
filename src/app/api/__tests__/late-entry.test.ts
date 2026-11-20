@@ -115,6 +115,182 @@ describe("Late Entry Auto-Block and Proctor Lock/Unlock", () => {
         );
     });
 
+    it("should automatically default to 10 minutes late tolerance for legacy templates without lateToleranceMinutes", async () => {
+        vi.spyOn(authGuardModule, "requireAuth").mockResolvedValue({
+            id: "student-legacy",
+            role: "student",
+            name: "Siswa Legacy",
+        } as any);
+
+        const now = new Date();
+        // Session started 12 minutes ago (past 10 min default)
+        const startTime = new Date(now.getTime() - 12 * 60 * 1000);
+        const endTime = new Date(now.getTime() + 60 * 60 * 1000);
+
+        const mockSession = [{
+            templateId: "tmpl-legacy",
+            startTime,
+            endTime,
+            status: "active",
+            accessToken: null,
+        }];
+
+        // Legacy template without lateToleranceMinutes field
+        const mockTemplate = [{
+            id: "tmpl-legacy",
+            violationSettings: JSON.stringify({
+                mode: "strict",
+                detectTabSwitch: true,
+            }),
+            requireToken: false,
+            bankIds: JSON.stringify(["bank-1"]),
+            questionComposition: JSON.stringify({ mc: 1 }),
+            randomizeQuestions: false,
+        }];
+
+        const mockBankQuestions = [{
+            id: "q-1",
+            bankId: "bank-1",
+            type: "mc",
+            questionNumber: 1,
+            defaultPoints: 10,
+        }];
+
+        const insertSpy = vi.fn().mockReturnValue({
+            values: vi.fn().mockResolvedValue({}),
+        });
+
+        let selectCallCount = 0;
+        vi.spyOn(db, "select").mockImplementation((() => ({
+            from: vi.fn().mockImplementation(() => ({
+                where: vi.fn().mockImplementation(() => {
+                    selectCallCount++;
+                    const promise = selectCallCount === 5
+                        ? Promise.resolve(mockBankQuestions)
+                        : Promise.resolve([]);
+                    return Object.assign(promise, {
+                        limit: vi.fn().mockImplementation(() => {
+                            if (selectCallCount === 1) return Promise.resolve([]);
+                            if (selectCallCount === 2) return Promise.resolve(mockSession);
+                            if (selectCallCount === 3) return Promise.resolve(mockTemplate);
+                            if (selectCallCount === 4) return Promise.resolve([]);
+                            return Promise.resolve(mockBankQuestions);
+                        }),
+                    });
+                }),
+            })),
+        })) as any);
+
+        vi.spyOn(db, "insert").mockImplementation((() => ({
+            values: insertSpy,
+        })) as any);
+
+        const req = new Request("http://localhost:3000/api/student/exams/session-1/start", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ studentId: "student-legacy" }),
+        });
+
+        const res = await startPOST(req as any, { params: { sessionId: "session-1" } });
+        expect(res.status).toBe(403);
+
+        const json = await res.json();
+        expect(json.error).toBe("LATE_ENTRY");
+        expect(json.terminated).toBe(true);
+        expect(json.message).toContain("10 menit");
+    });
+
+    it("should allow student to enter if template explicitly sets lateToleranceMinutes to 0 (disabled)", async () => {
+        vi.spyOn(authGuardModule, "requireAuth").mockResolvedValue({
+            id: "student-open",
+            role: "student",
+            name: "Siswa Bebas",
+        } as any);
+
+        const now = new Date();
+        // Session started 45 minutes ago
+        const startTime = new Date(now.getTime() - 45 * 60 * 1000);
+        const endTime = new Date(now.getTime() + 60 * 60 * 1000);
+
+        const mockSession = [{
+            templateId: "tmpl-open",
+            startTime,
+            endTime,
+            status: "active",
+            accessToken: null,
+        }];
+
+        // Explicitly disabled with 0
+        const mockTemplate = [{
+            id: "tmpl-open",
+            violationSettings: JSON.stringify({
+                lateToleranceMinutes: 0,
+                mode: "strict",
+            }),
+            requireToken: false,
+            bankIds: JSON.stringify(["bank-1"]),
+            questionComposition: JSON.stringify({ mc: 1 }),
+            randomizeQuestions: false,
+        }];
+
+        const mockBankQuestions = [{
+            id: "q-1",
+            bankId: "bank-1",
+            type: "mc",
+            questionNumber: 1,
+            defaultPoints: 10,
+        }];
+
+        const insertSpy = vi.fn().mockReturnValue({
+            values: vi.fn().mockResolvedValue({}),
+        });
+
+        let selectCallCount = 0;
+        vi.spyOn(db, "select").mockImplementation((() => ({
+            from: vi.fn().mockImplementation(() => ({
+                where: vi.fn().mockImplementation(() => {
+                    selectCallCount++;
+                    const promise = selectCallCount === 5
+                        ? Promise.resolve(mockBankQuestions)
+                        : Promise.resolve([]);
+                    return Object.assign(promise, {
+                        limit: vi.fn().mockImplementation(() => {
+                            if (selectCallCount === 1) return Promise.resolve([]);
+                            if (selectCallCount === 2) return Promise.resolve(mockSession);
+                            if (selectCallCount === 3) return Promise.resolve(mockTemplate);
+                            if (selectCallCount === 4) return Promise.resolve([]);
+                            return Promise.resolve(mockBankQuestions);
+                        }),
+                    });
+                }),
+            })),
+        })) as any);
+
+        vi.spyOn(db, "insert").mockImplementation((() => ({
+            values: insertSpy,
+        })) as any);
+
+        const req = new Request("http://localhost:3000/api/student/exams/session-1/start", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ studentId: "student-open" }),
+        });
+
+        const res = await startPOST(req as any, { params: { sessionId: "session-1" } });
+        expect(res.status).toBe(201);
+
+        const json = await res.json();
+        expect(json.message).toBe("Exam started successfully");
+
+        expect(insertSpy).toHaveBeenCalledWith(
+            expect.objectContaining({
+                userId: "student-open",
+                sessionId: "session-1",
+                status: "in_progress",
+            })
+        );
+    });
+
     it("should allow teacher to lock student who has not started yet (action: lock_session)", async () => {
         vi.spyOn(authGuardModule, "requireAuth").mockResolvedValue({
             id: "teacher-1",

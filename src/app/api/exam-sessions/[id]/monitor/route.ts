@@ -45,7 +45,9 @@ export async function GET(
                 if (typeof vSettings === "string") {
                     try { vSettings = JSON.parse(vSettings); } catch { }
                 }
-                lateToleranceMinutes = Number(vSettings?.lateToleranceMinutes ?? 0);
+                lateToleranceMinutes = vSettings?.lateToleranceMinutes !== undefined
+                    ? Number(vSettings.lateToleranceMinutes)
+                    : 10;
             }
         } catch (e) {
             console.error("Error reading template violationSettings:", e);

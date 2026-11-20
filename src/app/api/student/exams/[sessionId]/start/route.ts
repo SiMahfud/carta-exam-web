@@ -369,8 +369,10 @@ export async function POST(
             }
         }
 
-        // Check late tolerance
-        const lateToleranceMinutes = Number(violationSettings?.lateToleranceMinutes ?? 0);
+        // Check late tolerance (defaults to 10 minutes for existing templates if not explicitly set to 0)
+        const lateToleranceMinutes = violationSettings?.lateToleranceMinutes !== undefined
+            ? Number(violationSettings.lateToleranceMinutes)
+            : 10;
         const sessionStartTime = new Date(session.startTime).getTime();
         const diffMinutes = (now.getTime() - sessionStartTime) / (1000 * 60);
         const isLate = lateToleranceMinutes > 0 && diffMinutes > lateToleranceMinutes;
