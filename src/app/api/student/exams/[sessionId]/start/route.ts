@@ -152,6 +152,12 @@ export async function POST(
             (studentClearance.status === "dispensation" && studentClearance.validUntil && new Date(studentClearance.validUntil) < now)
         );
 
+        let pendingAdminClearance: {
+            tokenRecord: any;
+            clearanceId: string;
+            adminToken: string;
+        } | null = null;
+
         if (isClearanceBlocked) {
             const adminToken = bodyAdminToken ? String(bodyAdminToken).trim().toUpperCase() : null;
 
@@ -166,7 +172,7 @@ export async function POST(
                 );
             }
 
-            // Verify admin token
+            // Verify admin token (do not consume yet until all exam entry checks pass)
             const [validAdminToken] = await (db as any)
                 .select()
                 .from(administrativeTokens)
@@ -189,63 +195,29 @@ export async function POST(
                 );
             }
 
-            // Mark admin token as used
-            await (db as any)
-                .update(administrativeTokens)
-                .set({
-                    isUsed: true,
-                    usedAt: now,
-                })
-                .where(eq(administrativeTokens.id, validAdminToken.id));
-
-            // Determine dispensation validity based on token scope:
-            // - session: only valid for this session (status remains locked for next sessions)
-            // - daily: valid until 23:59:59 tonight
-            // - weekly: valid for next 7 days
-            // - permanent: valid indefinitely
-            const tokenScope = validAdminToken.scope || "daily";
-            let newStatus = "dispensation";
-            let validUntilDate: Date | null = null;
-            let noteText = `Dispensasi aktif via Token: ${adminToken}`;
-
-            if (tokenScope === "session") {
-                newStatus = "locked"; // remains locked for next sessions!
-                noteText = `Dispensasi sesi ini via Token: ${adminToken}`;
-            } else if (tokenScope === "weekly") {
-                validUntilDate = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
-                validUntilDate.setHours(23, 59, 59, 999);
-                noteText = `Dispensasi 1 pekan via Token: ${adminToken}`;
-            } else if (tokenScope === "permanent") {
-                validUntilDate = null;
-                noteText = `Dispensasi penuh via Token: ${adminToken}`;
-            } else {
-                // daily (default)
-                validUntilDate = new Date();
-                validUntilDate.setHours(23, 59, 59, 999);
-                noteText = `Dispensasi harian via Token: ${adminToken}`;
-            }
-
-            // Update student's clearance status
-            await (db as any)
-                .update(studentClearances)
-                .set({
-                    status: newStatus,
-                    validUntil: validUntilDate,
-                    notes: noteText,
-                    updatedAt: now,
-                })
-                .where(eq(studentClearances.id, studentClearance.id));
+            pendingAdminClearance = {
+                tokenRecord: validAdminToken,
+                clearanceId: studentClearance.id,
+                adminToken,
+            };
         }
 
         // Token validation if required
         if (template.requireToken) {
-            if (!token) {
+            const providedToken = token ? String(token).trim().toUpperCase() : "";
+            if (!providedToken) {
                 return NextResponse.json(
                     { error: "Token diperlukan untuk memulai ujian", requireToken: true },
                     { status: 403 }
                 );
             }
-            if (token !== session.accessToken) {
+            if (!session.accessToken) {
+                return NextResponse.json(
+                    { error: "Token ujian belum dibuat oleh pengawas. Silakan hubungi pengawas ruangan.", requireToken: true },
+                    { status: 403 }
+                );
+            }
+            if (providedToken !== session.accessToken.trim().toUpperCase()) {
                 return NextResponse.json(
                     { error: "Token tidak valid", requireToken: true },
                     { status: 403 }
@@ -443,6 +415,56 @@ export async function POST(
             deviceId: deviceId || null,
             gradingStatus: "auto",
         });
+
+        // Commit administrative token consumption only after the exam submission is actually created
+        if (pendingAdminClearance) {
+            const { tokenRecord, clearanceId, adminToken } = pendingAdminClearance;
+
+            await (db as any)
+                .update(administrativeTokens)
+                .set({
+                    isUsed: true,
+                    usedAt: now,
+                })
+                .where(eq(administrativeTokens.id, tokenRecord.id));
+
+            // Determine dispensation validity based on token scope:
+            // - session: only valid for this session (status remains locked for next sessions)
+            // - daily: valid until 23:59:59 tonight
+            // - weekly: valid for next 7 days
+            // - permanent: valid indefinitely
+            const tokenScope = tokenRecord.scope || "daily";
+            let newStatus = "dispensation";
+            let validUntilDate: Date | null = null;
+            let noteText = `Dispensasi aktif via Token: ${adminToken}`;
+
+            if (tokenScope === "session") {
+                newStatus = "locked"; // remains locked for next sessions!
+                noteText = `Dispensasi sesi ini via Token: ${adminToken}`;
+            } else if (tokenScope === "weekly") {
+                validUntilDate = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+                validUntilDate.setHours(23, 59, 59, 999);
+                noteText = `Dispensasi 1 pekan via Token: ${adminToken}`;
+            } else if (tokenScope === "permanent") {
+                validUntilDate = null;
+                noteText = `Dispensasi penuh via Token: ${adminToken}`;
+            } else {
+                // daily (default)
+                validUntilDate = new Date();
+                validUntilDate.setHours(23, 59, 59, 999);
+                noteText = `Dispensasi harian via Token: ${adminToken}`;
+            }
+
+            await (db as any)
+                .update(studentClearances)
+                .set({
+                    status: newStatus,
+                    validUntil: validUntilDate,
+                    notes: noteText,
+                    updatedAt: now,
+                })
+                .where(eq(studentClearances.id, clearanceId));
+        }
 
         // Broadcast student start event via SSE to proctor dashboard
         try {

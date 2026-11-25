@@ -53,6 +53,7 @@ export default function StudentExamsPage() {
     const [adminClearanceError, setAdminClearanceError] = useState<string | null>(null);
     const [adminClearanceNotes, setAdminClearanceNotes] = useState<string | null>(null);
     const [verifyingAdminToken, setVerifyingAdminToken] = useState(false);
+    const [pendingAdminToken, setPendingAdminToken] = useState<string | null>(null);
 
     const fetchStudentProfile = useCallback(async () => {
         setProfileLoading(true);
@@ -168,6 +169,8 @@ export default function StudentExamsPage() {
                     setAdminClearanceError(null);
                 }
 
+                setPendingAdminToken(null);
+
                 if (tokenDialogOpen) {
                     setTokenDialogOpen(false);
                     setSelectedExamId(null);
@@ -192,6 +195,7 @@ export default function StudentExamsPage() {
                     setSelectedAdminExamId(sessionId);
                     setAdminClearanceNotes(error.adminNotes || null);
                     if (adminToken) {
+                        setPendingAdminToken(null);
                         setAdminClearanceError(error.error || "Token administrasi salah atau kadaluarsa.");
                     } else {
                         setAdminClearanceError(null);
@@ -202,14 +206,16 @@ export default function StudentExamsPage() {
 
                 // 2. Check if regular proctor/exam token is required
                 if (response.status === 403 && error.requireToken) {
+                    if (adminToken) {
+                        setPendingAdminToken(adminToken);
+                    }
                     if (adminClearanceDialogOpen) {
                         setAdminClearanceDialogOpen(false);
                         setSelectedAdminExamId(null);
                         setAdminClearanceError(null);
-                        fetchStudentProfile();
                     }
                     if (token) {
-                        setTokenError("Token ujian tidak valid. Silakan coba lagi.");
+                        setTokenError(error.error || "Token ujian tidak valid. Silakan coba lagi.");
                         if (!tokenDialogOpen) {
                             setSelectedExamId(sessionId);
                             setTokenDialogOpen(true);
@@ -253,7 +259,7 @@ export default function StudentExamsPage() {
 
     const handleTokenSubmit = (token: string) => {
         if (selectedExamId) {
-            handleStartExam(selectedExamId, token);
+            handleStartExam(selectedExamId, token, pendingAdminToken || undefined);
         }
     };
 
@@ -456,6 +462,7 @@ export default function StudentExamsPage() {
                     setTokenDialogOpen(false);
                     setSelectedExamId(null);
                     setTokenError(null);
+                    setPendingAdminToken(null);
                 }}
                 onSubmit={handleTokenSubmit}
                 loading={verifyingToken}

@@ -1,9 +1,41 @@
 <?xml version="1.0" encoding="UTF-8" ?>
-<testsuites name="vitest tests" tests="2" failures="0" errors="0" time="0.0106561">
-    <testsuite name="src/app/api/__tests__/monitor-action.test.ts" timestamp="2026-11-20T02:18:46.132Z" hostname="DESKTOP-V0JD0BU" tests="2" failures="0" errors="0" skipped="0" time="0.0106561">
-        <testcase classname="src/app/api/__tests__/monitor-action.test.ts" name="POST /api/exam-sessions/[id]/monitor/action &gt; should lock student session with custom reason when action is lock_session" time="0.0081161">
+<testsuites name="vitest tests" tests="9" failures="0" errors="0" time="0.0425829">
+    <testsuite name="src/app/api/__tests__/exam-token.test.ts" timestamp="2026-11-25T22:20:21.725Z" hostname="DESKTOP-V0JD0BU" tests="5" failures="0" errors="0" skipped="0" time="0.0185034">
+        <testcase classname="src/app/api/__tests__/exam-token.test.ts" name="Exam Token &amp; Administrative Clearance Flow &gt; GET /api/exam-sessions/[id]/token &gt; rejects unauthorized or student access" time="0.0061516">
+            <system-err>
+Error fetching token: Error: Forbidden
+    at D:/NodeJs/CartaExam/src/app/api/__tests__/exam-token.test.ts:17:43
+    at [90mfile:///D:/NodeJs/CartaExam/[39mnode_modules/[4m@vitest/runner[24m/dist/index.js:145:11
+    at [90mfile:///D:/NodeJs/CartaExam/[39mnode_modules/[4m@vitest/runner[24m/dist/index.js:915:26
+    at [90mfile:///D:/NodeJs/CartaExam/[39mnode_modules/[4m@vitest/runner[24m/dist/index.js:1240:20
+    at new Promise (&lt;anonymous&gt;)
+    at runWithTimeout [90m(file:///D:/NodeJs/CartaExam/[39mnode_modules/[4m@vitest/runner[24m/dist/index.js:1206:10[90m)[39m
+    at [90mfile:///D:/NodeJs/CartaExam/[39mnode_modules/[4m@vitest/runner[24m/dist/index.js:1650:37
+    at Traces.$ [90m(file:///D:/NodeJs/CartaExam/[39mnode_modules/[4mvitest[24m/dist/chunks/traces.U4xDYhzZ.js:115:27[90m)[39m
+    at trace [90m(file:///D:/NodeJs/CartaExam/[39mnode_modules/[4mvitest[24m/dist/chunks/test.BT8LKgU9.js:239:21[90m)[39m
+    at runTest [90m(file:///D:/NodeJs/CartaExam/[39mnode_modules/[4m@vitest/runner[24m/dist/index.js:1650:12[90m)[39m {
+  status: [33m403[39m
+}
+
+            </system-err>
         </testcase>
-        <testcase classname="src/app/api/__tests__/monitor-action.test.ts" name="POST /api/exam-sessions/[id]/monitor/action &gt; should unlock student session when action is unlock_session" time="0.0014429">
+        <testcase classname="src/app/api/__tests__/exam-token.test.ts" name="Exam Token &amp; Administrative Clearance Flow &gt; GET /api/exam-sessions/[id]/token &gt; rejects teacher who does not own the session" time="0.0009818">
+        </testcase>
+        <testcase classname="src/app/api/__tests__/exam-token.test.ts" name="Exam Token &amp; Administrative Clearance Flow &gt; GET /api/exam-sessions/[id]/token &gt; returns token for admin or owning teacher" time="0.0012632">
+        </testcase>
+        <testcase classname="src/app/api/__tests__/exam-token.test.ts" name="Exam Token &amp; Administrative Clearance Flow &gt; POST /api/student/exams/[sessionId]/start with requireToken and adminToken &gt; returns clear error when requireToken is true but accessToken has not been generated" time="0.0024481">
+        </testcase>
+        <testcase classname="src/app/api/__tests__/exam-token.test.ts" name="Exam Token &amp; Administrative Clearance Flow &gt; POST /api/student/exams/[sessionId]/start with requireToken and adminToken &gt; does not consume session-scoped adminToken until exam token also passes" time="0.0064011">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/app/api/__tests__/late-entry.test.ts" timestamp="2026-11-25T22:20:21.729Z" hostname="DESKTOP-V0JD0BU" tests="4" failures="0" errors="0" skipped="0" time="0.0240795">
+        <testcase classname="src/app/api/__tests__/late-entry.test.ts" name="Late Entry Auto-Block and Proctor Lock/Unlock &gt; should block and terminate student who starts exam after lateToleranceMinutes" time="0.0195149">
+        </testcase>
+        <testcase classname="src/app/api/__tests__/late-entry.test.ts" name="Late Entry Auto-Block and Proctor Lock/Unlock &gt; should automatically default to 10 minutes late tolerance for legacy templates without lateToleranceMinutes" time="0.0013281">
+        </testcase>
+        <testcase classname="src/app/api/__tests__/late-entry.test.ts" name="Late Entry Auto-Block and Proctor Lock/Unlock &gt; should allow student to enter if template explicitly sets lateToleranceMinutes to 0 (disabled)" time="0.0010572">
+        </testcase>
+        <testcase classname="src/app/api/__tests__/late-entry.test.ts" name="Late Entry Auto-Block and Proctor Lock/Unlock &gt; should allow teacher to lock student who has not started yet (action: lock_session)" time="0.0011697">
         </testcase>
     </testsuite>
 </testsuites>

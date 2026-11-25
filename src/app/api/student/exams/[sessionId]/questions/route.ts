@@ -195,12 +195,14 @@ export async function GET(
         if (template.requireToken) {
             const tokenHeader = request.headers.get("X-Exam-Token");
             const tokenParam = searchParams.get("token");
-            const providedToken = tokenHeader || tokenParam;
+            const providedToken = (tokenHeader || tokenParam || "").trim().toUpperCase();
 
-            if (!providedToken || !session.accessToken || providedToken.trim() !== session.accessToken.trim()) {
+            if (!providedToken || !session.accessToken || providedToken !== session.accessToken.trim().toUpperCase()) {
                 return NextResponse.json(
                     {
-                        error: "Token diperlukan untuk melanjutkan ujian",
+                        error: !session.accessToken
+                            ? "Token ujian belum dibuat oleh pengawas. Silakan hubungi pengawas ruangan."
+                            : "Token diperlukan untuk melanjutkan ujian",
                         requireToken: true,
                         message: "Sesi ujian ini memerlukan token untuk dilanjutkan."
                     },

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -34,6 +34,12 @@ export function AdminClearanceDialog({
     examName = "Ujian"
 }: AdminClearanceDialogProps) {
     const [token, setToken] = useState("");
+
+    useEffect(() => {
+        if (!open) {
+            setToken("");
+        }
+    }, [open]);
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();

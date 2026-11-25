@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { examSessions, examTemplates } from "@/lib/schema";
 import { eq } from "drizzle-orm";
+import { requireAuth } from "@/lib/auth-guard";
 
 // Generate random 6-character alphanumeric token
 function generateToken(): string {
@@ -19,9 +20,12 @@ export async function GET(
     { params }: { params: { id: string } }
 ) {
     try {
+        const user = await requireAuth(["admin", "teacher"]);
+
         const sessionData = await db.select({
             accessToken: examSessions.accessToken,
             templateId: examSessions.templateId,
+            createdBy: examSessions.createdBy,
         })
             .from(examSessions)
             .where(eq(examSessions.id, params.id))
@@ -31,6 +35,13 @@ export async function GET(
             return NextResponse.json(
                 { error: "Session not found" },
                 { status: 404 }
+            );
+        }
+
+        if (user.role === "teacher" && sessionData[0].createdBy !== user.id) {
+            return NextResponse.json(
+                { error: "Akses ditolak. Anda hanya dapat melihat token sesi ujian yang Anda buat." },
+                { status: 403 }
             );
         }
 
@@ -46,16 +57,14 @@ export async function GET(
             accessToken: sessionData[0].accessToken,
             requireToken: templateData[0]?.requireToken ?? false,
         });
-    } catch (error) {
+    } catch (error: any) {
         console.error("Error fetching token:", error);
         return NextResponse.json(
-            { error: "Failed to fetch token" },
-            { status: 500 }
+            { error: error.message || "Failed to fetch token" },
+            { status: error.status || 500 }
         );
     }
 }
-
-import { requireAuth } from "@/lib/auth-guard";
 
 // POST /api/exam-sessions/[id]/token - Generate new token
 export async function POST(

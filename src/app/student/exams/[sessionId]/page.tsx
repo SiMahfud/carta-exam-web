@@ -358,6 +358,14 @@ export default function TakeExamPage() {
                     setAnswers(restoredAnswers);
                 }
 
+                if (token) {
+                    try {
+                        sessionStorage.setItem(`exam_token_${sessionId}`, token);
+                    } catch (e) {
+                        console.error("Failed to save token to session storage", e);
+                    }
+                }
+
                 setTokenRequired(false);
                 setTokenError(null);
                 return true;
@@ -387,7 +395,10 @@ export default function TakeExamPage() {
                 if (data.requireToken) {
                     setTokenRequired(true);
                     if (token) {
-                        setTokenError("Token tidak valid");
+                        setTokenError(data.error && !data.error.includes("diperlukan") ? data.error : "Token tidak valid");
+                        try {
+                            sessionStorage.removeItem(`exam_token_${sessionId}`);
+                        } catch { }
                     }
                     return false;
                 }
@@ -880,11 +891,19 @@ export default function TakeExamPage() {
             }
 
             if (fullscreenSupported) {
-                await enterFullscreen();
+                try {
+                    await enterFullscreen();
+                } catch (fsErr) {
+                    console.warn("Fullscreen request deferred to lockout overlay:", fsErr);
+                }
             }
 
             // Aktifkan Wake Lock saat klik Mulai Ujian (user gesture)
-            await requestWakeLock();
+            try {
+                await requestWakeLock();
+            } catch (wlErr) {
+                console.warn("Wake Lock request failed:", wlErr);
+            }
 
             setShowPreExamDialog(false);
             setExamStarted(true);
