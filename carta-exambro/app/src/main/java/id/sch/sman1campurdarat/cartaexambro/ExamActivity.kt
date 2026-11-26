@@ -179,6 +179,49 @@ class ExamActivity : AppCompatActivity() {
                 request: WebResourceRequest?
             ): Boolean {
                 val uri = request?.url ?: return false
+                val rawUrl = uri.toString()
+                val scheme = uri.scheme?.lowercase().orEmpty()
+
+                if (scheme == "intent") {
+                    val resolvedUrl = resolveIntentUrl(rawUrl)
+                    if (resolvedUrl != null) {
+                        val resolvedHost = Uri.parse(resolvedUrl).host?.lowercase().orEmpty()
+                        if (isHostAllowed(resolvedHost)) {
+                            view?.loadUrl(resolvedUrl, exambroHeaders())
+                        } else {
+                            Toast.makeText(
+                                this@ExamActivity,
+                                "Akses ke domain luar ($resolvedHost) diblokir selama ujian.",
+                                Toast.LENGTH_SHORT
+                            ).show()
+                        }
+                    } else {
+                        Toast.makeText(
+                            this@ExamActivity,
+                            "Tautan intent SSO tidak dapat diproses.",
+                            Toast.LENGTH_SHORT
+                        ).show()
+                    }
+                    return true
+                }
+
+                if (scheme == "sebs" || scheme == "seb") {
+                    val httpsUrl = if (scheme == "sebs") {
+                        "https://" + rawUrl.substring(7)
+                    } else {
+                        "http://" + rawUrl.substring(6)
+                    }
+                    val targetHost = Uri.parse(httpsUrl).host?.lowercase().orEmpty()
+                    if (isHostAllowed(targetHost)) {
+                        view?.loadUrl(httpsUrl, exambroHeaders())
+                    }
+                    return true
+                }
+
+                if (scheme != "http" && scheme != "https") {
+                    return true
+                }
+
                 val host = uri.host?.lowercase() ?: return true
 
                 if (!isHostAllowed(host)) {
@@ -209,6 +252,37 @@ class ExamActivity : AppCompatActivity() {
         "X-CartaExambro" to BuildConfig.VERSION_NAME,
         "X-Exambro-App" to "CartaExambro"
     )
+
+    private fun resolveIntentUrl(rawIntentUrl: String): String? {
+        try {
+            val parsed = Intent.parseUri(rawIntentUrl, Intent.URI_INTENT_SCHEME)
+            val dataUri = parsed.data
+            if (dataUri != null) {
+                val dataScheme = dataUri.scheme?.lowercase()
+                if (dataScheme == "http" || dataScheme == "https") {
+                    return dataUri.toString()
+                }
+            }
+            val fallback = parsed.getStringExtra("browser_fallback_url")
+            if (!fallback.isNullOrBlank() &&
+                (fallback.startsWith("https://", ignoreCase = true) ||
+                    fallback.startsWith("http://", ignoreCase = true))
+            ) {
+                return fallback
+            }
+        } catch (_: Exception) {
+        }
+
+        // Fallback manual: ubah intent://<host/path>#Intent;... -> https://<host/path>
+        val withoutPrefix = rawIntentUrl.removePrefix("intent://")
+        val beforeHash = withoutPrefix.substringBefore("#Intent;")
+        if (beforeHash.isNotBlank()) {
+            val schemeMatch = Regex("scheme=(https?)").find(withoutPrefix)
+            val targetScheme = schemeMatch?.groupValues?.getOrNull(1) ?: "https"
+            return "$targetScheme://$beforeHash"
+        }
+        return null
+    }
 
     private fun isHostAllowed(host: String): Boolean {
         return allowedHosts.any { allowed ->
