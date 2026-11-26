@@ -1,11 +1,13 @@
 package id.sch.sman1campurdarat.cartaexambro
 
+import android.app.Activity
 import android.annotation.SuppressLint
 import android.content.Context
 import android.content.Intent
 import android.content.res.Configuration
 import android.hardware.display.DisplayManager
 import android.media.AudioManager
+import android.media.projection.MediaProjectionManager
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
@@ -22,8 +24,10 @@ import android.webkit.WebView
 import android.webkit.WebViewClient
 import android.widget.Toast
 import androidx.activity.OnBackPressedCallback
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.content.ContextCompat
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
@@ -39,7 +43,7 @@ class ExamActivity : AppCompatActivity() {
         const val EXTRA_TARGET_URL = "extra_target_url"
         private const val NATIVE_COOLDOWN_MS = 5000L
         private const val MIC_CHECK_INTERVAL_MS = 4000L
-        private const val OVERLAY_SCAN_INTERVAL_MS = 2500L
+        private const val OVERLAY_SCAN_INTERVAL_MS = 2000L
     }
 
     private lateinit var binding: ActivityExamBinding
@@ -76,6 +80,27 @@ class ExamActivity : AppCompatActivity() {
     private var lastToastAtMs: Long = 0L
 
     private var consecutiveOverlayHits: Int = 0
+
+    @Volatile
+    private var isRequestingProjection: Boolean = false
+
+    private val reRequestProjectionLauncher = registerForActivityResult(
+        ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        isRequestingProjection = false
+        isInternalDialogVisible = false
+        if (result.resultCode == Activity.RESULT_OK && result.data != null) {
+            val serviceIntent = Intent(this, ScreenCaptureService::class.java).apply {
+                action = ScreenCaptureService.ACTION_START
+                putExtra(ScreenCaptureService.EXTRA_RESULT_CODE, result.resultCode)
+                putExtra(ScreenCaptureService.EXTRA_RESULT_DATA, result.data)
+            }
+            ContextCompat.startForegroundService(this, serviceIntent)
+            updateStatusBadge()
+        } else if (isExamSessionActive && !isFinishing) {
+            showProjectionRevokedDialog()
+        }
+    }
 
     private var displayManager: DisplayManager? = null
     private var audioManager: AudioManager? = null
@@ -135,6 +160,20 @@ class ExamActivity : AppCompatActivity() {
         setupWebView(targetUrl)
         setupSecurityMonitors()
         setupBackNavigation()
+
+        ScreenCaptureService.setOnProjectionRevokedListener { snapshot ->
+            mainHandler.post {
+                updateStatusBadge()
+                if (isExamSessionActive && !isExitingIntentionally && !isFinishing) {
+                    triggerViolationWithScreenshot(
+                        type = "SCREEN_RECORDING",
+                        details = "Proteksi layar CartaExambro dihentikan atau diambil alih aplikasi lain (Share Screen / Gemini Live)",
+                        preCapturedJpeg = snapshot
+                    )
+                    showProjectionRevokedDialog()
+                }
+            }
+        }
     }
 
     private fun setupTopBar() {
@@ -183,6 +222,9 @@ class ExamActivity : AppCompatActivity() {
                 updateStatusBadge()
                 if (isExamSessionActive) {
                     tryStartLockTask()
+                    if (!ScreenCaptureService.isRunning) {
+                        showProjectionRevokedDialog()
+                    }
                 }
             }
         }
@@ -481,7 +523,7 @@ class ExamActivity : AppCompatActivity() {
 
         if (scanResult.hasOverlay) {
             consecutiveOverlayHits++
-            if (consecutiveOverlayHits >= 2) {
+            if (consecutiveOverlayHits >= 2 || scanResult.ratio >= 0.008f) {
                 consecutiveOverlayHits = 0
                 triggerViolationWithScreenshot(
                     type = "OVERLAY_DETECTED",
@@ -630,7 +672,31 @@ class ExamActivity : AppCompatActivity() {
             WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
     }
 
+    private fun showProjectionRevokedDialog() {
+        if (isFinishing || isDestroyed || isRequestingProjection || isInternalDialogVisible) return
+        isInternalDialogVisible = true
+        AlertDialog.Builder(this)
+            .setTitle("Proteksi Layar Terhenti")
+            .setMessage(
+                "Berbagi layar/proteksi layar CartaExambro terhenti atau diambil alih oleh aplikasi lain. Aktifkan kembali \"Entire screen / Seluruh layar\" untuk melanjutkan ujian."
+            )
+            .setCancelable(false)
+            .setPositiveButton("Aktifkan Kembali") { _, _ ->
+                isRequestingProjection = true
+                val pm = getSystemService(Context.MEDIA_PROJECTION_SERVICE) as MediaProjectionManager
+                reRequestProjectionLauncher.launch(pm.createScreenCaptureIntent())
+            }
+            .setNegativeButton("Keluar Ujian") { _, _ ->
+                isExitingIntentionally = true
+                isInternalDialogVisible = false
+                stopScreenPinningAndCapture()
+                finish()
+            }
+            .show()
+    }
+
     override fun onDestroy() {
+        ScreenCaptureService.setOnProjectionRevokedListener(null)
         mainHandler.removeCallbacks(micMonitorRunnable)
         mainHandler.removeCallbacks(overlayMonitorRunnable)
         displayManager?.unregisterDisplayListener(displayListener)
