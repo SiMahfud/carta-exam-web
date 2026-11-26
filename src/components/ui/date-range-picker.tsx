@@ -28,7 +28,7 @@ export function DatePickerWithRange({
 }: DatePickerWithRangeProps) {
     return (
         <div className={cn("grid gap-2", className)}>
-            <Popover>
+            <Popover modal={true}>
                 <PopoverTrigger asChild>
                     <Button
                         id="date"
@@ -53,7 +53,7 @@ export function DatePickerWithRange({
                         )}
                     </Button>
                 </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="start">
+                <PopoverContent className="w-auto p-0 z-[60] pointer-events-auto" align="start">
                     <Calendar
                         initialFocus
                         mode="range"

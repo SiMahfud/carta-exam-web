@@ -1,7 +1,7 @@
 
 import { db } from "@/lib/db";
 import { examSessions, examTemplates, users } from "@/lib/schema";
-import { eq, desc, and, sql } from "drizzle-orm";
+import { eq, desc, and, or, ne, gt, gte, lt, lte, sql } from "drizzle-orm";
 import { fromDateTimeLocalString } from "@/lib/date-utils";
 import { ActivityLogger } from "@/lib/activity-logger";
 import { apiHandler, ApiError } from "@/lib/api-handler";
@@ -11,14 +11,16 @@ import { requireAuth } from "@/lib/auth-guard";
 export const GET = (req: Request) => apiHandler(async () => {
     const user = await requireAuth(["admin", "teacher"]);
     const { searchParams } = new URL(req.url);
-    const page = parseInt(searchParams.get("page") || "1");
-    const limit = parseInt(searchParams.get("limit") || "10");
+    const page = Math.max(1, parseInt(searchParams.get("page") || "1") || 1);
+    const limit = Math.max(1, parseInt(searchParams.get("limit") || "10") || 10);
     const status = searchParams.get("status");
     const startDate = searchParams.get("startDate");
     const endDate = searchParams.get("endDate");
+    const search = searchParams.get("search")?.trim();
     const createdByFilter = searchParams.get("createdBy");
 
     const offset = (page - 1) * limit;
+    const now = new Date();
 
     // Build where conditions
     const conditions = [];
@@ -33,23 +35,71 @@ export const GET = (req: Request) => apiHandler(async () => {
     }
 
     if (status && status !== "all") {
-        conditions.push(eq(examSessions.status, status as any));
+        if (status === "cancelled") {
+            conditions.push(eq(examSessions.status, "cancelled"));
+        } else if (status === "scheduled") {
+            conditions.push(
+                and(
+                    ne(examSessions.status, "cancelled"),
+                    ne(examSessions.status, "completed"),
+                    gt(examSessions.startTime, now)
+                )
+            );
+        } else if (status === "active") {
+            conditions.push(
+                and(
+                    ne(examSessions.status, "cancelled"),
+                    ne(examSessions.status, "completed"),
+                    lte(examSessions.startTime, now),
+                    gte(examSessions.endTime, now)
+                )
+            );
+        } else if (status === "completed") {
+            conditions.push(
+                or(
+                    eq(examSessions.status, "completed"),
+                    and(
+                        ne(examSessions.status, "cancelled"),
+                        lt(examSessions.endTime, now)
+                    )
+                )
+            );
+        }
     }
+
     if (startDate) {
-        conditions.push(sql`${examSessions.startTime} >= ${new Date(startDate).getTime()}`);
+        const parsedStart = new Date(startDate);
+        if (!isNaN(parsedStart.getTime())) {
+            conditions.push(gte(examSessions.startTime, parsedStart));
+        }
     }
     if (endDate) {
-        // Adjust end date to include the entire day
-        const endDateTime = new Date(endDate);
-        endDateTime.setHours(23, 59, 59, 999);
-        conditions.push(sql`${examSessions.startTime} <= ${endDateTime.getTime()}`);
+        const parsedEnd = /^\d{4}-\d{2}-\d{2}$/.test(endDate)
+            ? new Date(`${endDate}T23:59:59.999`)
+            : new Date(endDate);
+        if (!isNaN(parsedEnd.getTime())) {
+            conditions.push(lte(examSessions.startTime, parsedEnd));
+        }
+    }
+
+    if (search) {
+        const pattern = `%${search.toLowerCase()}%`;
+        conditions.push(
+            or(
+                sql`LOWER(${examSessions.sessionName}) LIKE ${pattern}`,
+                sql`LOWER(${examTemplates.name}) LIKE ${pattern}`,
+                sql`LOWER(COALESCE(${users.name}, '')) LIKE ${pattern}`
+            )
+        );
     }
 
     const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
 
-    // Get total count
+    // Get total count (include joins so search conditions on template/creator also apply)
     const totalResult = await db.select({ count: sql<number>`count(*)` })
         .from(examSessions)
+        .innerJoin(examTemplates, eq(examSessions.templateId, examTemplates.id))
+        .leftJoin(users, eq(examSessions.createdBy, users.id))
         .where(whereClause);
     const total = Number(totalResult[0]?.count || 0);
 
@@ -76,7 +126,7 @@ export const GET = (req: Request) => apiHandler(async () => {
         .limit(limit)
         .offset(offset);
 
-    // Safe mapping to handle potentially corrupted/double-encoded targetIds
+    // Safe mapping to handle potentially corrupted/double-encoded targetIds and live status
     const safeSessions = sessions.map((session: typeof sessions[0]) => {
         let targetIds = session.targetIds;
         if (typeof targetIds === 'string') {
@@ -98,7 +148,25 @@ export const GET = (req: Request) => apiHandler(async () => {
                 targetIds = [];
             }
         }
-        return { ...session, targetIds: Array.isArray(targetIds) ? targetIds : [] };
+
+        let effectiveStatus = session.status;
+        if (session.status !== "cancelled" && session.status !== "completed") {
+            const start = new Date(session.startTime);
+            const end = new Date(session.endTime);
+            if (now >= start && now <= end) {
+                effectiveStatus = "active";
+            } else if (now > end) {
+                effectiveStatus = "completed";
+            } else {
+                effectiveStatus = "scheduled";
+            }
+        }
+
+        return {
+            ...session,
+            status: effectiveStatus,
+            targetIds: Array.isArray(targetIds) ? targetIds : []
+        };
     });
 
     return {

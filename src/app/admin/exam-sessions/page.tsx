@@ -2,12 +2,13 @@
 
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import {
     Card,
     CardContent,
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Calendar, Clock, Users, Monitor, MoreVertical, Trash2, Edit, User } from "lucide-react";
+import { Plus, Calendar, Clock, Users, Monitor, MoreVertical, Trash2, Edit, User, Search, X } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Pagination } from "@/components/ui/pagination";
 import {
@@ -69,17 +70,33 @@ export default function ExamSessionsPage() {
     const [totalPages, setTotalPages] = useState(1);
     const [statusFilter, setStatusFilter] = useState("all");
     const [dateRange, setDateRange] = useState<DateRange | undefined>();
+    const [searchQuery, setSearchQuery] = useState("");
+    const [debouncedSearch, setDebouncedSearch] = useState("");
 
     // Derived state for active filters count
     const activeFiltersCount = [
         statusFilter !== "all",
         dateRange?.from !== undefined
     ].filter(Boolean).length;
+    const hasActiveFiltersOrSearch = activeFiltersCount > 0 || debouncedSearch.trim() !== "";
 
     // Delete Confirmation State
     const [deleteId, setDeleteId] = useState<string | null>(null);
     const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
     const [deleteWarning, setDeleteWarning] = useState<string | null>(null);
+
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            setDebouncedSearch((prev) => {
+                if (prev !== searchQuery) {
+                    setPage(1);
+                    return searchQuery;
+                }
+                return prev;
+            });
+        }, 300);
+        return () => clearTimeout(timer);
+    }, [searchQuery]);
 
     const fetchSessions = async () => {
         setLoading(true);
@@ -90,11 +107,18 @@ export default function ExamSessionsPage() {
                 status: statusFilter
             });
 
-            if (dateRange?.from) {
-                params.append("startDate", dateRange.from.toISOString());
+            if (debouncedSearch.trim()) {
+                params.append("search", debouncedSearch.trim());
             }
-            if (dateRange?.to) {
-                params.append("endDate", dateRange.to.toISOString());
+
+            if (dateRange?.from) {
+                const start = new Date(dateRange.from);
+                start.setHours(0, 0, 0, 0);
+                params.append("startDate", start.toISOString());
+
+                const end = new Date(dateRange.to ?? dateRange.from);
+                end.setHours(23, 59, 59, 999);
+                params.append("endDate", end.toISOString());
             }
 
             const response = await fetch(`/api/exam-sessions?${params.toString()}`);
@@ -118,7 +142,7 @@ export default function ExamSessionsPage() {
     useEffect(() => {
         fetchSessions();
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [page, statusFilter, dateRange]);
+    }, [page, statusFilter, dateRange, debouncedSearch]);
 
 
 
@@ -184,7 +208,9 @@ export default function ExamSessionsPage() {
     };
 
     const handleApplySavedFilters = (filters: Record<string, any>) => {
-        if (filters.status) setStatusFilter(filters.status);
+        setStatusFilter(filters.status || "all");
+        setSearchQuery(filters.search || "");
+        setDebouncedSearch(filters.search || "");
         // Handle date range if stored
         if (filters.dateFrom) {
             setDateRange({
@@ -194,16 +220,20 @@ export default function ExamSessionsPage() {
         } else {
             setDateRange(undefined);
         }
+        setPage(1);
     };
 
     const handleResetFilters = () => {
         setStatusFilter("all");
         setDateRange(undefined);
+        setSearchQuery("");
+        setDebouncedSearch("");
         setPage(1);
     };
 
     const getCurrentFilters = () => ({
         status: statusFilter,
+        search: searchQuery,
         dateFrom: dateRange?.from?.toISOString(),
         dateTo: dateRange?.to?.toISOString()
     });
@@ -244,36 +274,78 @@ export default function ExamSessionsPage() {
                 </Link>
             </div>
 
-            <div className="flex items-center gap-4 bg-muted/30 p-4 rounded-lg border">
-                <AdvancedFilterPanel
-                    activeFiltersCount={activeFiltersCount}
-                    onReset={handleResetFilters}
-                    onApply={() => setPage(1)}
-                >
-                    <FilterSection title="Rentang Waktu">
-                        <DatePickerWithRange date={dateRange} setDate={setDateRange} />
-                    </FilterSection>
+            <div className="bg-muted/30 p-4 rounded-lg border">
+                <div className="flex flex-wrap items-center gap-4">
+                    <div className="relative flex items-center flex-1 min-w-[220px]">
+                        <Search className="absolute left-3 h-4 w-4 text-muted-foreground pointer-events-none" />
+                        <Input
+                            placeholder="Cari nama sesi, template, atau pembuat..."
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                            className="pl-9 pr-9"
+                            aria-label="Cari sesi ujian"
+                        />
+                        {searchQuery && (
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    setSearchQuery("");
+                                    setDebouncedSearch("");
+                                    setPage(1);
+                                }}
+                                className="absolute right-2.5 text-muted-foreground hover:text-foreground"
+                                aria-label="Hapus pencarian"
+                            >
+                                <X className="h-4 w-4" />
+                            </button>
+                        )}
+                    </div>
 
-                    <FilterSection title="Status">
-                        <Select value={statusFilter} onValueChange={setStatusFilter}>
-                            <SelectTrigger className="w-full">
-                                <SelectValue placeholder="Filter Status" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="all">Semua Status</SelectItem>
-                                <SelectItem value="scheduled">Terjadwal</SelectItem>
-                                <SelectItem value="active">Sedang Berlangsung</SelectItem>
-                                <SelectItem value="completed">Selesai</SelectItem>
-                            </SelectContent>
-                        </Select>
-                    </FilterSection>
-                </AdvancedFilterPanel>
+                    <div className="flex items-center gap-2">
+                        <AdvancedFilterPanel
+                            activeFiltersCount={activeFiltersCount}
+                            onReset={handleResetFilters}
+                            onApply={() => setPage(1)}
+                        >
+                            <FilterSection title="Rentang Waktu">
+                                <DatePickerWithRange
+                                    date={dateRange}
+                                    setDate={(range) => {
+                                        setDateRange(range);
+                                        setPage(1);
+                                    }}
+                                />
+                            </FilterSection>
 
-                <SavedFiltersManager
-                    page="exam-sessions"
-                    currentFilters={getCurrentFilters()}
-                    onApply={handleApplySavedFilters}
-                />
+                            <FilterSection title="Status">
+                                <Select
+                                    value={statusFilter}
+                                    onValueChange={(value) => {
+                                        setStatusFilter(value);
+                                        setPage(1);
+                                    }}
+                                >
+                                    <SelectTrigger className="w-full">
+                                        <SelectValue placeholder="Filter Status" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="all">Semua Status</SelectItem>
+                                        <SelectItem value="scheduled">Terjadwal</SelectItem>
+                                        <SelectItem value="active">Sedang Berlangsung</SelectItem>
+                                        <SelectItem value="completed">Selesai</SelectItem>
+                                        <SelectItem value="cancelled">Dibatalkan</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                            </FilterSection>
+                        </AdvancedFilterPanel>
+
+                        <SavedFiltersManager
+                            page="exam-sessions"
+                            currentFilters={getCurrentFilters()}
+                            onApply={handleApplySavedFilters}
+                        />
+                    </div>
+                </div>
             </div>
 
             {loading ? (
@@ -304,15 +376,27 @@ export default function ExamSessionsPage() {
                     ))}
                 </div>
             ) : sessions.length === 0 ? (
-                <EmptyState
-                    icon={Calendar}
-                    title="Belum ada sesi ujian"
-                    description="Jadwal ujian akan muncul di sini. Buat sesi baru untuk memulai."
-                    action={{
-                        label: "Buat Sesi Baru",
-                        onClick: () => window.location.href = "/admin/exam-sessions/create"
-                    }}
-                />
+                hasActiveFiltersOrSearch ? (
+                    <EmptyState
+                        icon={Search}
+                        title="Tidak ada sesi ujian ditemukan"
+                        description="Tidak ada sesi ujian yang sesuai dengan kriteria filter atau pencarian Anda."
+                        action={{
+                            label: "Reset Filter",
+                            onClick: handleResetFilters
+                        }}
+                    />
+                ) : (
+                    <EmptyState
+                        icon={Calendar}
+                        title="Belum ada sesi ujian"
+                        description="Jadwal ujian akan muncul di sini. Buat sesi baru untuk memulai."
+                        action={{
+                            label: "Buat Sesi Baru",
+                            onClick: () => window.location.href = "/admin/exam-sessions/create"
+                        }}
+                    />
+                )
             ) : (
                 <div className="space-y-4">
                     {sessions.map((session) => (
