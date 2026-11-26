@@ -6,8 +6,10 @@ import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Label } from "@/components/ui/label"
 import { login } from "@/actions/auth"
-import { ShieldCheck, Lock, User, Loader2, AlertCircle, Eye, EyeOff, Rocket, ChevronDown, ChevronUp, Sparkles } from "lucide-react"
+import { ShieldCheck, Lock, User, Loader2, AlertCircle, Eye, EyeOff, Rocket, ChevronDown, ChevronUp, Sparkles, MonitorSmartphone } from "lucide-react"
 import { getPortoCartaUrl } from "@/lib/porto-url"
+import { detectClientEnvironment } from "@/lib/browser-detection"
+import { SebAccessPanel } from "@/components/seb/SebAccessPanel"
 
 export default function LoginPage() {
     const [isPending, startTransition] = useTransition()
@@ -15,10 +17,16 @@ export default function LoginPage() {
     const [fieldErrors, setFieldErrors] = useState<{ username?: string[]; password?: string[] }>({})
     const [showPassword, setShowPassword] = useState(false)
     const [showManualLogin, setShowManualLogin] = useState(false)
+    const [showSebGuide, setShowSebGuide] = useState(false)
+    const [isSebClient, setIsSebClient] = useState(false)
+    const [isExambroClient, setIsExambroClient] = useState(false)
     const [portoLaunchUrl, setPortoLaunchUrl] = useState("https://porto.sman1campurdarat.sch.id/apps/launch/carta-exam")
 
     useEffect(() => {
         setPortoLaunchUrl(getPortoCartaUrl("/apps/launch/carta-exam"))
+        const env = detectClientEnvironment()
+        setIsSebClient(env.isSeb)
+        setIsExambroClient(env.isExambro)
     }, [])
 
     async function handleSubmit(formData: FormData) {
@@ -81,7 +89,31 @@ export default function LoginPage() {
                         <p className="text-[11px] text-slate-400">
                             Berlaku otomatis untuk <strong>Siswa, Guru, dan Admin</strong>.
                         </p>
+                        {isSebClient && (
+                            <div className="pt-1">
+                                <SebAccessPanel variant="login" />
+                            </div>
+                        )}
                     </div>
+
+                    {!isSebClient && !isExambroClient && (
+                        <div>
+                            <button
+                                type="button"
+                                onClick={() => setShowSebGuide(!showSebGuide)}
+                                className="w-full flex items-center justify-center gap-2 text-xs text-indigo-300 hover:text-indigo-200 transition-colors py-1.5"
+                            >
+                                <MonitorSmartphone className="h-3.5 w-3.5" />
+                                <span>Buka via Safe Exam Browser (SEB iOS/PC)</span>
+                                {showSebGuide ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
+                            </button>
+                            {showSebGuide && (
+                                <div className="pt-2 animate-in fade-in-50 duration-200">
+                                    <SebAccessPanel variant="login" />
+                                </div>
+                            )}
+                        </div>
+                    )}
 
                     {/* Divider Toggle Manual Login */}
                     <div className="pt-2">

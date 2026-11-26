@@ -12,6 +12,14 @@ import { id as idLocale } from "date-fns/locale";
 import { TokenInputDialog } from "@/components/exam/take-exam/TokenInputDialog";
 import { AdminClearanceDialog } from "@/components/exam/take-exam/AdminClearanceDialog";
 import { StudentProfileCard, StudentProfile } from "@/components/student/StudentProfileCard";
+import { SebAccessPanel } from "@/components/seb/SebAccessPanel";
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogHeader,
+    DialogTitle,
+} from "@/components/ui/dialog";
 import { getDeviceId } from "@/lib/device";
 
 interface Exam {
@@ -54,6 +62,13 @@ export default function StudentExamsPage() {
     const [adminClearanceNotes, setAdminClearanceNotes] = useState<string | null>(null);
     const [verifyingAdminToken, setVerifyingAdminToken] = useState(false);
     const [pendingAdminToken, setPendingAdminToken] = useState<string | null>(null);
+
+    // Browser / SEB Required Dialog State
+    const [browserBlockDialog, setBrowserBlockDialog] = useState<{
+        open: boolean;
+        message: string;
+        supportsSeb: boolean;
+    }>({ open: false, message: "", supportsSeb: false });
 
     const fetchStudentProfile = useCallback(async () => {
         setProfileLoading(true);
@@ -189,6 +204,18 @@ export default function StudentExamsPage() {
                 router.push(`/student/exams/${sessionId}`);
             } else {
                 const error = await response.json();
+
+                // 0. Check if blocked by browser requirement (SEB / Exambro)
+                if (response.status === 403 && error.browserBlocked) {
+                    const msg = error.error || "Ujian ini memerlukan aplikasi khusus (SEB / Exambro).";
+                    const supportsSeb = msg.includes("SEB") || msg.includes("Safe Exam Browser");
+                    setBrowserBlockDialog({
+                        open: true,
+                        message: msg,
+                        supportsSeb,
+                    });
+                    return;
+                }
 
                 // 1. Check if blocked by Administrative Clearance
                 if (response.status === 403 && error.requireAdminToken) {
@@ -484,6 +511,28 @@ export default function StudentExamsPage() {
                 adminNotes={adminClearanceNotes}
                 examName={exams.find(e => e.id === selectedAdminExamId)?.sessionName}
             />
+
+            {/* Browser Lockdown Requirement Dialog (SEB / Exambro) */}
+            <Dialog
+                open={browserBlockDialog.open}
+                onOpenChange={(open) => setBrowserBlockDialog((prev) => ({ ...prev, open }))}
+            >
+                <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
+                    <DialogHeader>
+                        <DialogTitle>Aplikasi Ujian Khusus Diperlukan</DialogTitle>
+                        <DialogDescription>
+                            Ujian ini mengaktifkan mode keamanan browser terkunci.
+                        </DialogDescription>
+                    </DialogHeader>
+                    {browserBlockDialog.supportsSeb ? (
+                        <SebAccessPanel variant="dialog" message={browserBlockDialog.message} />
+                    ) : (
+                        <div className="rounded-lg border border-amber-500/40 bg-amber-500/10 p-3 text-sm text-amber-800 dark:text-amber-200">
+                            {browserBlockDialog.message}
+                        </div>
+                    )}
+                </DialogContent>
+            </Dialog>
         </div>
     );
 }

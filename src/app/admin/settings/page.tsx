@@ -1,8 +1,9 @@
-﻿import { Suspense } from "react";
+import { Suspense } from "react";
 import { getSchoolSettings } from "@/actions/settings";
 import { SettingsForm } from "@/components/admin/settings-form";
 import { BackupRestoreCard } from "@/components/admin/BackupRestoreCard";
 import { PortoCartaSyncCard } from "@/components/admin/PortoCartaSyncCard";
+import { SebConfigCard } from "@/components/admin/SebConfigCard";
 import { Separator } from "@/components/ui/separator";
 
 export default async function SettingsPage() {
@@ -18,6 +19,8 @@ export default async function SettingsPage() {
             </div>
             <Separator />
             <PortoCartaSyncCard />
+            <Separator />
+            <SebConfigCard />
             <Separator />
             <Suspense fallback={<div>Loading settings...</div>}>
                 <SettingsForm initialSettings={settings} />

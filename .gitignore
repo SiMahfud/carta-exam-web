@@ -25,6 +25,7 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 .localstorage.json
+.seb-config.json
 
 # local env files
 .env*.local

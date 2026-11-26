@@ -1,41 +1,45 @@
 <?xml version="1.0" encoding="UTF-8" ?>
-<testsuites name="vitest tests" tests="9" failures="0" errors="0" time="0.0425829">
-    <testsuite name="src/app/api/__tests__/exam-token.test.ts" timestamp="2026-11-25T22:20:21.725Z" hostname="DESKTOP-V0JD0BU" tests="5" failures="0" errors="0" skipped="0" time="0.0185034">
-        <testcase classname="src/app/api/__tests__/exam-token.test.ts" name="Exam Token &amp; Administrative Clearance Flow &gt; GET /api/exam-sessions/[id]/token &gt; rejects unauthorized or student access" time="0.0061516">
-            <system-err>
-Error fetching token: Error: Forbidden
-    at D:/NodeJs/CartaExam/src/app/api/__tests__/exam-token.test.ts:17:43
-    at [90mfile:///D:/NodeJs/CartaExam/[39mnode_modules/[4m@vitest/runner[24m/dist/index.js:145:11
-    at [90mfile:///D:/NodeJs/CartaExam/[39mnode_modules/[4m@vitest/runner[24m/dist/index.js:915:26
-    at [90mfile:///D:/NodeJs/CartaExam/[39mnode_modules/[4m@vitest/runner[24m/dist/index.js:1240:20
-    at new Promise (&lt;anonymous&gt;)
-    at runWithTimeout [90m(file:///D:/NodeJs/CartaExam/[39mnode_modules/[4m@vitest/runner[24m/dist/index.js:1206:10[90m)[39m
-    at [90mfile:///D:/NodeJs/CartaExam/[39mnode_modules/[4m@vitest/runner[24m/dist/index.js:1650:37
-    at Traces.$ [90m(file:///D:/NodeJs/CartaExam/[39mnode_modules/[4mvitest[24m/dist/chunks/traces.U4xDYhzZ.js:115:27[90m)[39m
-    at trace [90m(file:///D:/NodeJs/CartaExam/[39mnode_modules/[4mvitest[24m/dist/chunks/test.BT8LKgU9.js:239:21[90m)[39m
-    at runTest [90m(file:///D:/NodeJs/CartaExam/[39mnode_modules/[4m@vitest/runner[24m/dist/index.js:1650:12[90m)[39m {
-  status: [33m403[39m
-}
-
-            </system-err>
+<testsuites name="vitest tests" tests="19" failures="0" errors="0" time="0.0161766">
+    <testsuite name="src/lib/__tests__/browser-detection.test.ts" timestamp="2026-11-26T03:26:58.284Z" hostname="DESKTOP-V0JD0BU" tests="10" failures="0" errors="0" skipped="0" time="0.003323">
+        <testcase classname="src/lib/__tests__/browser-detection.test.ts" name="browser-detection &gt; detectBrowser &gt; should identify standard desktop Chrome browser" time="0.00104">
         </testcase>
-        <testcase classname="src/app/api/__tests__/exam-token.test.ts" name="Exam Token &amp; Administrative Clearance Flow &gt; GET /api/exam-sessions/[id]/token &gt; rejects teacher who does not own the session" time="0.0009818">
+        <testcase classname="src/lib/__tests__/browser-detection.test.ts" name="browser-detection &gt; detectBrowser &gt; should detect Safe Exam Browser via User-Agent" time="0.0001804">
         </testcase>
-        <testcase classname="src/app/api/__tests__/exam-token.test.ts" name="Exam Token &amp; Administrative Clearance Flow &gt; GET /api/exam-sessions/[id]/token &gt; returns token for admin or owning teacher" time="0.0012632">
+        <testcase classname="src/lib/__tests__/browser-detection.test.ts" name="browser-detection &gt; detectBrowser &gt; should detect Safe Exam Browser via custom SEB headers" time="0.0001354">
         </testcase>
-        <testcase classname="src/app/api/__tests__/exam-token.test.ts" name="Exam Token &amp; Administrative Clearance Flow &gt; POST /api/student/exams/[sessionId]/start with requireToken and adminToken &gt; returns clear error when requireToken is true but accessToken has not been generated" time="0.0024481">
+        <testcase classname="src/lib/__tests__/browser-detection.test.ts" name="browser-detection &gt; detectBrowser &gt; should detect Exambro Android client via User-Agent" time="0.000154">
         </testcase>
-        <testcase classname="src/app/api/__tests__/exam-token.test.ts" name="Exam Token &amp; Administrative Clearance Flow &gt; POST /api/student/exams/[sessionId]/start with requireToken and adminToken &gt; does not consume session-scoped adminToken until exam token also passes" time="0.0064011">
+        <testcase classname="src/lib/__tests__/browser-detection.test.ts" name="browser-detection &gt; detectBrowser &gt; should detect Exambro via custom headers" time="0.0001285">
+        </testcase>
+        <testcase classname="src/lib/__tests__/browser-detection.test.ts" name="browser-detection &gt; validateBrowserRequirements &gt; should allow any browser if no restrictions are set" time="0.0001515">
+        </testcase>
+        <testcase classname="src/lib/__tests__/browser-detection.test.ts" name="browser-detection &gt; validateBrowserRequirements &gt; should block standard browser when SEB is required" time="0.0001566">
+        </testcase>
+        <testcase classname="src/lib/__tests__/browser-detection.test.ts" name="browser-detection &gt; validateBrowserRequirements &gt; should permit SEB when SEB is required" time="0.0000951">
+        </testcase>
+        <testcase classname="src/lib/__tests__/browser-detection.test.ts" name="browser-detection &gt; validateBrowserRequirements &gt; should block standard browser when Exambro is required" time="0.0001049">
+        </testcase>
+        <testcase classname="src/lib/__tests__/browser-detection.test.ts" name="browser-detection &gt; validateBrowserRequirements &gt; should permit Exambro when Exambro is required" time="0.0001257">
         </testcase>
     </testsuite>
-    <testsuite name="src/app/api/__tests__/late-entry.test.ts" timestamp="2026-11-25T22:20:21.729Z" hostname="DESKTOP-V0JD0BU" tests="4" failures="0" errors="0" skipped="0" time="0.0240795">
-        <testcase classname="src/app/api/__tests__/late-entry.test.ts" name="Late Entry Auto-Block and Proctor Lock/Unlock &gt; should block and terminate student who starts exam after lateToleranceMinutes" time="0.0195149">
+    <testsuite name="src/lib/__tests__/seb-config.test.ts" timestamp="2026-11-26T03:26:58.287Z" hostname="DESKTOP-V0JD0BU" tests="9" failures="0" errors="0" skipped="0" time="0.0128536">
+        <testcase classname="src/lib/__tests__/seb-config.test.ts" name="seb-config &gt; should generate default config with CartaExam and PortoCarta URLs" time="0.0010158">
         </testcase>
-        <testcase classname="src/app/api/__tests__/late-entry.test.ts" name="Late Entry Auto-Block and Proctor Lock/Unlock &gt; should automatically default to 10 minutes late tolerance for legacy templates without lateToleranceMinutes" time="0.0013281">
+        <testcase classname="src/lib/__tests__/seb-config.test.ts" name="seb-config &gt; should include both exam and porto domains in URLFilterRules when Option A SSO is enabled" time="0.0007833">
         </testcase>
-        <testcase classname="src/app/api/__tests__/late-entry.test.ts" name="Late Entry Auto-Block and Proctor Lock/Unlock &gt; should allow student to enter if template explicitly sets lateToleranceMinutes to 0 (disabled)" time="0.0010572">
+        <testcase classname="src/lib/__tests__/seb-config.test.ts" name="seb-config &gt; should restrict PortoCarta rules to SSO paths when portoAllowedMode is sso_only" time="0.0003971">
         </testcase>
-        <testcase classname="src/app/api/__tests__/late-entry.test.ts" name="Late Entry Auto-Block and Proctor Lock/Unlock &gt; should allow teacher to lock student who has not started yet (action: lock_session)" time="0.0011697">
+        <testcase classname="src/lib/__tests__/seb-config.test.ts" name="seb-config &gt; should omit PortoCarta rules when allowSsoPortoCarta is disabled" time="0.0002299">
+        </testcase>
+        <testcase classname="src/lib/__tests__/seb-config.test.ts" name="seb-config &gt; should hash quit password as uppercase SHA-256 hex" time="0.0003662">
+        </testcase>
+        <testcase classname="src/lib/__tests__/seb-config.test.ts" name="seb-config &gt; should generate valid Apple XML plist containing startURL, URLFilterRules, and XML-escaped strings" time="0.0075007">
+        </testcase>
+        <testcase classname="src/lib/__tests__/seb-config.test.ts" name="seb-config &gt; should compute deterministic 64-char lowercase ConfigKey hash" time="0.0010161">
+        </testcase>
+        <testcase classname="src/lib/__tests__/seb-config.test.ts" name="seb-config &gt; should build sebs:// URL for https and seb:// URL for http" time="0.0002648">
+        </testcase>
+        <testcase classname="src/lib/__tests__/seb-config.test.ts" name="seb-config &gt; should set popup policy to 2 when allowPopupsForSso is true" time="0.000178">
         </testcase>
     </testsuite>
 </testsuites>

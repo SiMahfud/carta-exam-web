@@ -593,6 +593,38 @@ AI & Data Tools:      ███████████████████�
   - iOS and Android
   - **Effort**: 400+ hours
 
+### 4.2.1 Aplikasi Native Android (CartaExambro) & Kompatibilitas SEB iOS/Desktop
+
+> **Tujuan**: Menutup celah kecurangan tingkat OS yang tidak dapat dideteksi dari browser standar (seperti *floating widget* non-focusable dan *MediaProjection* Share Screen pada Gemini Live, serta *ReplayKit* screen share di iOS) dengan mengombinasikan **Exambro Native Android** dan **Safe Exam Browser (SEB)** untuk iOS/PC/Mac.
+
+#### A. Roadmap Aplikasi Native Android (`CartaExambro`)
+- [ ] **Proteksi Layar & Anti-Capture (`FLAG_SECURE`)** `Priority: HIGH`
+  - Pasang `WindowManager.LayoutParams.FLAG_SECURE` pada seluruh `Activity`, `WebView`, dan `Dialog` saat sesi ujian aktif
+  - Memblokir screenshot (tombol fisik, gesture 3 jari, Assistant), menyembunyikan preview *Recent Apps*, memblokir screen recording, dan otomatis membutakan tangkapan layar *Share Screen* (`MediaProjection` / Gemini Live)
+- [ ] **Deteksi & Blokir Floating Widget / Overlay** `Priority: HIGH`
+  - Override `dispatchTouchEvent(MotionEvent)` untuk memeriksa `FLAG_WINDOW_IS_OBSCURED` (API 9+) dan `FLAG_WINDOW_IS_PARTIALLY_OBSCURED` (API 29+ / Android 10+) sehingga sentuhan ke soal langsung mendeteksi adanya jendela mengambang pasif (*non-focusable*) di atas layar ujian
+  - Aktifkan `window.setHideOverlayWindows(true)` + izin `HIDE_OVERLAY_WINDOWS` (Android 12+ / API 31+) untuk menyembunyikan overlay `TYPE_APPLICATION_OVERLAY` pihak ketiga
+- [ ] **Deteksi Screen Sharing & Mikrofon Aktif** `Priority: HIGH`
+  - Implementasi `WindowManager.addScreenRecordingCallback()` + izin `DETECT_SCREEN_RECORDING` (Android 15+ / API 35+) untuk mendeteksi sesi `MediaProjection` / perekaman layar secara real-time
+  - Pantau `AudioManager.activeRecordingConfigurations` (API 24+) untuk mendeteksi aplikasi lain yang mengakses mikrofon secara aktif selama ujian berlangsung
+  - Dukungan `startLockTask()` (*Screen Pinning*) serta opsi *Device Owner* (`UserManager.DISALLOW_CREATE_WINDOWS`) untuk perangkat milik sekolah
+- [ ] **Integrasi WebView & Keamanan Komunikasi CartaExam** `Priority: MEDIUM`
+  - Sediakan JavaScript Bridge (`CartaExambroBridge`) agar event pelanggaran native otomatis dikirim ke `POST /api/student/exams/[sessionId]/violation`
+  - Pastikan WebView mengizinkan alur SSO PortoCarta (`https://exam.sman1campurdarat.sch.id` ↔ `https://porto.sman1campurdarat.sch.id`) dengan isolasi cookie yang persisten selama ujian
+  - Perkuat `detectExambro()` di `src/lib/browser-detection.ts` menggunakan signed app integrity header/token agar tidak bisa dipalsukan lewat *User-Agent spoofing*
+
+#### B. Roadmap Kompatibilitas Safe Exam Browser (SEB) iOS & Desktop (SSO PortoCarta)
+- [x] **Dukungan Multi-Client Lockdown (`requireSeb` & `requireExambro`)** ✅ **Implemented**
+  - Template ujian dapat mewajibkan SEB (iPhone/iPad/Windows/Mac), Exambro (Android), atau kombinasi keduanya (`src/lib/browser-detection.ts`)
+  - Alur SSO PortoCarta (Opsi A: redirect `porto.sman1campurdarat.sch.id` ↔ `exam.sman1campurdarat.sch.id/auth/sso`) dengan cookie `sameSite: "lax"` yang kompatibel dengan sandbox SEB
+- [x] **Generator Konfigurasi `.seb`, Tautan `sebs://`, & QR Code** ✅ **Implemented**
+  - Generator XML `.seb` (Apple plist) dengan whitelist URL Filter otomatis untuk `exam.sman1campurdarat.sch.id/*` dan `porto.sman1campurdarat.sch.id/*` (mendukung redirect SSO Opsi A)
+  - Dukungan *Quit Password* (`hashedQuitPassword` SHA-256), `sendBrowserExamKey`, dan pengaturan keamanan iOS *Automatic Assessment Configuration* (`AEAssessmentSession`) / anti screen-capture
+  - Panel manajemen di `/admin/settings` untuk kustomisasi, download `cartaexam.seb`, salin tautan `sebs://`, dan QR Code siap scan dari Kamera iPhone/iPad
+  - Panduan & tombol peluncuran **"Buka dengan SEB"** di halaman `/login` dan portal siswa (`/student/exams`)
+- [ ] **Validasi Kriptografis SEB Config Key / Request Hash** `Priority: MEDIUM`
+  - Simpan Config Key SHA-256 dari `.seb` aktif dan verifikasi header `X-SafeExamBrowser-RequestHash` / `X-SafeExamBrowser-ConfigKeyHash` di `src/lib/browser-detection.ts` untuk mencegah bypass dengan file `.seb` buatan sendiri atau *User-Agent* palsu
+
 ### 4.3 Integrations [0%]
 
 - [ ] **Google Classroom integration** `Priority: MEDIUM`

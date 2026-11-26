@@ -123,7 +123,7 @@ export function StepConfiguration({ formData, setFormData }: StepConfigurationPr
                         <div className="space-y-0.5">
                             <Label className="text-base">Wajibkan Safe Exam Browser (SEB)</Label>
                             <p className="text-sm text-muted-foreground">
-                                Hanya izinkan pengerjaan melalui aplikasi Safe Exam Browser (PC/Mac/iPad).
+                                Hanya izinkan pengerjaan melalui aplikasi Safe Exam Browser (PC/Mac/iPhone/iPad).
                             </p>
                         </div>
                         <Switch

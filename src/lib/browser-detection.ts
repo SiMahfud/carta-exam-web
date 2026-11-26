@@ -118,3 +118,28 @@ export function validateBrowserRequirements(
 
     return null
 }
+
+/**
+ * Client-side browser environment detection for UI guidance (SEB / Exambro / iOS)
+ */
+export function detectClientEnvironment(): {
+    isSeb: boolean
+    isExambro: boolean
+    isIos: boolean
+    isAndroid: boolean
+} {
+    if (typeof window === 'undefined' || typeof navigator === 'undefined') {
+        return { isSeb: false, isExambro: false, isIos: false, isAndroid: false }
+    }
+
+    const ua = navigator.userAgent || ''
+    const uaLower = ua.toLowerCase()
+    const isSeb = uaLower.includes('seb/') || uaLower.includes('safeexambrowser')
+    const isExambro = uaLower.includes('exambro') || uaLower.includes('cartaexambro')
+    const isIos =
+        /iphone|ipad|ipod/i.test(ua) ||
+        (navigator.maxTouchPoints > 1 && /macintosh/i.test(ua))
+    const isAndroid = /android/i.test(ua)
+
+    return { isSeb, isExambro, isIos, isAndroid }
+}
