@@ -14,7 +14,14 @@ export async function POST(
         const user = await requireAuth(["student", "admin", "teacher"]);
         const { sessionId } = await params;
         const body = await request.json();
-        const { type, details } = body;
+        const { type, details, evidenceUrl } = body;
+
+        const safeEvidenceUrl =
+            typeof evidenceUrl === "string" &&
+            evidenceUrl.startsWith("/uploads/violations/") &&
+            !evidenceUrl.includes("..")
+                ? evidenceUrl
+                : undefined;
 
         // For student role, always use authenticated user ID
         const studentId = user.role === "student" ? user.id : (body.studentId || user.id);
@@ -157,6 +164,7 @@ export async function POST(
                 type: isAwayTimeout ? "AWAY_TIMEOUT" : type,
                 details: logDetails,
                 timestamp: new Date().toISOString(),
+                ...(safeEvidenceUrl ? { evidenceUrl: safeEvidenceUrl } : {}),
             }
         ];
 

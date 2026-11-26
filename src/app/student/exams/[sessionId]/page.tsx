@@ -9,6 +9,7 @@ import { useWakeLock } from "@/hooks/use-wake-lock";
 import { getDeviceId } from "@/lib/device";
 import { useWatermark } from "@/lib/lockdown";
 import { checkSplitOrFloatingScreen, isTypingActive } from "@/lib/mobile-security";
+import { detectClientEnvironment } from "@/lib/browser-detection";
 
 // Components
 import { ExamHeader } from "@/components/exam/take-exam/ExamHeader";
@@ -86,6 +87,14 @@ export default function TakeExamPage() {
 
     const sessionId = params.sessionId as string;
 
+    const [isExambroClient, setIsExambroClient] = useState(false);
+
+    useEffect(() => {
+        const env = detectClientEnvironment();
+        const hasBridge = typeof window !== "undefined" && Boolean((window as unknown as { CartaExambroBridge?: unknown }).CartaExambroBridge);
+        setIsExambroClient(env.isExambro || hasBridge);
+    }, []);
+
     // Load saved font size preference
     useEffect(() => {
         try {
@@ -131,7 +140,7 @@ export default function TakeExamPage() {
     const logSecurityViolation = useCallback(async (
         type: string,
         details?: string,
-        options?: { immediateTerminate?: boolean; awaySeconds?: number }
+        options?: { immediateTerminate?: boolean; awaySeconds?: number; evidenceUrl?: string }
     ) => {
         if (!examStarted || submitting || isTerminated || isForceCompleted) return;
 
@@ -160,7 +169,8 @@ export default function TakeExamPage() {
                     details,
                     timestamp: new Date().toISOString(),
                     immediateTerminate: options?.immediateTerminate,
-                    awaySeconds: options?.awaySeconds
+                    awaySeconds: options?.awaySeconds,
+                    ...(options?.evidenceUrl ? { evidenceUrl: options.evidenceUrl } : {}),
                 }),
             });
 
@@ -502,16 +512,45 @@ export default function TakeExamPage() {
         handleSubmit();
     }, [handleSubmit, toast]);
 
-    // Security hook
+    // Notify native CartaExambro client & expose unified violation reporter
+    useEffect(() => {
+        const isActive = examStarted && !submitting && !isTerminated && !isForceCompleted;
+        const win = window as unknown as {
+            CartaExambroBridge?: {
+                onExamStateChanged?: (sessionId: string, studentId: string, active: boolean) => void;
+            };
+            __cartaExambroReportViolation?: (type: string, details?: string, evidenceUrl?: string) => void;
+        };
+
+        try {
+            win.CartaExambroBridge?.onExamStateChanged?.(sessionId, studentId || "", isActive);
+        } catch {
+            // Ignore bridge errors on standard browsers
+        }
+
+        if (isActive) {
+            win.__cartaExambroReportViolation = (type: string, details?: string, evidenceUrl?: string) => {
+                logSecurityViolation(type, details, { evidenceUrl });
+            };
+        } else {
+            delete win.__cartaExambroReportViolation;
+        }
+
+        return () => {
+            delete win.__cartaExambroReportViolation;
+        };
+    }, [examStarted, submitting, isTerminated, isForceCompleted, sessionId, studentId, logSecurityViolation]);
+
+    // Security hook (saat berada di dalam CartaExambro native, deteksi split-screen/floating/blur OS ditangani oleh Android Kotlin agar tidak double-counting)
     useExamSecurity({
         enabled: examStarted && !isTerminated && !isForceCompleted,
         cooldownMs: (violationSettings?.cooldownSeconds || 5) * 1000,
         disableCopyPaste: violationSettings?.detectCopyPaste ?? true,
         disableRightClick: violationSettings?.detectRightClick ?? true,
-        detectTabSwitch: violationSettings?.detectTabSwitch ?? true,
-        detectScreenshot: violationSettings?.detectScreenshot ?? true,
-        detectSplitScreen: true,
-        detectFloatingWindow: true,
+        detectTabSwitch: !isExambroClient && (violationSettings?.detectTabSwitch ?? true),
+        detectScreenshot: !isExambroClient && (violationSettings?.detectScreenshot ?? true),
+        detectSplitScreen: !isExambroClient,
+        detectFloatingWindow: !isExambroClient,
         detectWindowBlur: false,
         onViolation: (violation) => {
             logSecurityViolation(violation.type, violation.details);
@@ -614,6 +653,8 @@ export default function TakeExamPage() {
         pushDummyState();
 
         const handleFullscreenChange = async () => {
+            if (isExambroClient) return;
+
             const isCurrentlyFullscreen = !!(
                 document.fullscreenElement ||
                 (document as unknown as { webkitFullscreenElement?: Element }).webkitFullscreenElement ||
@@ -722,6 +763,9 @@ export default function TakeExamPage() {
                 const timedOut = handleReturnFromAway();
                 if (timedOut) return;
 
+                // Di dalam aplikasi native CartaExambro, fullscreen & split/floating ditangani langsung di level OS Android
+                if (isExambroClient) return;
+
                 const splitRes = checkSplitOrFloatingScreen();
 
                 // On devices that support fullscreen (Android/Desktop), check fullscreen state
@@ -823,7 +867,7 @@ export default function TakeExamPage() {
             window.removeEventListener("focus", handleWindowFocus);
             window.removeEventListener("beforeunload", handleBeforeUnload);
         };
-    }, [examStarted, submitting, isTerminated, isForceCompleted, fullscreenSupported, sessionId, studentId, violationSettings, logSecurityViolation, triggerFullscreenLockout]);
+    }, [examStarted, submitting, isTerminated, isForceCompleted, fullscreenSupported, isExambroClient, sessionId, studentId, violationSettings, logSecurityViolation, triggerFullscreenLockout]);
 
     // Cek apakah ada catatan waktu keluar sebelumnya yang melebihi batas (misal tab Safari reload di iOS)
     useEffect(() => {

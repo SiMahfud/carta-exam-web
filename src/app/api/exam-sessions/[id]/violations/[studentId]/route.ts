@@ -7,6 +7,7 @@ interface Violation {
     type: string;
     details: string;
     timestamp: string;
+    evidenceUrl?: string;
 }
 
 // GET /api/exam-sessions/[id]/violations/[studentId] - Get violation details
@@ -54,6 +55,7 @@ export async function GET(
                 type: v.type,
                 details: v.details,
                 timestamp: v.timestamp,
+                ...(v.evidenceUrl ? { evidenceUrl: v.evidenceUrl } : {}),
             })),
             status: submission.status,
         });

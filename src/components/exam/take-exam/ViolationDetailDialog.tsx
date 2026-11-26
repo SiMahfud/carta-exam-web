@@ -30,6 +30,7 @@ export interface ViolationLogItem {
     type: string;
     details?: string;
     timestamp: string | Date;
+    evidenceUrl?: string;
 }
 
 interface ViolationDetailDialogProps {
@@ -72,6 +73,11 @@ function getViolationLabel(type: string): string {
         WATERMARK_TAMPERING: "Manipulasi Watermark Keamanan",
         DEVICE_MISMATCH: "Perangkat Tidak Cocok",
         AWAY_TIMEOUT: "Keluar Ujian Melebihi Batas Waktu",
+        OVERLAY_DETECTED: "Layar Tertutup Aplikasi Lain (Overlay)",
+        SCREEN_RECORDING: "Rekam Layar / Share Screen Terdeteksi",
+        MICROPHONE_IN_USE: "Mikrofon Dipakai Aplikasi Lain",
+        PIP_MODE: "Mode Picture-in-Picture Terdeteksi",
+        APP_SWITCH: "Berpindah Aplikasi",
         // Lowercase variant
         tab_switch: "Pindah Tab Browser",
         window_blur: "Keluar dari Jendela Ujian",

@@ -73,6 +73,7 @@ interface Violation {
     type: string;
     details?: string;
     timestamp: string;
+    evidenceUrl?: string;
 }
 
 const VIOLATION_LABELS: Record<string, string> = {
@@ -112,6 +113,11 @@ const VIOLATION_LABELS: Record<string, string> = {
     proctor_lock: "Dikunci Pengawas (Kecurangan Luar)",
     LATE_ENTRY: "Terlambat Masuk (> Batas Waktu)",
     late_entry: "Terlambat Masuk (> Batas Waktu)",
+    OVERLAY_DETECTED: "Layar Tertutup Aplikasi Lain (Overlay)",
+    SCREEN_RECORDING: "Rekam Layar / Share Screen Terdeteksi",
+    MICROPHONE_IN_USE: "Mikrofon Dipakai Aplikasi Lain",
+    PIP_MODE: "Mode Picture-in-Picture Terdeteksi",
+    APP_SWITCH: "Berpindah Aplikasi",
 };
 
 function getViolationTypeLabel(type: string): string {
@@ -1466,6 +1472,26 @@ export default function SessionMonitorPage() {
                                                         <p className="text-xs sm:text-sm text-muted-foreground mt-1 break-words">
                                                             {violation.details}
                                                         </p>
+                                                    )}
+                                                    {violation.evidenceUrl && (
+                                                        <div className="mt-2">
+                                                            <a
+                                                                href={violation.evidenceUrl}
+                                                                target="_blank"
+                                                                rel="noopener noreferrer"
+                                                                className="inline-block group"
+                                                            >
+                                                                {/* eslint-disable-next-line @next/next/no-img-element */}
+                                                                <img
+                                                                    src={violation.evidenceUrl}
+                                                                    alt={`Bukti ${getViolationTypeLabel(violation.type)}`}
+                                                                    className="max-h-40 rounded-md border object-contain bg-black/5 group-hover:opacity-90 transition-opacity"
+                                                                />
+                                                                <span className="mt-1 inline-block text-[11px] text-primary underline">
+                                                                    Buka bukti screenshot ukuran penuh
+                                                                </span>
+                                                            </a>
+                                                        </div>
                                                     )}
                                                 </div>
                                                 <Badge variant="outline" className="text-[10px] sm:text-xs flex-shrink-0">

@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">CartaExambro</string>
+    <string name="school_name">SMAN 1 Campurdarat</string>
+    <string name="subtitle">Aplikasi Ujian Aman &amp; Anti-Kecurangan</string>
+    <string name="btn_open_default">Masuk Ujian CartaExam</string>
+    <string name="btn_scan_qr">Scan QR Code Ujian</string>
+    <string name="btn_open_manual">Buka URL Manual</string>
+    <string name="hint_manual_url">https://exam.sman1campurdarat.sch.id</string>
+    <string name="capture_notice">Saat memulai ujian, izinkan "Entire screen / Seluruh layar" pada dialog sistem agar pengawas dapat menerima bukti tangkapan layar jika terdeteksi pelanggaran.</string>
+    <string name="notif_channel_name">Keamanan Ujian CartaExambro</string>
+    <string name="notif_title">Sesi Keamanan CartaExambro Aktif</string>
+    <string name="notif_text">Perlindungan layar &amp; deteksi pelanggaran aktif selama ujian.</string>
+</resources>
