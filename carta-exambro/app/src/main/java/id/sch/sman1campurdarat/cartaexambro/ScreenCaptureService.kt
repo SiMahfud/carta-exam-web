@@ -47,10 +47,10 @@ class ScreenCaptureService : Service() {
         private const val CHANNEL_ID = "carta_exambro_security"
         private const val NOTIF_ID = 1001
         private const val MAX_CAPTURE_WIDTH = 720
-        private const val SAMPLE_STEP = 8
-        private const val BRIGHTNESS_THRESHOLD = 28
-        private const val MIN_NON_BLACK_RATIO = 0.0035f
-        private const val MIN_NON_BLACK_POINTS = 28
+        private const val SAMPLE_STEP = 6
+        private const val BRIGHTNESS_THRESHOLD = 22
+        private const val MIN_NON_BLACK_RATIO = 0.0010f
+        private const val MIN_NON_BLACK_POINTS = 12
 
         @Volatile
         private var instance: ScreenCaptureService? = null
@@ -58,6 +58,13 @@ class ScreenCaptureService : Service() {
         @Volatile
         var isRunning: Boolean = false
             private set
+
+        @Volatile
+        private var onProjectionRevokedListener: ((ByteArray?) -> Unit)? = null
+
+        fun setOnProjectionRevokedListener(listener: ((ByteArray?) -> Unit)?) {
+            onProjectionRevokedListener = listener
+        }
 
         /**
          * Mengambil frame terbaru dari layar fisik dan mengompresnya ke JPEG ringan (~40-120 KB).
@@ -83,12 +90,18 @@ class ScreenCaptureService : Service() {
     private var captureWidth = 720
     private var captureHeight = 1280
     private var lastFrameJpeg: ByteArray? = null
-    private var lastFrameTimestampMs: Long = 0L
+    private var isStoppingIntentionally: Boolean = false
 
     private val projectionCallback = object : MediaProjection.Callback() {
         override fun onStop() {
+            val revokedUnexpectedly = !isStoppingIntentionally && isRunning
+            val snapshot = lastFrameJpeg
             cleanupProjection()
+            stopForegroundCompat()
             stopSelf()
+            if (revokedUnexpectedly) {
+                onProjectionRevokedListener?.invoke(snapshot)
+            }
         }
     }
 
@@ -101,12 +114,14 @@ class ScreenCaptureService : Service() {
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         when (intent?.action) {
             ACTION_STOP -> {
+                isStoppingIntentionally = true
                 cleanupProjection()
                 stopForegroundCompat()
                 stopSelf()
                 return START_NOT_STICKY
             }
             ACTION_START -> {
+                isStoppingIntentionally = false
                 val resultCode = intent.getIntExtra(EXTRA_RESULT_CODE, Activity.RESULT_CANCELED)
                 val resultData: Intent? = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
                     intent.getParcelableExtra(EXTRA_RESULT_DATA, Intent::class.java)
@@ -195,14 +210,13 @@ class ScreenCaptureService : Service() {
             val reader = imageReader ?: return lastFrameJpeg
             val image = reader.acquireLatestImage()
             if (image == null) {
-                val age = System.currentTimeMillis() - lastFrameTimestampMs
-                return if (age <= 6000L) lastFrameJpeg else null
+                // Layar statis (belum ada redraw baru): kembalikan frame terakhir yang tersimpan
+                return lastFrameJpeg
             }
             return try {
                 val jpeg = encodeImageToJpeg(image)
                 if (jpeg != null) {
                     lastFrameJpeg = jpeg
-                    lastFrameTimestampMs = System.currentTimeMillis()
                 }
                 jpeg
             } finally {
@@ -223,11 +237,11 @@ class ScreenCaptureService : Service() {
 
                 val startX = (captureWidth * 0.02f).toInt()
                 val endX = (captureWidth * 0.98f).toInt()
-                val startY = (captureHeight * 0.08f).toInt()
+                val startY = (captureHeight * 0.07f).toInt()
                 val endY = if (excludeBottomForIme) {
                     (captureHeight * 0.50f).toInt()
                 } else {
-                    (captureHeight * 0.94f).toInt()
+                    (captureHeight * 0.975f).toInt()
                 }
 
                 var totalSamples = 0
@@ -257,7 +271,6 @@ class ScreenCaptureService : Service() {
                 val jpeg = encodeImageToJpeg(image)
                 if (jpeg != null) {
                     lastFrameJpeg = jpeg
-                    lastFrameTimestampMs = System.currentTimeMillis()
                 }
 
                 OverlayScanResult(hasOverlay, ratio, if (hasOverlay) jpeg else null)
