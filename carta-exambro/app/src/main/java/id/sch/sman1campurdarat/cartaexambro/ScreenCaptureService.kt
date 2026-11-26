@@ -31,6 +31,12 @@ import kotlin.math.min
  */
 class ScreenCaptureService : Service() {
 
+    data class OverlayScanResult(
+        val hasOverlay: Boolean,
+        val ratio: Float,
+        val jpegBytes: ByteArray?
+    )
+
     companion object {
         const val ACTION_START = "id.sch.sman1campurdarat.cartaexambro.START_CAPTURE"
         const val ACTION_STOP = "id.sch.sman1campurdarat.cartaexambro.STOP_CAPTURE"
@@ -41,6 +47,10 @@ class ScreenCaptureService : Service() {
         private const val CHANNEL_ID = "carta_exambro_security"
         private const val NOTIF_ID = 1001
         private const val MAX_CAPTURE_WIDTH = 720
+        private const val SAMPLE_STEP = 8
+        private const val BRIGHTNESS_THRESHOLD = 28
+        private const val MIN_NON_BLACK_RATIO = 0.0035f
+        private const val MIN_NON_BLACK_POINTS = 28
 
         @Volatile
         private var instance: ScreenCaptureService? = null
@@ -55,6 +65,14 @@ class ScreenCaptureService : Service() {
         fun captureScreenshotJpeg(): ByteArray? {
             return instance?.captureLatestFrame()
         }
+
+        /**
+         * Memindai frame MediaProjection untuk mendeteksi piksel terang non-hitam di atas
+         * jendela FLAG_SECURE (efektif mendeteksi overlay sistem seperti Gemini Live / Assistant).
+         */
+        fun scanFrameForOverlay(excludeBottomForIme: Boolean): OverlayScanResult? {
+            return instance?.scanLatestFrameForOverlay(excludeBottomForIme)
+        }
     }
 
     private var mediaProjection: MediaProjection? = null
@@ -64,6 +82,8 @@ class ScreenCaptureService : Service() {
 
     private var captureWidth = 720
     private var captureHeight = 1280
+    private var lastFrameJpeg: ByteArray? = null
+    private var lastFrameTimestampMs: Long = 0L
 
     private val projectionCallback = object : MediaProjection.Callback() {
         override fun onStop() {
@@ -172,41 +192,116 @@ class ScreenCaptureService : Service() {
 
     private fun captureLatestFrame(): ByteArray? {
         synchronized(captureLock) {
+            val reader = imageReader ?: return lastFrameJpeg
+            val image = reader.acquireLatestImage()
+            if (image == null) {
+                val age = System.currentTimeMillis() - lastFrameTimestampMs
+                return if (age <= 6000L) lastFrameJpeg else null
+            }
+            return try {
+                val jpeg = encodeImageToJpeg(image)
+                if (jpeg != null) {
+                    lastFrameJpeg = jpeg
+                    lastFrameTimestampMs = System.currentTimeMillis()
+                }
+                jpeg
+            } finally {
+                image.close()
+            }
+        }
+    }
+
+    private fun scanLatestFrameForOverlay(excludeBottomForIme: Boolean): OverlayScanResult? {
+        synchronized(captureLock) {
             val reader = imageReader ?: return null
             val image = reader.acquireLatestImage() ?: return null
-            var bitmap: Bitmap? = null
-            var croppedBitmap: Bitmap? = null
             return try {
                 val plane = image.planes[0]
                 val buffer = plane.buffer
                 val pixelStride = plane.pixelStride
                 val rowStride = plane.rowStride
-                val rowPadding = rowStride - pixelStride * captureWidth
 
-                bitmap = Bitmap.createBitmap(
-                    captureWidth + rowPadding / pixelStride,
-                    captureHeight,
-                    Bitmap.Config.ARGB_8888
-                )
-                bitmap.copyPixelsFromBuffer(buffer)
-
-                val finalBitmap = if (rowPadding > 0) {
-                    croppedBitmap = Bitmap.createBitmap(bitmap, 0, 0, captureWidth, captureHeight)
-                    croppedBitmap
+                val startX = (captureWidth * 0.02f).toInt()
+                val endX = (captureWidth * 0.98f).toInt()
+                val startY = (captureHeight * 0.08f).toInt()
+                val endY = if (excludeBottomForIme) {
+                    (captureHeight * 0.50f).toInt()
                 } else {
-                    bitmap
+                    (captureHeight * 0.94f).toInt()
                 }
 
-                val stream = ByteArrayOutputStream()
-                finalBitmap.compress(Bitmap.CompressFormat.JPEG, 68, stream)
-                stream.toByteArray()
+                var totalSamples = 0
+                var nonBlackSamples = 0
+
+                var y = startY
+                while (y < endY) {
+                    val rowOffset = y * rowStride
+                    var x = startX
+                    while (x < endX) {
+                        val offset = rowOffset + x * pixelStride
+                        val r = buffer.get(offset).toInt() and 0xFF
+                        val g = buffer.get(offset + 1).toInt() and 0xFF
+                        val b = buffer.get(offset + 2).toInt() and 0xFF
+                        totalSamples++
+                        if (r > BRIGHTNESS_THRESHOLD || g > BRIGHTNESS_THRESHOLD || b > BRIGHTNESS_THRESHOLD) {
+                            nonBlackSamples++
+                        }
+                        x += SAMPLE_STEP
+                    }
+                    y += SAMPLE_STEP
+                }
+
+                val ratio = if (totalSamples > 0) nonBlackSamples.toFloat() / totalSamples else 0f
+                val hasOverlay = nonBlackSamples >= MIN_NON_BLACK_POINTS && ratio >= MIN_NON_BLACK_RATIO
+
+                val jpeg = encodeImageToJpeg(image)
+                if (jpeg != null) {
+                    lastFrameJpeg = jpeg
+                    lastFrameTimestampMs = System.currentTimeMillis()
+                }
+
+                OverlayScanResult(hasOverlay, ratio, if (hasOverlay) jpeg else null)
             } catch (_: Exception) {
                 null
             } finally {
                 image.close()
-                croppedBitmap?.recycle()
-                bitmap?.recycle()
             }
+        }
+    }
+
+    private fun encodeImageToJpeg(image: android.media.Image): ByteArray? {
+        var bitmap: Bitmap? = null
+        var croppedBitmap: Bitmap? = null
+        return try {
+            val plane = image.planes[0]
+            val buffer = plane.buffer
+            buffer.rewind()
+            val pixelStride = plane.pixelStride
+            val rowStride = plane.rowStride
+            val rowPadding = rowStride - pixelStride * captureWidth
+
+            bitmap = Bitmap.createBitmap(
+                captureWidth + rowPadding / pixelStride,
+                captureHeight,
+                Bitmap.Config.ARGB_8888
+            )
+            bitmap.copyPixelsFromBuffer(buffer)
+
+            val finalBitmap = if (rowPadding > 0) {
+                croppedBitmap = Bitmap.createBitmap(bitmap, 0, 0, captureWidth, captureHeight)
+                croppedBitmap
+            } else {
+                bitmap
+            }
+
+            val stream = ByteArrayOutputStream()
+            finalBitmap.compress(Bitmap.CompressFormat.JPEG, 68, stream)
+            stream.toByteArray()
+        } catch (_: Exception) {
+            null
+        } finally {
+            croppedBitmap?.recycle()
+            bitmap?.recycle()
         }
     }
 

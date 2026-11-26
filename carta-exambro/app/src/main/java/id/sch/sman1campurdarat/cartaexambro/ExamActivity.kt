@@ -24,6 +24,7 @@ import android.widget.Toast
 import androidx.activity.OnBackPressedCallback
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.view.ViewCompat
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
@@ -38,6 +39,7 @@ class ExamActivity : AppCompatActivity() {
         const val EXTRA_TARGET_URL = "extra_target_url"
         private const val NATIVE_COOLDOWN_MS = 5000L
         private const val MIC_CHECK_INTERVAL_MS = 4000L
+        private const val OVERLAY_SCAN_INTERVAL_MS = 2500L
     }
 
     private lateinit var binding: ActivityExamBinding
@@ -67,6 +69,14 @@ class ExamActivity : AppCompatActivity() {
     private val mainHandler = Handler(Looper.getMainLooper())
     private lateinit var customUserAgent: String
 
+    @Volatile
+    private var examStartedAtMs: Long = 0L
+
+    @Volatile
+    private var lastToastAtMs: Long = 0L
+
+    private var consecutiveOverlayHits: Int = 0
+
     private var displayManager: DisplayManager? = null
     private var audioManager: AudioManager? = null
     private var screenRecordingCallback: Consumer<Int>? = null
@@ -86,6 +96,17 @@ class ExamActivity : AppCompatActivity() {
                 checkActiveMicrophoneUsage()
             }
             mainHandler.postDelayed(this, MIC_CHECK_INTERVAL_MS)
+        }
+    }
+
+    private val overlayMonitorRunnable = object : Runnable {
+        override fun run() {
+            if (isExamSessionActive && !isFinishing && !isInternalDialogVisible) {
+                checkVisualOverlayOnProjection()
+            } else {
+                consecutiveOverlayHits = 0
+            }
+            mainHandler.postDelayed(this, OVERLAY_SCAN_INTERVAL_MS)
         }
     }
 
@@ -151,9 +172,14 @@ class ExamActivity : AppCompatActivity() {
 
         val bridge = ExamWebBridge { sessionId, studentId, active ->
             mainHandler.post {
+                val wasActive = isExamSessionActive
                 activeSessionId = sessionId.takeIf { it.isNotBlank() }
                 activeStudentId = studentId
                 isExamSessionActive = active && activeSessionId != null
+                if (isExamSessionActive && !wasActive) {
+                    examStartedAtMs = System.currentTimeMillis()
+                    consecutiveOverlayHits = 0
+                }
                 updateStatusBadge()
                 if (isExamSessionActive) {
                     tryStartLockTask()
@@ -189,18 +215,10 @@ class ExamActivity : AppCompatActivity() {
                         if (isHostAllowed(resolvedHost)) {
                             view?.loadUrl(resolvedUrl, exambroHeaders())
                         } else {
-                            Toast.makeText(
-                                this@ExamActivity,
-                                "Akses ke domain luar ($resolvedHost) diblokir selama ujian.",
-                                Toast.LENGTH_SHORT
-                            ).show()
+                            showShortToast("Akses ke domain luar ($resolvedHost) diblokir selama ujian.")
                         }
                     } else {
-                        Toast.makeText(
-                            this@ExamActivity,
-                            "Tautan intent SSO tidak dapat diproses.",
-                            Toast.LENGTH_SHORT
-                        ).show()
+                        showShortToast("Tautan intent SSO tidak dapat diproses.")
                     }
                     return true
                 }
@@ -225,11 +243,7 @@ class ExamActivity : AppCompatActivity() {
                 val host = uri.host?.lowercase() ?: return true
 
                 if (!isHostAllowed(host)) {
-                    Toast.makeText(
-                        this@ExamActivity,
-                        "Akses ke domain luar ($host) diblokir selama ujian.",
-                        Toast.LENGTH_SHORT
-                    ).show()
+                    showShortToast("Akses ke domain luar ($host) diblokir selama ujian.")
                     return true
                 }
 
@@ -246,6 +260,11 @@ class ExamActivity : AppCompatActivity() {
         }
 
         webView.loadUrl(targetUrl, exambroHeaders())
+    }
+
+    private fun showShortToast(message: String) {
+        lastToastAtMs = System.currentTimeMillis()
+        Toast.makeText(this, message, Toast.LENGTH_SHORT).show()
     }
 
     private fun exambroHeaders(): Map<String, String> = mapOf(
@@ -293,7 +312,14 @@ class ExamActivity : AppCompatActivity() {
     private fun syncSessionFromUrl(url: String?) {
         if (url.isNullOrBlank()) return
         val uri = Uri.parse(url)
+        val scheme = uri.scheme?.lowercase()
+        val authority = uri.authority
         val path = uri.path ?: return
+
+        if ((scheme == "http" || scheme == "https") && !authority.isNullOrBlank() && path.startsWith("/student")) {
+            initialOrigin = "$scheme://$authority"
+        }
+
         // Deteksi pola /student/exams/<sessionId> (kecuali /review)
         val regex = Regex("^/student/exams/([^/]+)$")
         val match = regex.find(path)
@@ -325,6 +351,7 @@ class ExamActivity : AppCompatActivity() {
 
         audioManager = getSystemService(Context.AUDIO_SERVICE) as AudioManager
         mainHandler.postDelayed(micMonitorRunnable, MIC_CHECK_INTERVAL_MS)
+        mainHandler.postDelayed(overlayMonitorRunnable, OVERLAY_SCAN_INTERVAL_MS)
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.VANILLA_ICE_CREAM) {
             val callback = Consumer<Int> { state ->
@@ -438,10 +465,40 @@ class ExamActivity : AppCompatActivity() {
         }
     }
 
+    private fun checkVisualOverlayOnProjection() {
+        val now = System.currentTimeMillis()
+        // Beri jeda 6 detik setelah mulai ujian (toast LockTask "To unpin") & 3.5 detik setelah toast app
+        if (now - examStartedAtMs < 6000L || now - lastToastAtMs < 3500L) {
+            consecutiveOverlayHits = 0
+            return
+        }
+
+        val imeVisible = ViewCompat.getRootWindowInsets(binding.root)
+            ?.isVisible(WindowInsetsCompat.Type.ime()) == true
+
+        val scanResult = ScreenCaptureService.scanFrameForOverlay(excludeBottomForIme = imeVisible)
+            ?: return
+
+        if (scanResult.hasOverlay) {
+            consecutiveOverlayHits++
+            if (consecutiveOverlayHits >= 2) {
+                consecutiveOverlayHits = 0
+                triggerViolationWithScreenshot(
+                    type = "OVERLAY_DETECTED",
+                    details = "Overlay visual / jendela mengambang (termasuk Assistant/Gemini Live) terdeteksi di atas layar ujian",
+                    preCapturedJpeg = scanResult.jpegBytes
+                )
+            }
+        } else {
+            consecutiveOverlayHits = 0
+        }
+    }
+
     private fun triggerViolationWithScreenshot(
         type: String,
         details: String,
-        preferDirectApi: Boolean = false
+        preferDirectApi: Boolean = false,
+        preCapturedJpeg: ByteArray? = null
     ) {
         val sessionId = activeSessionId ?: return
         val now = System.currentTimeMillis()
@@ -450,7 +507,7 @@ class ExamActivity : AppCompatActivity() {
         lastViolationTimes[type] = now
 
         // Ambil screenshot seluruh layar (MediaProjection) saat pelanggaran terjadi
-        val jpegBytes = ScreenCaptureService.captureScreenshotJpeg()
+        val jpegBytes = preCapturedJpeg ?: ScreenCaptureService.captureScreenshotJpeg()
 
         ViolationUploader.uploadEvidenceAndDispatch(
             origin = initialOrigin,
@@ -575,6 +632,7 @@ class ExamActivity : AppCompatActivity() {
 
     override fun onDestroy() {
         mainHandler.removeCallbacks(micMonitorRunnable)
+        mainHandler.removeCallbacks(overlayMonitorRunnable)
         displayManager?.unregisterDisplayListener(displayListener)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.VANILLA_ICE_CREAM) {
             screenRecordingCallback?.let {

@@ -89,6 +89,14 @@ export default function TakeExamPage() {
 
     const [isExambroClient, setIsExambroClient] = useState(false);
 
+    const checkIsExambro = useCallback(() => {
+        if (isExambroClient) return true;
+        if (typeof window === "undefined") return false;
+        const env = detectClientEnvironment();
+        const hasBridge = Boolean((window as unknown as { CartaExambroBridge?: unknown }).CartaExambroBridge);
+        return env.isExambro || hasBridge;
+    }, [isExambroClient]);
+
     useEffect(() => {
         const env = detectClientEnvironment();
         const hasBridge = typeof window !== "undefined" && Boolean((window as unknown as { CartaExambroBridge?: unknown }).CartaExambroBridge);
@@ -653,7 +661,7 @@ export default function TakeExamPage() {
         pushDummyState();
 
         const handleFullscreenChange = async () => {
-            if (isExambroClient) return;
+            if (checkIsExambro()) return;
 
             const isCurrentlyFullscreen = !!(
                 document.fullscreenElement ||
@@ -692,9 +700,8 @@ export default function TakeExamPage() {
                 e.preventDefault();
                 pushDummyState();
 
-                // Only lock out on back-button if fullscreen is supported (Android/Desktop).
-                // On iPhone Safari, fullscreen API is not available, so skip this check.
-                if (fullscreenSupported) {
+                // Only lock out on back-button if HTML5 fullscreen is supported and not inside CartaExambro native app.
+                if (fullscreenSupported && !checkIsExambro()) {
                     const isCurrentlyFullscreen = !!(
                         document.fullscreenElement ||
                         (document as unknown as { webkitFullscreenElement?: Element }).webkitFullscreenElement
@@ -764,7 +771,7 @@ export default function TakeExamPage() {
                 if (timedOut) return;
 
                 // Di dalam aplikasi native CartaExambro, fullscreen & split/floating ditangani langsung di level OS Android
-                if (isExambroClient) return;
+                if (checkIsExambro()) return;
 
                 const splitRes = checkSplitOrFloatingScreen();
 
@@ -867,7 +874,7 @@ export default function TakeExamPage() {
             window.removeEventListener("focus", handleWindowFocus);
             window.removeEventListener("beforeunload", handleBeforeUnload);
         };
-    }, [examStarted, submitting, isTerminated, isForceCompleted, fullscreenSupported, isExambroClient, sessionId, studentId, violationSettings, logSecurityViolation, triggerFullscreenLockout]);
+    }, [examStarted, submitting, isTerminated, isForceCompleted, fullscreenSupported, isExambroClient, checkIsExambro, sessionId, studentId, violationSettings, logSecurityViolation, triggerFullscreenLockout]);
 
     // Cek apakah ada catatan waktu keluar sebelumnya yang melebihi batas (misal tab Safari reload di iOS)
     useEffect(() => {
@@ -934,7 +941,7 @@ export default function TakeExamPage() {
                 }
             }
 
-            if (fullscreenSupported) {
+            if (fullscreenSupported && !checkIsExambro()) {
                 try {
                     await enterFullscreen();
                 } catch (fsErr) {
@@ -960,6 +967,11 @@ export default function TakeExamPage() {
     };
 
     const handleRestoreFullscreen = async (): Promise<{ success: boolean; message?: string }> => {
+        if (checkIsExambro()) {
+            setLockoutState({ isOpen: false });
+            return { success: true };
+        }
+
         const splitRes = checkSplitOrFloatingScreen();
         if (splitRes.isSplitScreen) {
             return {
@@ -1016,7 +1028,7 @@ export default function TakeExamPage() {
     };
 
     const ensureFullscreen = useCallback(() => {
-        if (!examStarted || submitting || !fullscreenSupported) return;
+        if (!examStarted || submitting || !fullscreenSupported || checkIsExambro()) return;
 
         const isCurrentlyFullscreen = !!(
             document.fullscreenElement ||
@@ -1045,7 +1057,7 @@ export default function TakeExamPage() {
                 graceSecondsRemaining: 0,
             });
         }
-    }, [examStarted, submitting, fullscreenSupported, logSecurityViolation, triggerFullscreenLockout]);
+    }, [examStarted, submitting, fullscreenSupported, checkIsExambro, logSecurityViolation, triggerFullscreenLockout]);
 
     // Periodic fullscreen check
     useEffect(() => {
