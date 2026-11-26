@@ -70,10 +70,12 @@ interface SessionData {
 }
 
 interface Violation {
+    id?: string;
     type: string;
     details?: string;
     timestamp: string;
     evidenceUrl?: string;
+    evidenceUrls?: string[];
 }
 
 const VIOLATION_LABELS: Record<string, string> = {
@@ -429,10 +431,10 @@ export default function SessionMonitorPage() {
                             setStats((prev) =>
                                 prev
                                     ? {
-                                          ...prev,
-                                          inProgress: Math.max(0, prev.inProgress - 1),
-                                          completed: prev.completed + 1,
-                                      }
+                                        ...prev,
+                                        inProgress: Math.max(0, prev.inProgress - 1),
+                                        completed: prev.completed + 1,
+                                    }
                                     : prev
                             );
                             triggerDebouncedSync();
@@ -457,10 +459,10 @@ export default function SessionMonitorPage() {
                             setStats((prev) =>
                                 prev
                                     ? {
-                                          ...prev,
-                                          notStarted: Math.max(0, prev.notStarted - 1),
-                                          inProgress: prev.inProgress + 1,
-                                      }
+                                        ...prev,
+                                        notStarted: Math.max(0, prev.notStarted - 1),
+                                        inProgress: prev.inProgress + 1,
+                                    }
                                     : prev
                             );
                             triggerDebouncedSync();
@@ -714,36 +716,34 @@ export default function SessionMonitorPage() {
                         variant={liveAutoRefresh ? "default" : "outline"}
                         size="sm"
                         onClick={() => setLiveAutoRefresh(!liveAutoRefresh)}
-                        className={`gap-1.5 transition-colors ${
-                            !liveAutoRefresh
+                        className={`gap-1.5 transition-colors ${!liveAutoRefresh
                                 ? ""
                                 : sseStatus === "connected"
-                                ? "bg-emerald-600 hover:bg-emerald-700 text-white"
-                                : "bg-amber-600 hover:bg-amber-700 text-white"
-                        }`}
+                                    ? "bg-emerald-600 hover:bg-emerald-700 text-white"
+                                    : "bg-amber-600 hover:bg-amber-700 text-white"
+                            }`}
                         title={
                             !liveAutoRefresh
                                 ? "Live monitoring nonaktif"
                                 : sseStatus === "connected"
-                                ? "Real-time SSE aktif. Data diperbarui seketika (sinkronisasi DB berkala)."
-                                : "SSE terputus. Fallback polling aktif setiap 15 detik."
+                                    ? "Real-time SSE aktif. Data diperbarui seketika (sinkronisasi DB berkala)."
+                                    : "SSE terputus. Fallback polling aktif setiap 15 detik."
                         }
                     >
                         <span
-                            className={`h-2 w-2 rounded-full ${
-                                !liveAutoRefresh
+                            className={`h-2 w-2 rounded-full ${!liveAutoRefresh
                                     ? "bg-muted-foreground"
                                     : sseStatus === "connected"
-                                    ? "bg-white animate-pulse"
-                                    : "bg-white animate-ping"
-                            }`}
+                                        ? "bg-white animate-pulse"
+                                        : "bg-white animate-ping"
+                                }`}
                         />
                         <span>
                             {!liveAutoRefresh
                                 ? "Live: Nonaktif"
                                 : sseStatus === "connected"
-                                ? "Realtime (SSE): Aktif"
-                                : "Polling Fallback (15s): Aktif"}
+                                    ? "Realtime (SSE): Aktif"
+                                    : "Polling Fallback (15s): Aktif"}
                         </span>
                     </Button>
                     <Button
@@ -995,13 +995,11 @@ export default function SessionMonitorPage() {
                                             {student.status === "in_progress" ? (
                                                 <div
                                                     className="inline-flex items-center gap-1.5"
-                                                    title={`Nilai sementara (berjalan): ${student.score ?? 0}${
-                                                        student.hasEssays ? " • belum termasuk essay" : ""
-                                                    }${
-                                                        student.totalQuestions
-                                                             ? ` • ${student.answeredCount ?? 0}/${student.totalQuestions} soal dijawab`
+                                                    title={`Nilai sementara (berjalan): ${student.score ?? 0}${student.hasEssays ? " • belum termasuk essay" : ""
+                                                        }${student.totalQuestions
+                                                            ? ` • ${student.answeredCount ?? 0}/${student.totalQuestions} soal dijawab`
                                                             : ""
-                                                    }`}
+                                                        }`}
                                                 >
                                                     <span className="font-semibold text-blue-600 dark:text-blue-400">
                                                         {student.score !== null ? student.score : 0}
@@ -1072,11 +1070,10 @@ export default function SessionMonitorPage() {
                                                         <Button
                                                             variant={student.isLateEntry ? "default" : "ghost"}
                                                             size="sm"
-                                                            className={`h-8 px-2 text-xs ${
-                                                                student.isLateEntry
+                                                            className={`h-8 px-2 text-xs ${student.isLateEntry
                                                                     ? "bg-emerald-600 hover:bg-emerald-700 text-white font-medium"
                                                                     : "text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-950/40"
-                                                            }`}
+                                                                }`}
                                                             onClick={() => handleSingleProctorAction(student.id, "unlock_session")}
                                                             title={student.isLateEntry ? "Izinkan Siswa Masuk (Dispensasi Terlambat)" : "Buka Kunci Sesi Ujian"}
                                                         >
@@ -1192,9 +1189,8 @@ export default function SessionMonitorPage() {
                             {filteredStudents.map((student) => (
                                 <div
                                     key={student.id}
-                                    className={`p-3 space-y-2 transition-colors ${
-                                        selectedStudentIds.includes(student.id) ? "bg-primary/5" : "hover:bg-muted/30"
-                                    }`}
+                                    className={`p-3 space-y-2 transition-colors ${selectedStudentIds.includes(student.id) ? "bg-primary/5" : "hover:bg-muted/30"
+                                        }`}
                                 >
                                     {/* Top Row: Checkbox, Name, Class & Status Badge */}
                                     <div className="flex items-start justify-between gap-2">
@@ -1312,11 +1308,10 @@ export default function SessionMonitorPage() {
                                                     <Button
                                                         variant={student.isLateEntry ? "default" : "ghost"}
                                                         size="sm"
-                                                        className={`h-7 px-2 text-xs ${
-                                                            student.isLateEntry
+                                                        className={`h-7 px-2 text-xs ${student.isLateEntry
                                                                 ? "bg-emerald-600 hover:bg-emerald-700 text-white font-medium"
                                                                 : "text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-950/40"
-                                                        }`}
+                                                            }`}
                                                         onClick={() => handleSingleProctorAction(student.id, "unlock_session")}
                                                     >
                                                         {student.isLateEntry ? "Izinkan Masuk" : "Buka Kunci"}
@@ -1415,11 +1410,11 @@ export default function SessionMonitorPage() {
                             Apakah Anda yakin ingin melakukan aksi <strong>
                                 {selectedAction === 'add_time' ? `Tambah Waktu (+${selectedMinutes} menit)` :
                                     selectedAction === 'lock_session' ? 'Kunci Sementara (Suspend)' :
-                                    selectedAction === 'reset_time' ? 'Reset Waktu' :
-                                        selectedAction === 'reset_violations' ? 'Reset Pelanggaran' :
-                                            selectedAction === 'reset_permission' ? 'Izinkan Lanjut Ujian' :
-                                                selectedAction === 'force_finish' ? 'Paksa Selesai' :
-                                                    selectedAction === 'retake' ? 'Ulang Ujian' : selectedAction}
+                                        selectedAction === 'reset_time' ? 'Reset Waktu' :
+                                            selectedAction === 'reset_violations' ? 'Reset Pelanggaran' :
+                                                selectedAction === 'reset_permission' ? 'Izinkan Lanjut Ujian' :
+                                                    selectedAction === 'force_finish' ? 'Paksa Selesai' :
+                                                        selectedAction === 'retake' ? 'Ulang Ujian' : selectedAction}
                             </strong> pada {selectedStudentIds.length} peserta yang dipilih?
                         </DialogDescription>
                     </DialogHeader>
@@ -1473,26 +1468,40 @@ export default function SessionMonitorPage() {
                                                             {violation.details}
                                                         </p>
                                                     )}
-                                                    {violation.evidenceUrl && (
-                                                        <div className="mt-2">
-                                                            <a
-                                                                href={violation.evidenceUrl}
-                                                                target="_blank"
-                                                                rel="noopener noreferrer"
-                                                                className="inline-block group"
-                                                            >
-                                                                {/* eslint-disable-next-line @next/next/no-img-element */}
-                                                                <img
-                                                                    src={violation.evidenceUrl}
-                                                                    alt={`Bukti ${getViolationTypeLabel(violation.type)}`}
-                                                                    className="max-h-40 rounded-md border object-contain bg-black/5 group-hover:opacity-90 transition-opacity"
-                                                                />
-                                                                <span className="mt-1 inline-block text-[11px] text-primary underline">
-                                                                    Buka bukti screenshot ukuran penuh
-                                                                </span>
-                                                            </a>
-                                                        </div>
-                                                    )}
+                                                    {(() => {
+                                                        const evidenceList = Array.isArray(violation.evidenceUrls) && violation.evidenceUrls.length > 0
+                                                            ? violation.evidenceUrls
+                                                            : (violation.evidenceUrl ? [violation.evidenceUrl] : []);
+                                                        if (evidenceList.length === 0) return null;
+                                                        return (
+                                                            <div className="mt-2.5 space-y-1.5">
+                                                                <p className="text-[11px] font-medium text-muted-foreground">
+                                                                    Bukti Tangkapan Layar ({evidenceList.length} foto)
+                                                                </p>
+                                                                <div className={evidenceList.length > 1 ? "grid grid-cols-2 sm:grid-cols-3 gap-2" : ""}>
+                                                                    {evidenceList.map((url, imgIdx) => (
+                                                                        <a
+                                                                            key={url}
+                                                                            href={url}
+                                                                            target="_blank"
+                                                                            rel="noopener noreferrer"
+                                                                            className="block group rounded-md border bg-black/5 p-1 hover:border-primary transition-colors"
+                                                                        >
+                                                                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                                                                            <img
+                                                                                src={url}
+                                                                                alt={`Bukti ${getViolationTypeLabel(violation.type)} #${imgIdx + 1}`}
+                                                                                className={`${evidenceList.length > 1 ? "h-28 w-full" : "max-h-40"} rounded object-contain group-hover:opacity-90 transition-opacity`}
+                                                                            />
+                                                                            <span className="mt-1 block text-center text-[10px] text-primary underline">
+                                                                                {evidenceList.length > 1 ? `Foto ${imgIdx + 1}` : "Buka ukuran penuh"}
+                                                                            </span>
+                                                                        </a>
+                                                                    ))}
+                                                                </div>
+                                                            </div>
+                                                        );
+                                                    })()}
                                                 </div>
                                                 <Badge variant="outline" className="text-[10px] sm:text-xs flex-shrink-0">
                                                     {format(new Date(violation.timestamp), "HH:mm:ss")}
@@ -1543,11 +1552,10 @@ export default function SessionMonitorPage() {
                                         key={preset}
                                         type="button"
                                         onClick={() => setLockReason(preset)}
-                                        className={`text-[11px] px-2.5 py-1 rounded-full border transition-colors ${
-                                            lockReason === preset
+                                        className={`text-[11px] px-2.5 py-1 rounded-full border transition-colors ${lockReason === preset
                                                 ? "bg-rose-600 text-white border-rose-600 font-medium"
                                                 : "bg-background hover:bg-muted text-muted-foreground border-border"
-                                        }`}
+                                            }`}
                                     >
                                         {preset}
                                     </button>

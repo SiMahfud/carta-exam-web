@@ -90,6 +90,8 @@ class ScreenCaptureService : Service() {
     private var captureWidth = 720
     private var captureHeight = 1280
     private var lastFrameJpeg: ByteArray? = null
+    private var lastOverlayDetected: Boolean = false
+    private var lastOverlayRatio: Float = 0f
     private var isStoppingIntentionally: Boolean = false
 
     private val projectionCallback = object : MediaProjection.Callback() {
@@ -228,7 +230,18 @@ class ScreenCaptureService : Service() {
     private fun scanLatestFrameForOverlay(excludeBottomForIme: Boolean): OverlayScanResult? {
         synchronized(captureLock) {
             val reader = imageReader ?: return null
-            val image = reader.acquireLatestImage() ?: return null
+            val image = reader.acquireLatestImage()
+            if (image == null) {
+                return if (lastFrameJpeg != null) {
+                    OverlayScanResult(
+                        lastOverlayDetected,
+                        lastOverlayRatio,
+                        if (lastOverlayDetected) lastFrameJpeg else null
+                    )
+                } else {
+                    null
+                }
+            }
             return try {
                 val plane = image.planes[0]
                 val buffer = plane.buffer
@@ -272,6 +285,9 @@ class ScreenCaptureService : Service() {
                 if (jpeg != null) {
                     lastFrameJpeg = jpeg
                 }
+
+                lastOverlayDetected = hasOverlay
+                lastOverlayRatio = ratio
 
                 OverlayScanResult(hasOverlay, ratio, if (hasOverlay) jpeg else null)
             } catch (_: Exception) {

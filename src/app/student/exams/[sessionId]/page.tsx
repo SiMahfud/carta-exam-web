@@ -144,11 +144,55 @@ export default function TakeExamPage() {
     // Track last violation timestamp on client for unified debouncing across all listeners
     const lastClientViolationTime = useRef<number>(0);
 
+    const applyViolationResponse = useCallback(async (
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        data: any,
+        type: string,
+        details?: string
+    ) => {
+        if (!data || typeof data !== "object") return;
+
+        if (data.violationCount !== undefined) {
+            setViolationCount(data.violationCount);
+        }
+
+        if (data.maxViolations !== undefined) {
+            setMaxViolations(data.maxViolations);
+        }
+
+        if (data.violationLog && Array.isArray(data.violationLog)) {
+            setViolationLogs(data.violationLog);
+        } else if (!data.ignored) {
+            setViolationLogs(prev => [...prev, { id: data.violationId, type, details, timestamp: new Date().toISOString() }]);
+        }
+
+        if (!data.ignored) {
+            setLastViolationType(type);
+            setShowViolationBanner(true);
+            setTimeout(() => setShowViolationBanner(false), 5000);
+        }
+
+        if (data.shouldTerminate) {
+            setIsTerminated(true);
+            if (data.message) {
+                setTerminatedMessage(data.message);
+            }
+            if (isFullscreen) {
+                await exitFullscreen();
+            }
+            toast({
+                title: "Ujian Dihentikan",
+                description: data.message || "Batas pelanggaran tercapai. Ujian dihentikan.",
+                variant: "destructive",
+            });
+        }
+    }, [isFullscreen, exitFullscreen, toast]);
+
     // Log security violations to backend and check for termination
     const logSecurityViolation = useCallback(async (
         type: string,
         details?: string,
-        options?: { immediateTerminate?: boolean; awaySeconds?: number; evidenceUrl?: string }
+        options?: { immediateTerminate?: boolean; awaySeconds?: number; evidenceUrl?: string; violationId?: string }
     ) => {
         if (!examStarted || submitting || isTerminated || isForceCompleted) return;
 
@@ -178,52 +222,19 @@ export default function TakeExamPage() {
                     timestamp: new Date().toISOString(),
                     immediateTerminate: options?.immediateTerminate,
                     awaySeconds: options?.awaySeconds,
+                    ...(options?.violationId ? { violationId: options.violationId } : {}),
                     ...(options?.evidenceUrl ? { evidenceUrl: options.evidenceUrl } : {}),
                 }),
             });
 
             if (response.ok) {
                 const data = await response.json();
-
-                if (data.violationCount !== undefined) {
-                    setViolationCount(data.violationCount);
-                }
-
-                if (data.maxViolations !== undefined) {
-                    setMaxViolations(data.maxViolations);
-                }
-
-                if (data.violationLog && Array.isArray(data.violationLog)) {
-                    setViolationLogs(data.violationLog);
-                } else if (!data.ignored) {
-                    setViolationLogs(prev => [...prev, { type, details, timestamp: new Date().toISOString() }]);
-                }
-
-                if (!data.ignored) {
-                    setLastViolationType(type);
-                    setShowViolationBanner(true);
-                    setTimeout(() => setShowViolationBanner(false), 5000);
-                }
-
-                if (data.shouldTerminate) {
-                    setIsTerminated(true);
-                    if (data.message) {
-                        setTerminatedMessage(data.message);
-                    }
-                    if (isFullscreen) {
-                        await exitFullscreen();
-                    }
-                    toast({
-                        title: "Ujian Dihentikan",
-                        description: data.message || "Batas pelanggaran tercapai. Ujian dihentikan.",
-                        variant: "destructive",
-                    });
-                }
+                await applyViolationResponse(data, type, details);
             }
         } catch (error) {
             console.error("Failed to log violation:", error);
         }
-    }, [sessionId, studentId, isFullscreen, exitFullscreen, toast, violationSettings, examStarted, submitting, isTerminated, isForceCompleted]);
+    }, [sessionId, studentId, violationSettings, examStarted, submitting, isTerminated, isForceCompleted, applyViolationResponse]);
 
     // Kunci layar seketika dan catat pelanggaran saat keluar fullscreen tanpa jeda toleransi (0 detik)
     const triggerFullscreenLockout = useCallback((detailsMessage?: string) => {
@@ -526,28 +537,51 @@ export default function TakeExamPage() {
         const win = window as unknown as {
             CartaExambroBridge?: {
                 onExamStateChanged?: (sessionId: string, studentId: string, active: boolean) => void;
+                setScreenshotConfig?: (configJson: string) => void;
             };
-            __cartaExambroReportViolation?: (type: string, details?: string, evidenceUrl?: string) => void;
+            __cartaExambroReportViolation?: (type: string, details?: string, evidenceUrl?: string, violationId?: string) => void;
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            __cartaExambroApplyViolationResult?: (data: any, type: string, details?: string) => void;
         };
 
         try {
+            const screenshotCfg = {
+                enabled: violationSettings?.exambroScreenshotCapture?.enabled ?? true,
+                burstCount: violationSettings?.exambroScreenshotCapture?.burstCount ?? 3,
+                firstDelayMs: violationSettings?.exambroScreenshotCapture?.firstDelayMs ?? 0,
+                followUpIntervalSeconds: violationSettings?.exambroScreenshotCapture?.followUpIntervalSeconds ?? 2,
+                targetTypes: violationSettings?.exambroScreenshotCapture?.targetTypes ?? [
+                    "APP_SWITCH",
+                    "WINDOW_BLUR",
+                    "SPLIT_SCREEN",
+                    "PIP_MODE",
+                    "OVERLAY_DETECTED",
+                ],
+                cooldownSeconds: Math.max(1, Number(violationSettings?.cooldownSeconds) || 5),
+            };
+            win.CartaExambroBridge?.setScreenshotConfig?.(JSON.stringify(screenshotCfg));
             win.CartaExambroBridge?.onExamStateChanged?.(sessionId, studentId || "", isActive);
         } catch {
             // Ignore bridge errors on standard browsers
         }
 
         if (isActive) {
-            win.__cartaExambroReportViolation = (type: string, details?: string, evidenceUrl?: string) => {
-                logSecurityViolation(type, details, { evidenceUrl });
+            win.__cartaExambroReportViolation = (type: string, details?: string, evidenceUrl?: string, violationId?: string) => {
+                logSecurityViolation(type, details, { evidenceUrl, violationId });
+            };
+            win.__cartaExambroApplyViolationResult = (data, type: string, details?: string) => {
+                applyViolationResponse(data, type, details);
             };
         } else {
             delete win.__cartaExambroReportViolation;
+            delete win.__cartaExambroApplyViolationResult;
         }
 
         return () => {
             delete win.__cartaExambroReportViolation;
+            delete win.__cartaExambroApplyViolationResult;
         };
-    }, [examStarted, submitting, isTerminated, isForceCompleted, sessionId, studentId, logSecurityViolation]);
+    }, [examStarted, submitting, isTerminated, isForceCompleted, sessionId, studentId, violationSettings, logSecurityViolation, applyViolationResponse]);
 
     // Security hook (saat berada di dalam CartaExambro native, deteksi split-screen/floating/blur OS ditangani oleh Android Kotlin agar tidak double-counting)
     useExamSecurity({

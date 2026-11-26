@@ -35,6 +35,8 @@ export async function POST(
         const formData = await request.formData();
         const file = formData.get("file") as File | null;
         const bodyStudentId = formData.get("studentId") as string | null;
+        const violationIdRaw = formData.get("violationId") as string | null;
+        const violationId = violationIdRaw?.trim() ? violationIdRaw.trim().slice(0, 64) : null;
         const studentId = user.role === "student" ? user.id : (bodyStudentId || user.id);
 
         if (!file) {
@@ -60,10 +62,11 @@ export async function POST(
             );
         }
 
-        // Verify student has an active submission in this session
+        // Verify student has a submission in this session
         const activeSubmission = await db.select({
             id: submissions.id,
             status: submissions.status,
+            violationLog: submissions.violationLog,
         })
             .from(submissions)
             .where(and(
@@ -79,11 +82,39 @@ export async function POST(
             );
         }
 
-        if (activeSubmission[0].status !== "in_progress") {
-            return NextResponse.json(
-                { error: "Ujian sudah selesai atau dihentikan" },
-                { status: 409 }
-            );
+        const sub = activeSubmission[0];
+        let parsedLog: Array<Record<string, unknown>> = [];
+        try {
+            let raw = sub.violationLog as unknown;
+            if (typeof raw === "string") raw = JSON.parse(raw);
+            if (typeof raw === "string") raw = JSON.parse(raw);
+            if (Array.isArray(raw)) {
+                parsedLog = raw as Array<Record<string, unknown>>;
+            }
+        } catch {
+            parsedLog = [];
+        }
+
+        const matchedIdx = violationId
+            ? parsedLog.findIndex((item) => item && item.id === violationId)
+            : -1;
+
+        if (sub.status !== "in_progress") {
+            // Izinkan foto lanjutan menempel pada violationId yang baru saja terjadi (< 30 detik), meski baru di-terminate
+            const matchedEntry = matchedIdx >= 0 ? parsedLog[matchedIdx] : null;
+            const entryTime = matchedEntry?.timestamp ? new Date(String(matchedEntry.timestamp)).getTime() : 0;
+            const isRecentTerminatingViolation =
+                sub.status === "terminated" &&
+                matchedEntry !== null &&
+                !Number.isNaN(entryTime) &&
+                Date.now() - entryTime <= 30000;
+
+            if (!isRecentTerminatingViolation) {
+                return NextResponse.json(
+                    { error: "Ujian sudah selesai atau dihentikan" },
+                    { status: 409 }
+                );
+            }
         }
 
         const bytes = await file.arrayBuffer();
@@ -100,9 +131,31 @@ export async function POST(
         await writeFile(filepath, buffer);
 
         const evidenceUrl = `/uploads/violations/${safeSessionId}/${filename}`;
+
+        // Jika violationId cocok dengan log yang sudah tercatat, lampirkan ke evidenceUrls (maks 5 foto per kejadian)
+        if (matchedIdx >= 0) {
+            const target = parsedLog[matchedIdx];
+            const existingUrls = Array.isArray(target.evidenceUrls)
+                ? (target.evidenceUrls as string[])
+                : (typeof target.evidenceUrl === "string" ? [target.evidenceUrl] : []);
+
+            if (existingUrls.length < 5) {
+                const updatedUrls = [...existingUrls, evidenceUrl];
+                parsedLog[matchedIdx] = {
+                    ...target,
+                    evidenceUrl: typeof target.evidenceUrl === "string" ? target.evidenceUrl : evidenceUrl,
+                    evidenceUrls: updatedUrls,
+                };
+                await db.update(submissions)
+                    .set({ violationLog: parsedLog })
+                    .where(eq(submissions.id, sub.id));
+            }
+        }
+
         return NextResponse.json({
             success: true,
             evidenceUrl,
+            attachedToViolationId: matchedIdx >= 0 ? violationId : null,
             size: file.size,
         });
     } catch (error: unknown) {

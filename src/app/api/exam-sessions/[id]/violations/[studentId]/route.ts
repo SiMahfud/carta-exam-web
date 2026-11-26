@@ -4,10 +4,12 @@ import { submissions } from "@/lib/schema";
 import { eq, and } from "drizzle-orm";
 
 interface Violation {
+    id?: string;
     type: string;
     details: string;
     timestamp: string;
     evidenceUrl?: string;
+    evidenceUrls?: string[];
 }
 
 // GET /api/exam-sessions/[id]/violations/[studentId] - Get violation details
@@ -52,10 +54,12 @@ export async function GET(
         return NextResponse.json({
             violationCount: submission.violationCount || 0,
             violations: violations.map((v: Violation) => ({
+                ...(v.id ? { id: v.id } : {}),
                 type: v.type,
                 details: v.details,
                 timestamp: v.timestamp,
                 ...(v.evidenceUrl ? { evidenceUrl: v.evidenceUrl } : {}),
+                ...(Array.isArray(v.evidenceUrls) && v.evidenceUrls.length > 0 ? { evidenceUrls: v.evidenceUrls } : {}),
             })),
             status: submission.status,
         });

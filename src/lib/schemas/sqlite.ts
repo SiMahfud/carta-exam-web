@@ -170,6 +170,15 @@ export const examTemplates = sqliteTable("exam_templates", {
             requireSeb?: boolean;
             requireExambro?: boolean;
             watermarkAntiTamper?: boolean;
+            maxAwaySeconds?: number;
+            lateToleranceMinutes?: number;
+            exambroScreenshotCapture?: {
+                enabled: boolean;
+                burstCount: number;
+                firstDelayMs: number;
+                followUpIntervalSeconds: number;
+                targetTypes: string[];
+            };
         }>()
         .$defaultFn(() => ({
             detectTabSwitch: true,

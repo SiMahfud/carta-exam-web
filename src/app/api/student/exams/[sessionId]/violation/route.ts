@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import crypto from "crypto";
 import { db } from "@/lib/db";
 import { submissions, examSessions, examTemplates } from "@/lib/schema";
 import { eq, and } from "drizzle-orm";
@@ -14,7 +15,12 @@ export async function POST(
         const user = await requireAuth(["student", "admin", "teacher"]);
         const { sessionId } = await params;
         const body = await request.json();
-        const { type, details, evidenceUrl } = body;
+        const { type, details, evidenceUrl, violationId } = body;
+
+        const resolvedViolationId =
+            typeof violationId === "string" && violationId.trim().length > 0
+                ? violationId.trim().slice(0, 64)
+                : crypto.randomUUID();
 
         const safeEvidenceUrl =
             typeof evidenceUrl === "string" &&
@@ -161,10 +167,11 @@ export async function POST(
         const newLog = [
             ...currentLog,
             {
+                id: resolvedViolationId,
                 type: isAwayTimeout ? "AWAY_TIMEOUT" : type,
                 details: logDetails,
                 timestamp: new Date().toISOString(),
-                ...(safeEvidenceUrl ? { evidenceUrl: safeEvidenceUrl } : {}),
+                ...(safeEvidenceUrl ? { evidenceUrl: safeEvidenceUrl, evidenceUrls: [safeEvidenceUrl] } : {}),
             }
         ];
 
@@ -209,6 +216,7 @@ export async function POST(
         }
 
         return NextResponse.json({
+            violationId: resolvedViolationId,
             violationCount: newViolationCount,
             maxViolations,
             shouldTerminate,

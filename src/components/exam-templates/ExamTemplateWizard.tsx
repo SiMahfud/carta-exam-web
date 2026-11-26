@@ -73,6 +73,13 @@ export default function ExamTemplateWizard({ initialData, onSubmit, isEditMode =
             watermarkAntiTamper: true,
             maxAwaySeconds: 15,
             lateToleranceMinutes: 10,
+            exambroScreenshotCapture: {
+                enabled: true,
+                burstCount: 3,
+                firstDelayMs: 0,
+                followUpIntervalSeconds: 2,
+                targetTypes: ['APP_SWITCH', 'WINDOW_BLUR', 'SPLIT_SCREEN', 'PIP_MODE', 'OVERLAY_DETECTED'],
+            },
         },
         // New field defaults
         targetType: 'all',

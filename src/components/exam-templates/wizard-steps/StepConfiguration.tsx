@@ -2,8 +2,25 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Clock, Shield, Settings, AlertTriangle } from "lucide-react";
-import { ExamTemplateFormData } from "../types";
+import { Clock, Shield, Settings, AlertTriangle, Camera } from "lucide-react";
+import { ExamTemplateFormData, ExambroScreenshotSettings } from "../types";
+
+const DEFAULT_EXAMBRO_SCREENSHOT_SETTINGS: ExambroScreenshotSettings = {
+    enabled: true,
+    burstCount: 3,
+    firstDelayMs: 0,
+    followUpIntervalSeconds: 2,
+    targetTypes: ['APP_SWITCH', 'WINDOW_BLUR', 'SPLIT_SCREEN', 'PIP_MODE', 'OVERLAY_DETECTED'],
+};
+
+const MULTI_SCREENSHOT_VIOLATION_OPTIONS = [
+    { type: 'APP_SWITCH', label: 'Keluar / Pindah Aplikasi' },
+    { type: 'WINDOW_BLUR', label: 'Kehilangan Fokus / Popup Assistant' },
+    { type: 'OVERLAY_DETECTED', label: 'Layar Tertutup Overlay / Floating App' },
+    { type: 'SPLIT_SCREEN', label: 'Layar Terbelah (Split Screen)' },
+    { type: 'PIP_MODE', label: 'Picture-in-Picture (PiP)' },
+    { type: 'MICROPHONE_IN_USE', label: 'Mikrofon Dipakai Aplikasi Lain' },
+];
 
 interface StepConfigurationProps {
     formData: ExamTemplateFormData;
@@ -20,6 +37,28 @@ export function StepConfiguration({ formData, setFormData }: StepConfigurationPr
                 [key]: value
             }
         });
+    };
+
+    const screenshotConfig: ExambroScreenshotSettings = {
+        ...DEFAULT_EXAMBRO_SCREENSHOT_SETTINGS,
+        ...(formData.violationSettings.exambroScreenshotCapture || {}),
+    };
+
+    const updateScreenshotSetting = <K extends keyof ExambroScreenshotSettings>(
+        key: K,
+        value: ExambroScreenshotSettings[K]
+    ) => {
+        updateViolationSetting('exambroScreenshotCapture', {
+            ...screenshotConfig,
+            [key]: value,
+        });
+    };
+
+    const toggleMultiScreenshotType = (type: string, checked: boolean) => {
+        const nextTypes = checked
+            ? Array.from(new Set([...screenshotConfig.targetTypes, type]))
+            : screenshotConfig.targetTypes.filter((t) => t !== type);
+        updateScreenshotSetting('targetTypes', nextTypes);
     };
 
     return (
@@ -379,6 +418,132 @@ export function StepConfiguration({ formData, setFormData }: StepConfigurationPr
                                         </button>
                                     ))}
                                 </div>
+                            </div>
+
+                            {/* Exambro Screenshot Capture Settings */}
+                            <div className="p-4 border rounded-lg space-y-4">
+                                <div className="flex items-center justify-between gap-3">
+                                    <div className="space-y-0.5">
+                                        <div className="flex items-center gap-2">
+                                            <Camera className="h-4 w-4 text-primary" />
+                                            <Label className="text-base font-semibold">Bukti Screenshot CartaExambro (Android)</Label>
+                                        </div>
+                                        <p className="text-sm text-muted-foreground">
+                                            Ambil tangkapan seluruh layar saat pelanggaran terdeteksi. Untuk pelanggaran tertentu, foto lanjutan diambil otomatis selama pelanggaran masih berlangsung (dibatalkan jika siswa segera kembali).
+                                        </p>
+                                    </div>
+                                    <Switch
+                                        checked={screenshotConfig.enabled}
+                                        onCheckedChange={(checked) => updateScreenshotSetting('enabled', checked)}
+                                    />
+                                </div>
+
+                                {screenshotConfig.enabled && (
+                                    <div className="space-y-4 pt-2 border-t">
+                                        <div className="grid gap-4 md:grid-cols-3">
+                                            {/* Burst Count */}
+                                            <div className="space-y-2">
+                                                <Label className="text-xs font-semibold uppercase text-muted-foreground">
+                                                    Maksimal Foto / Kejadian
+                                                </Label>
+                                                <div className="flex gap-1.5">
+                                                    {[
+                                                        { val: 1, label: '1 Foto' },
+                                                        { val: 2, label: '2 Foto' },
+                                                        { val: 3, label: '3 Foto' },
+                                                    ].map((opt) => (
+                                                        <button
+                                                            key={opt.val}
+                                                            type="button"
+                                                            onClick={() => updateScreenshotSetting('burstCount', opt.val)}
+                                                            className={`flex-1 px-2.5 py-2 text-xs rounded-md border transition-colors ${screenshotConfig.burstCount === opt.val
+                                                                ? 'bg-primary text-primary-foreground border-primary font-medium'
+                                                                : 'hover:bg-muted'
+                                                                }`}
+                                                        >
+                                                            {opt.label}
+                                                        </button>
+                                                    ))}
+                                                </div>
+                                            </div>
+
+                                            {/* First Delay */}
+                                            <div className="space-y-2">
+                                                <Label className="text-xs font-semibold uppercase text-muted-foreground">
+                                                    Delay Foto Pertama
+                                                </Label>
+                                                <div className="flex gap-1.5">
+                                                    {[
+                                                        { val: 0, label: '0 dtk (Langsung)' },
+                                                        { val: 1000, label: '1 dtk' },
+                                                    ].map((opt) => (
+                                                        <button
+                                                            key={opt.val}
+                                                            type="button"
+                                                            onClick={() => updateScreenshotSetting('firstDelayMs', opt.val)}
+                                                            className={`flex-1 px-2.5 py-2 text-xs rounded-md border transition-colors ${screenshotConfig.firstDelayMs === opt.val
+                                                                ? 'bg-primary text-primary-foreground border-primary font-medium'
+                                                                : 'hover:bg-muted'
+                                                                }`}
+                                                        >
+                                                            {opt.label}
+                                                        </button>
+                                                    ))}
+                                                </div>
+                                            </div>
+
+                                            {/* Follow-up Interval */}
+                                            <div className="space-y-2">
+                                                <Label className="text-xs font-semibold uppercase text-muted-foreground">
+                                                    Jeda Foto Lanjutan
+                                                </Label>
+                                                <div className="flex gap-1.5">
+                                                    {[1, 2, 3].map((sec) => (
+                                                        <button
+                                                            key={sec}
+                                                            type="button"
+                                                            disabled={screenshotConfig.burstCount <= 1}
+                                                            onClick={() => updateScreenshotSetting('followUpIntervalSeconds', sec)}
+                                                            className={`flex-1 px-2.5 py-2 text-xs rounded-md border transition-colors disabled:opacity-40 ${screenshotConfig.followUpIntervalSeconds === sec
+                                                                ? 'bg-primary text-primary-foreground border-primary font-medium'
+                                                                : 'hover:bg-muted'
+                                                                }`}
+                                                        >
+                                                            {sec} dtk
+                                                        </button>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        {screenshotConfig.burstCount > 1 && (
+                                            <div className="space-y-2">
+                                                <Label className="text-xs font-semibold uppercase text-muted-foreground">
+                                                    Jenis Pelanggaran yang Menggunakan Multi-Screenshot ({screenshotConfig.burstCount} Foto Beruntun)
+                                                </Label>
+                                                <p className="text-xs text-muted-foreground">
+                                                    Pelanggaran yang tidak dicentang tetap mengambil 1 screenshot awal. Jika siswa kembali ke ujian sebelum jeda selesai (misal unblur &lt; {screenshotConfig.followUpIntervalSeconds} detik), foto lanjutan otomatis dibatalkan.
+                                                </p>
+                                                <div className="grid gap-2.5 md:grid-cols-2 pt-1">
+                                                    {MULTI_SCREENSHOT_VIOLATION_OPTIONS.map((item) => (
+                                                        <div key={item.type} className="flex items-center space-x-2">
+                                                            <Checkbox
+                                                                id={`multi-ss-${item.type}`}
+                                                                checked={screenshotConfig.targetTypes.includes(item.type)}
+                                                                onCheckedChange={(checked) =>
+                                                                    toggleMultiScreenshotType(item.type, checked === true)
+                                                                }
+                                                            />
+                                                            <Label htmlFor={`multi-ss-${item.type}`} className="text-sm cursor-pointer">
+                                                                {item.label}
+                                                            </Label>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
                             </div>
                         </>
                     )}

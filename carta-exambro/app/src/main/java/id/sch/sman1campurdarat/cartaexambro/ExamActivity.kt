@@ -33,7 +33,9 @@ import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
 import id.sch.sman1campurdarat.cartaexambro.databinding.ActivityExamBinding
+import org.json.JSONArray
 import org.json.JSONObject
+import java.util.UUID
 import java.util.concurrent.ConcurrentHashMap
 import java.util.function.Consumer
 
@@ -69,9 +71,40 @@ class ExamActivity : AppCompatActivity() {
     @Volatile
     private var isExitingIntentionally: Boolean = false
 
+    private data class ScreenshotPolicy(
+        val enabled: Boolean = true,
+        val burstCount: Int = 3,
+        val firstDelayMs: Long = 0L,
+        val followUpIntervalMs: Long = 2000L,
+        val targetTypes: Set<String> = setOf(
+            "APP_SWITCH",
+            "WINDOW_BLUR",
+            "SPLIT_SCREEN",
+            "PIP_MODE",
+            "OVERLAY_DETECTED"
+        ),
+        val cooldownMs: Long = NATIVE_COOLDOWN_MS
+    )
+
     private val lastViolationTimes = ConcurrentHashMap<String, Long>()
+    private val pendingBurstTasks = ConcurrentHashMap<String, MutableList<Runnable>>()
     private val mainHandler = Handler(Looper.getMainLooper())
     private lateinit var customUserAgent: String
+
+    @Volatile
+    private var screenshotPolicy = ScreenshotPolicy()
+
+    @Volatile
+    private var isActivityResumed: Boolean = true
+
+    @Volatile
+    private var hasCurrentWindowFocus: Boolean = true
+
+    @Volatile
+    private var isInSplitScreenMode: Boolean = false
+
+    @Volatile
+    private var isInPipMode: Boolean = false
 
     @Volatile
     private var examStartedAtMs: Long = 0L
@@ -209,25 +242,32 @@ class ExamActivity : AppCompatActivity() {
             allowContentAccess = false
         }
 
-        val bridge = ExamWebBridge { sessionId, studentId, active ->
-            mainHandler.post {
-                val wasActive = isExamSessionActive
-                activeSessionId = sessionId.takeIf { it.isNotBlank() }
-                activeStudentId = studentId
-                isExamSessionActive = active && activeSessionId != null
-                if (isExamSessionActive && !wasActive) {
-                    examStartedAtMs = System.currentTimeMillis()
-                    consecutiveOverlayHits = 0
-                }
-                updateStatusBadge()
-                if (isExamSessionActive) {
-                    tryStartLockTask()
-                    if (!ScreenCaptureService.isRunning) {
-                        showProjectionRevokedDialog()
+        val bridge = ExamWebBridge(
+            onStateChanged = { sessionId, studentId, active ->
+                mainHandler.post {
+                    val wasActive = isExamSessionActive
+                    activeSessionId = sessionId.takeIf { it.isNotBlank() }
+                    activeStudentId = studentId
+                    isExamSessionActive = active && activeSessionId != null
+                    if (isExamSessionActive && !wasActive) {
+                        examStartedAtMs = System.currentTimeMillis()
+                        consecutiveOverlayHits = 0
+                    }
+                    updateStatusBadge()
+                    if (isExamSessionActive) {
+                        tryStartLockTask()
+                        if (!ScreenCaptureService.isRunning) {
+                            showProjectionRevokedDialog()
+                        }
+                    } else {
+                        cancelAllBurstTasks()
                     }
                 }
+            },
+            onScreenshotConfigUpdated = { configJson ->
+                applyScreenshotConfig(configJson)
             }
-        }
+        )
         webView.addJavascriptInterface(bridge, "CartaExambroBridge")
 
         webView.webChromeClient = object : WebChromeClient() {
@@ -430,9 +470,26 @@ class ExamActivity : AppCompatActivity() {
         return super.dispatchTouchEvent(ev)
     }
 
+    override fun onResume() {
+        super.onResume()
+        isActivityResumed = true
+        cancelBurstForType("APP_SWITCH")
+        cancelBurstForType("WINDOW_BLUR")
+        if (isExamSessionActive && !ScreenCaptureService.isRunning && !isRequestingProjection && !isInternalDialogVisible) {
+            showProjectionRevokedDialog()
+        }
+    }
+
+    override fun onPause() {
+        isActivityResumed = false
+        super.onPause()
+    }
+
     override fun onWindowFocusChanged(hasFocus: Boolean) {
         super.onWindowFocusChanged(hasFocus)
+        hasCurrentWindowFocus = hasFocus
         if (hasFocus) {
+            cancelBurstForType("WINDOW_BLUR")
             enableImmersiveMode()
         } else if (isExamSessionActive && !isInternalDialogVisible && !isExitingIntentionally && !isFinishing) {
             triggerViolationWithScreenshot(
@@ -444,7 +501,10 @@ class ExamActivity : AppCompatActivity() {
 
     override fun onMultiWindowModeChanged(isInMultiWindowMode: Boolean, newConfig: Configuration) {
         super.onMultiWindowModeChanged(isInMultiWindowMode, newConfig)
-        if (isInMultiWindowMode && isExamSessionActive) {
+        isInSplitScreenMode = isInMultiWindowMode
+        if (!isInMultiWindowMode) {
+            cancelBurstForType("SPLIT_SCREEN")
+        } else if (isExamSessionActive) {
             triggerViolationWithScreenshot(
                 "SPLIT_SCREEN",
                 "Mode layar terbelah (Split Screen) terdeteksi di level OS"
@@ -457,7 +517,10 @@ class ExamActivity : AppCompatActivity() {
         newConfig: Configuration
     ) {
         super.onPictureInPictureModeChanged(isInPictureInPictureMode, newConfig)
-        if (isInPictureInPictureMode && isExamSessionActive) {
+        isInPipMode = isInPictureInPictureMode
+        if (!isInPictureInPictureMode) {
+            cancelBurstForType("PIP_MODE")
+        } else if (isExamSessionActive) {
             triggerViolationWithScreenshot(
                 "PIP_MODE",
                 "Mode Picture-in-Picture terdeteksi"
@@ -536,73 +599,167 @@ class ExamActivity : AppCompatActivity() {
         }
     }
 
+    private fun applyScreenshotConfig(configJson: String) {
+        try {
+            val obj = JSONObject(configJson)
+            val enabled = obj.optBoolean("enabled", true)
+            val burstCount = obj.optInt("burstCount", 3).coerceIn(1, 3)
+            val firstDelayMs = obj.optLong("firstDelayMs", 0L).coerceIn(0L, 5000L)
+            val intervalSec = obj.optInt("followUpIntervalSeconds", 2).coerceIn(1, 5)
+            val cooldownSec = obj.optInt("cooldownSeconds", 5).coerceIn(1, 60)
+
+            val typesArr: JSONArray? = obj.optJSONArray("targetTypes")
+            val targets = mutableSetOf<String>()
+            if (typesArr != null) {
+                for (i in 0 until typesArr.length()) {
+                    val t = typesArr.optString(i)
+                    if (t.isNotBlank()) targets.add(t)
+                }
+            } else {
+                targets.addAll(screenshotPolicy.targetTypes)
+            }
+
+            screenshotPolicy = ScreenshotPolicy(
+                enabled = enabled,
+                burstCount = burstCount,
+                firstDelayMs = firstDelayMs,
+                followUpIntervalMs = intervalSec * 1000L,
+                targetTypes = targets,
+                cooldownMs = cooldownSec * 1000L
+            )
+        } catch (_: Exception) {
+        }
+    }
+
+    private fun cancelBurstForType(type: String) {
+        val list = pendingBurstTasks.remove(type) ?: return
+        list.forEach { mainHandler.removeCallbacks(it) }
+    }
+
+    private fun cancelAllBurstTasks() {
+        pendingBurstTasks.values.forEach { list ->
+            list.forEach { mainHandler.removeCallbacks(it) }
+        }
+        pendingBurstTasks.clear()
+    }
+
+    private fun isViolationStillActive(type: String): Boolean {
+        if (!isExamSessionActive || isFinishing || isDestroyed || isExitingIntentionally) return false
+        return when (type) {
+            "WINDOW_BLUR" -> !hasCurrentWindowFocus || !isActivityResumed
+            "APP_SWITCH" -> !isActivityResumed
+            "SPLIT_SCREEN" -> isInSplitScreenMode
+            "PIP_MODE" -> isInPipMode
+            "MICROPHONE_IN_USE" -> {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+                    audioManager?.activeRecordingConfigurations?.isNotEmpty() == true
+                } else {
+                    false
+                }
+            }
+            "OVERLAY_DETECTED" -> {
+                val imeVisible = ViewCompat.getRootWindowInsets(binding.root)
+                    ?.isVisible(WindowInsetsCompat.Type.ime()) == true
+                ScreenCaptureService.scanFrameForOverlay(excludeBottomForIme = imeVisible)?.hasOverlay == true
+            }
+            else -> false
+        }
+    }
+
     private fun triggerViolationWithScreenshot(
         type: String,
         details: String,
-        preferDirectApi: Boolean = false,
+        @Suppress("UNUSED_PARAMETER") preferDirectApi: Boolean = false,
         preCapturedJpeg: ByteArray? = null
     ) {
         val sessionId = activeSessionId ?: return
+        val policy = screenshotPolicy
         val now = System.currentTimeMillis()
         val lastTime = lastViolationTimes[type] ?: 0L
-        if (now - lastTime < NATIVE_COOLDOWN_MS) return
+        if (now - lastTime < policy.cooldownMs) return
         lastViolationTimes[type] = now
 
-        // Ambil screenshot seluruh layar (MediaProjection) saat pelanggaran terjadi
-        val jpegBytes = preCapturedJpeg ?: ScreenCaptureService.captureScreenshotJpeg()
+        val violationId = UUID.randomUUID().toString()
+        val totalPhotos = when {
+            !policy.enabled -> 0
+            type in policy.targetTypes -> policy.burstCount
+            else -> 1
+        }
 
-        ViolationUploader.uploadEvidenceAndDispatch(
-            origin = initialOrigin,
-            sessionId = sessionId,
-            studentId = activeStudentId,
-            type = type,
-            details = details,
-            jpegBytes = jpegBytes,
-            userAgent = customUserAgent
-        ) { evidenceUrl ->
-            if (preferDirectApi) {
-                ViolationUploader.sendFallbackViolation(
-                    origin = initialOrigin,
-                    sessionId = sessionId,
-                    studentId = activeStudentId,
-                    type = type,
-                    details = details,
-                    evidenceUrl = evidenceUrl,
-                    userAgent = customUserAgent
-                )
-                return@uploadEvidenceAndDispatch
+        val dispatchInitial = Runnable {
+            val initialJpeg = when {
+                totalPhotos <= 0 -> null
+                preCapturedJpeg != null -> preCapturedJpeg
+                else -> ScreenCaptureService.captureScreenshotJpeg()
             }
 
-            mainHandler.post {
-                if (isFinishing || isDestroyed) return@post
-                val escapedType = JSONObject.quote(type)
-                val escapedDetails = JSONObject.quote(details)
-                val escapedEvidence = evidenceUrl?.let { JSONObject.quote(it) } ?: "undefined"
-
-                val js = """
-                    (function() {
-                        if (typeof window.__cartaExambroReportViolation === 'function') {
-                            window.__cartaExambroReportViolation($escapedType, $escapedDetails, $escapedEvidence);
-                            return true;
-                        }
-                        return false;
-                    })();
-                """.trimIndent()
-
-                binding.webView.evaluateJavascript(js) { result ->
-                    if (result != "true") {
-                        ViolationUploader.sendFallbackViolation(
-                            origin = initialOrigin,
-                            sessionId = sessionId,
-                            studentId = activeStudentId,
-                            type = type,
-                            details = details,
-                            evidenceUrl = evidenceUrl,
-                            userAgent = customUserAgent
-                        )
+            ViolationUploader.reportInitialViolation(
+                origin = initialOrigin,
+                sessionId = sessionId,
+                studentId = activeStudentId,
+                violationId = violationId,
+                type = type,
+                details = details,
+                jpegBytes = initialJpeg,
+                userAgent = customUserAgent
+            ) { responseJson ->
+                if (!responseJson.isNullOrBlank()) {
+                    mainHandler.post {
+                        if (isFinishing || isDestroyed) return@post
+                        val escapedType = JSONObject.quote(type)
+                        val escapedDetails = JSONObject.quote(details)
+                        val js = """
+                            (function() {
+                                if (typeof window.__cartaExambroApplyViolationResult === 'function') {
+                                    window.__cartaExambroApplyViolationResult($responseJson, $escapedType, $escapedDetails);
+                                    return true;
+                                }
+                                return false;
+                            })();
+                        """.trimIndent()
+                        binding.webView.evaluateJavascript(js, null)
                     }
                 }
             }
+        }
+
+        if (policy.firstDelayMs > 0L && preCapturedJpeg == null && totalPhotos > 0) {
+            mainHandler.postDelayed(dispatchInitial, policy.firstDelayMs)
+        } else {
+            dispatchInitial.run()
+        }
+
+        // Jadwalkan foto lanjutan (2 & 3) hanya jika tipe pelanggaran termasuk targetTypes & kondisi masih berlangsung
+        if (totalPhotos > 1) {
+            cancelBurstForType(type)
+            val scheduledList = mutableListOf<Runnable>()
+            for (step in 1 until totalPhotos) {
+                val delayMs = (if (preCapturedJpeg == null) policy.firstDelayMs else 0L) +
+                    step * policy.followUpIntervalMs
+                lateinit var task: Runnable
+                task = Runnable {
+                    if (!isViolationStillActive(type)) {
+                        // Kondisi pelanggaran sudah berhenti (misal siswa kembali fokus < 1 detik), batalkan sisa burst
+                        cancelBurstForType(type)
+                        return@Runnable
+                    }
+                    val followUpJpeg = ScreenCaptureService.captureScreenshotJpeg()
+                    if (followUpJpeg != null && followUpJpeg.isNotEmpty()) {
+                        ViolationUploader.uploadFollowUpEvidence(
+                            origin = initialOrigin,
+                            sessionId = sessionId,
+                            studentId = activeStudentId,
+                            violationId = violationId,
+                            jpegBytes = followUpJpeg,
+                            userAgent = customUserAgent
+                        )
+                    }
+                    pendingBurstTasks[type]?.remove(task)
+                }
+                scheduledList.add(task)
+                mainHandler.postDelayed(task, delayMs)
+            }
+            pendingBurstTasks[type] = scheduledList
         }
     }
 
@@ -697,6 +854,7 @@ class ExamActivity : AppCompatActivity() {
 
     override fun onDestroy() {
         ScreenCaptureService.setOnProjectionRevokedListener(null)
+        cancelAllBurstTasks()
         mainHandler.removeCallbacks(micMonitorRunnable)
         mainHandler.removeCallbacks(overlayMonitorRunnable)
         displayManager?.unregisterDisplayListener(displayListener)

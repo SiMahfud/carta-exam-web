@@ -115,4 +115,65 @@ describe("POST /api/student/exams/[sessionId]/violation-evidence", () => {
         const savedPath = path.join(process.cwd(), "public", json.evidenceUrl.replace(/^\//, ""));
         expect(fs.existsSync(savedPath)).toBe(true);
     });
+
+    it("should append follow-up evidence to matching violationId in violationLog", async () => {
+        vi.spyOn(authGuard, "requireAuth").mockResolvedValue({
+            id: "student-1",
+            role: "student",
+            name: "Siswa Test",
+        } as never);
+
+        const violationId = "viol-uuid-123";
+        vi.spyOn(db, "select").mockReturnValue({
+            from: vi.fn().mockReturnValue({
+                where: vi.fn().mockReturnValue({
+                    limit: vi.fn().mockResolvedValue([
+                        {
+                            id: "sub-1",
+                            status: "in_progress",
+                            violationLog: [
+                                {
+                                    id: violationId,
+                                    type: "APP_SWITCH",
+                                    timestamp: new Date().toISOString(),
+                                    evidenceUrl: "/uploads/violations/first.jpg",
+                                    evidenceUrls: ["/uploads/violations/first.jpg"],
+                                },
+                            ],
+                        },
+                    ]),
+                }),
+            }),
+        } as never);
+
+        const setMock = vi.fn().mockReturnValue({
+            where: vi.fn().mockResolvedValue({}),
+        });
+        vi.spyOn(db, "update").mockReturnValue({ set: setMock } as never);
+
+        const jpegBytes = new Uint8Array([0xff, 0xd8, 0xff, 0xe0, 0x00, 0x10]);
+        const formData = new FormData();
+        formData.append("file", new File([jpegBytes], "followup.jpg", { type: "image/jpeg" }));
+        formData.append("violationId", violationId);
+
+        const req = new NextRequest(`http://localhost:3000/api/student/exams/${testSessionId}/violation-evidence`, {
+            method: "POST",
+            body: formData,
+        });
+
+        const res = await POST(req, { params: Promise.resolve({ sessionId: testSessionId }) });
+        expect(res.status).toBe(200);
+        const json = await res.json();
+        expect(json.success).toBe(true);
+        expect(json.attachedToViolationId).toBe(violationId);
+        expect(setMock).toHaveBeenCalledWith({
+            violationLog: [
+                expect.objectContaining({
+                    id: violationId,
+                    evidenceUrl: "/uploads/violations/first.jpg",
+                    evidenceUrls: ["/uploads/violations/first.jpg", json.evidenceUrl],
+                }),
+            ],
+        });
+    });
 });

@@ -11,6 +11,14 @@ export interface QuestionBank {
     description?: string;
 }
 
+export interface ExambroScreenshotSettings {
+    enabled: boolean;
+    burstCount: number; // 1 | 2 | 3
+    firstDelayMs: number; // 0 | 1000
+    followUpIntervalSeconds: number; // 1 | 2 | 3
+    targetTypes: string[];
+}
+
 export interface ViolationSettings {
     detectTabSwitch: boolean;
     detectCopyPaste: boolean;
@@ -25,6 +33,7 @@ export interface ViolationSettings {
     watermarkAntiTamper?: boolean;
     maxAwaySeconds?: number; // Batas maksimal detik meninggalkan ujian sebelum di-terminate (default: 15)
     lateToleranceMinutes?: number; // Batas toleransi keterlambatan masuk ujian sejak dimulai (menit, default: 10, 0 = nonaktif)
+    exambroScreenshotCapture?: ExambroScreenshotSettings;
 }
 
 export interface ExamTemplateFormData {

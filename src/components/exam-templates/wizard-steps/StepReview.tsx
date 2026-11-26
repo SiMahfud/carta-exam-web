@@ -69,6 +69,11 @@ export function StepReview({ formData, subjects }: StepReviewProps) {
                         {formData.violationSettings.deviceBinding && <Badge variant="secondary">Kunci 1 Perangkat</Badge>}
                         {formData.violationSettings.requireSeb && <Badge variant="secondary">SEB Wajib</Badge>}
                         {formData.violationSettings.requireExambro && <Badge variant="secondary">Exambro Wajib</Badge>}
+                        {formData.enableLockdown && (formData.violationSettings.exambroScreenshotCapture?.enabled ?? true) && (
+                            <Badge variant="secondary">
+                                Screenshot Exambro: Maks {formData.violationSettings.exambroScreenshotCapture?.burstCount ?? 3} Foto
+                            </Badge>
+                        )}
                         <Badge variant="secondary">Max Pelanggaran: {formData.maxViolations}</Badge>
                     </div>
                 </div>

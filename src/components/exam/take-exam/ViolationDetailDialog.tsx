@@ -27,10 +27,12 @@ import {
 } from "lucide-react";
 
 export interface ViolationLogItem {
+    id?: string;
     type: string;
     details?: string;
     timestamp: string | Date;
     evidenceUrl?: string;
+    evidenceUrls?: string[];
 }
 
 interface ViolationDetailDialogProps {
