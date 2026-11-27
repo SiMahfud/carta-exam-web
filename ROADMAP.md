@@ -1,7 +1,7 @@
 # 🗺️ CartaExam Development Roadmap
 
 > **Status Proyek**: 🟢 Public Release Ready (Web Platform + Safe Exam Browser + CartaExambro Android)  
-> **Lisensi**: MIT License
+> **Lisensi**: AGPL-3.0
 
 ---
 
@@ -31,7 +31,7 @@
 ### Fase 4: CartaExambro Android Native & Rilis Publik
 - [x] Aplikasi Android Native (`carta-exambro/`) dengan `FLAG_SECURE`, `setHideOverlayWindows`, `MediaProjection` overlay & screenshot evidence, `startLockTask`, dan ZXing QR Scanner offline
 - [x] In-App Self-Updater dengan verifikasi SHA-256 (`/api/exambro/version` & `/api/exambro/download`)
-- [x] Mode Standalone & White-Label Publik (`exambro-config.properties`, `school_settings` dinamis, `Dockerfile` + `docker-compose.yml`, lisensi MIT)
+- [x] Mode Standalone & White-Label Publik (`exambro-config.properties`, `school_settings` dinamis, `Dockerfile` + `docker-compose.yml`, lisensi AGPL-3.0)
 - [x] Pembaruan lengkap dokumentasi teknis & panduan pengguna awam/ahli
 
 ---

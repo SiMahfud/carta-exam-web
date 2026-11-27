@@ -551,7 +551,7 @@ Look for issues tagged with:
 
 ## 📜 License
 
-By contributing to CartaExam, you agree that your contributions will be licensed under the same license as the project.
+By contributing to CartaExam, you agree that your contributions will be licensed under the **GNU Affero General Public License v3.0 (AGPL-3.0)**, the same license as the project.
 
 ---
 

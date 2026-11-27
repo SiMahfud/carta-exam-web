@@ -2,7 +2,7 @@
 
 **Platform Ujian Digital (Computer Based Test / CBT) Modern, Aman, Open-Source, dan Tahan Gangguan Jaringan untuk Sekolah di Seluruh Dunia.**
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+[![License: AGPL-3.0](https://img.shields.io/badge/License-AGPL--3.0-blue.svg)](LICENSE)
 [![Next.js 14](https://img.shields.io/badge/Next.js-14-black)](https://nextjs.org/)
 [![Android Native](https://img.shields.io/badge/Android-CartaExambro%20v1.1.0-green)](carta-exambro/README.md)
 
@@ -139,4 +139,8 @@ npm run test:e2e
 
 ## 📜 Lisensi
 
-Proyek ini dirilis dengan lisensi terbuka **[MIT License](LICENSE)** — bebas digunakan, dimodifikasi, dan di-deploy oleh sekolah, universitas, maupun lembaga pendidikan di seluruh dunia.
+Proyek ini dirilis di bawah **[GNU Affero General Public License v3.0 (AGPL-3.0)](LICENSE)**.
+
+Anda **bebas** menggunakan, memodifikasi, dan men-deploy CartaExam untuk keperluan pendidikan di sekolah, universitas, maupun lembaga mana pun di seluruh dunia — **tanpa biaya**.
+
+Jika Anda **memodifikasi dan mendistribusikan** atau **meng-hosting versi modifikasi** sebagai layanan jaringan (SaaS), Anda **wajib** menyediakan source code lengkap versi modifikasi tersebut di bawah lisensi AGPL-3.0 yang sama. Ketentuan ini memastikan CartaExam **tetap gratis dan terbuka** untuk semua orang.
