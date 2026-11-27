@@ -6,6 +6,7 @@
     <string name="btn_open_default">Masuk Ujian CartaExam</string>
     <string name="btn_scan_qr">Scan QR Code Ujian</string>
     <string name="btn_open_manual">Buka URL Manual</string>
+    <string name="btn_check_update">Cek Pembaruan Aplikasi</string>
     <string name="hint_manual_url">https://exam.sman1campurdarat.sch.id</string>
     <string name="capture_notice">Saat memulai ujian, izinkan "Entire screen / Seluruh layar" pada dialog sistem agar pengawas dapat menerima bukti tangkapan layar jika terdeteksi pelanggaran.</string>
     <string name="notif_channel_name">Keamanan Ujian CartaExambro</string>

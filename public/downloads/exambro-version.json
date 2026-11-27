@@ -1,0 +1,7 @@
+{
+  "versionCode": 2,
+  "versionName": "1.1.0",
+  "minSupportedVersionCode": 1,
+  "forceUpdate": false,
+  "changelog": "Dukungan update aplikasi langsung dari dalam CartaExambro (otomatis mengikuti alamat server online maupun LAN lokal)."
+}

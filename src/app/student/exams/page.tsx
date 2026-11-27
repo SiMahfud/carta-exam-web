@@ -385,7 +385,7 @@ export default function StudentExamsPage() {
                                                 Aplikasi Ujian Resmi (CartaExambro / SEB)
                                             </h2>
                                             <Badge variant="secondary" className="text-[11px] font-medium">
-                                                APK v1.0.0 • &lt; 1 MB
+                                                APK v1.1.0 • &lt; 2 MB
                                             </Badge>
                                         </div>
                                         <p className="text-xs sm:text-sm text-muted-foreground">
@@ -395,7 +395,7 @@ export default function StudentExamsPage() {
                                 </div>
                                 <div className="flex flex-wrap gap-2 shrink-0">
                                     <Button asChild className="bg-indigo-600 hover:bg-indigo-500 text-white font-semibold shadow-sm">
-                                        <a href="/api/exambro/download" download="CartaExambro-v1.0.0.apk">
+                                        <a href="/api/exambro/download" download="CartaExambro-v1.1.0.apk">
                                             <Download className="mr-2 h-4 w-4" />
                                             Download APK Release
                                         </a>
@@ -654,9 +654,9 @@ export default function StudentExamsPage() {
                                         <strong>Pengguna Android:</strong> Unduh &amp; buka ujian ini menggunakan aplikasi resmi <strong>CartaExambro</strong>.
                                     </p>
                                     <Button asChild size="sm" className="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-semibold">
-                                        <a href="/api/exambro/download" download="CartaExambro-v1.0.0.apk">
+                                        <a href="/api/exambro/download" download="CartaExambro-v1.1.0.apk">
                                             <Download className="mr-1.5 h-3.5 w-3.5" />
-                                            Download APK CartaExambro (v1.0.0)
+                                            Download APK CartaExambro (v1.1.0)
                                         </a>
                                     </Button>
                                 </div>
@@ -673,9 +673,9 @@ export default function StudentExamsPage() {
                                 <p>2. Buka CartaExambro, ketuk <strong>Masuk Ujian CartaExam</strong>, lalu login dengan akun PortoCarta atau NISN/NIP.</p>
                             </div>
                             <Button asChild size="sm" className="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-semibold">
-                                <a href="/api/exambro/download" download="CartaExambro-v1.0.0.apk">
+                                <a href="/api/exambro/download" download="CartaExambro-v1.1.0.apk">
                                     <Download className="mr-1.5 h-3.5 w-3.5" />
-                                    Download APK CartaExambro (v1.0.0)
+                                    Download APK CartaExambro (v1.1.0)
                                 </a>
                             </Button>
                         </div>

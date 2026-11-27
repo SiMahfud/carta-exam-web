@@ -24,7 +24,9 @@ describe("GET /api/exambro/download", () => {
         const res = await GET();
         expect(res.status).toBe(200);
         expect(res.headers.get("Content-Type")).toBe("application/vnd.android.package-archive");
-        expect(res.headers.get("Content-Disposition")).toContain("CartaExambro-v1.0.0.apk");
+        expect(res.headers.get("Content-Disposition")).toContain("CartaExambro-v1.1.0.apk");
         expect(res.headers.get("Content-Length")).toBe("1234");
+        expect(res.headers.get("X-Exambro-Version-Code")).toBe("2");
+        expect(res.headers.get("X-Exambro-Version-Name")).toBe("1.1.0");
     });
 });
