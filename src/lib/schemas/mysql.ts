@@ -189,7 +189,7 @@ export const examTemplates = mysqlTable("exam_templates", {
             cooldownSeconds: 5,
             mode: 'strict',
             deviceBinding: false,
-            requireSeb: false,
+            requireSeb: true,
             requireExambro: true,
             watermarkAntiTamper: true,
         })),
