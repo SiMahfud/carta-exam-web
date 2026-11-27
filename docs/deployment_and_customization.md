@@ -35,7 +35,7 @@ Jika server/PC sudah terpasang **Docker Desktop** (Windows/Mac) atau **Docker En
 
 ```bash
 # 1. Clone repositori
-git clone https://github.com/YOUR_ORG/CartaExam.git
+git clone https://github.com/SiMahfud/carta-exam-web.git
 cd CartaExam
 
 # 2. Salin konfigurasi environment
@@ -62,7 +62,7 @@ Cocok untuk uji coba di laptop atau jaringan Wi-Fi/LAN lokal sekolah tanpa inter
 
 ```bash
 # 1. Clone repositori
-git clone https://github.com/YOUR_ORG/CartaExam.git
+git clone https://github.com/SiMahfud/carta-exam-web.git
 cd CartaExam
 
 # 2. Instal seluruh dependensi Node.js

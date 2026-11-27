@@ -62,7 +62,7 @@
 
 ### Opsi A: Menggunakan Docker Compose (Paling Praktis)
 ```bash
-git clone https://github.com/YOUR_ORG/CartaExam.git
+git clone https://github.com/SiMahfud/carta-exam-web.git
 cd CartaExam
 cp .env.example .env
 docker compose up -d --build
@@ -74,7 +74,7 @@ Buka **`http://localhost:3333`**.
 
 ```bash
 # 1. Clone repositori & masuk ke folder proyek
-git clone https://github.com/YOUR_ORG/CartaExam.git
+git clone https://github.com/SiMahfud/carta-exam-web.git
 cd CartaExam
 
 # 2. Instal dependensi

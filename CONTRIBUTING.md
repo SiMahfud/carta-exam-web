@@ -88,11 +88,11 @@ Before contributing, ensure you have:
 
 ```bash
 # Fork the repository on GitHub, then clone your fork
-git clone https://github.com/YOUR_USERNAME/CartaExam.git
+git clone https://github.com/YOUR_USERNAME/carta-exam-web.git
 cd CartaExam
 
 # Add upstream remote
-git remote add upstream https://github.com/ORIGINAL_OWNER/CartaExam.git
+git remote add upstream https://github.com/SiMahfud/carta-exam-web.git
 ```
 
 ### 2. Install Dependencies
