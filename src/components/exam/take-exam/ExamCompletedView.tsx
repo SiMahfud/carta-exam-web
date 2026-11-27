@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { CheckCircle2, ShieldCheck, ArrowRight } from "lucide-react";
+import { SebQuitButton } from "@/components/seb/SebQuitButton";
 
 interface ExamCompletedViewProps {
     title?: string;
@@ -67,6 +68,10 @@ export function ExamCompletedView({
                     {secondsLeft > 0 && <span className="text-xs opacity-80">({secondsLeft}d)</span>}
                     <ArrowRight className="w-4 h-4" />
                 </Button>
+
+                <div className="mt-3 flex justify-center">
+                    <SebQuitButton variant="outline" size="sm" className="w-full" />
+                </div>
             </Card>
         </div>
     );

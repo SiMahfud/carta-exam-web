@@ -104,4 +104,25 @@ describe("seb-config", () => {
         expect(dict.newBrowserWindowByLinkPolicy).toBe(2);
         expect(dict.newBrowserWindowByScriptPolicy).toBe(2);
     });
+
+    it("should default quitURL and exambroExitPinHash without leaking exambroExitPinHash into SEB plist or ConfigKey", () => {
+        const config = getDefaultSebConfig("https://exam.sman1campurdarat.sch.id");
+        expect(config.quitURL).toBe("https://exam.sman1campurdarat.sch.id/seb-quit");
+        expect(config.exambroExitPinHash).toBe(hashSebQuitPassword("CARTA2026"));
+
+        const dict = buildSebDictionary(config);
+        expect(dict.quitURL).toBe("https://exam.sman1campurdarat.sch.id/seb-quit");
+        expect(dict).not.toHaveProperty("exambroExitPinHash");
+
+        const xml = generateSebPlistXml(config);
+        expect(xml).toContain("<key>quitURL</key>");
+        expect(xml).not.toContain("exambroExitPinHash");
+
+        const keyDefault = computeSebConfigKey(config);
+        const keyCustomPin = computeSebConfigKey({
+            ...config,
+            exambroExitPinHash: hashSebQuitPassword("PENGAWAS99"),
+        });
+        expect(keyCustomPin).toBe(keyDefault);
+    });
 });

@@ -2,9 +2,11 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { getCurrentUser } from "@/lib/session";
 import {
+    DEFAULT_EXAMBRO_EXIT_PIN,
     buildSebLaunchUrls,
     buildUrlFilterRules,
     computeSebConfigKey,
+    hashSebQuitPassword,
     loadSebConfig,
     saveSebConfig,
 } from "@/lib/seb-config";
@@ -19,6 +21,8 @@ const updateSebSchema = z.object({
     quitPassword: z.string().max(128).optional(),
     clearQuitPassword: z.boolean().optional(),
     quitURL: z.string().max(500).optional(),
+    exambroExitPin: z.string().min(4).max(64).optional(),
+    resetExambroExitPin: z.boolean().optional(),
     enableUrlFilter: z.boolean().default(true),
     sendBrowserExamKey: z.boolean().default(true),
     allowScreenCapture: z.boolean().default(false),
@@ -40,10 +44,13 @@ function resolveRequestOrigin(request: NextRequest): string {
 }
 
 function buildPublicPayload(config: Awaited<ReturnType<typeof loadSebConfig>>) {
-    const { hashedQuitPassword, ...rest } = config;
+    const { hashedQuitPassword, exambroExitPinHash, ...rest } = config;
+    const defaultPinHash = hashSebQuitPassword(DEFAULT_EXAMBRO_EXIT_PIN);
     return {
         ...rest,
         hasQuitPassword: Boolean(hashedQuitPassword),
+        hasCustomExambroPin: Boolean(exambroExitPinHash && exambroExitPinHash !== defaultPinHash),
+        defaultExambroPin: DEFAULT_EXAMBRO_EXIT_PIN,
         configKey: computeSebConfigKey(config),
         launchUrls: buildSebLaunchUrls(config.examUrl),
         urlFilterPreview: config.enableUrlFilter ? buildUrlFilterRules(config) : [],

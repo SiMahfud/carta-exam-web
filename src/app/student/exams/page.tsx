@@ -22,6 +22,7 @@ import {
 } from "@/components/ui/dialog";
 import { getDeviceId } from "@/lib/device";
 import { detectClientEnvironment } from "@/lib/browser-detection";
+import { SebQuitButton } from "@/components/seb/SebQuitButton";
 
 interface Exam {
     id: string;
@@ -415,12 +416,21 @@ export default function StudentExamsPage() {
             )}
 
             {(clientEnv.isExambro || clientEnv.isSeb) && (
-                <div className="flex items-center gap-2 rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-2.5 text-xs sm:text-sm text-emerald-700 dark:text-emerald-300">
-                    <ShieldCheck className="h-4 w-4 shrink-0 text-emerald-600 dark:text-emerald-400" />
-                    <span>
-                        Anda terhubung melalui aplikasi resmi{" "}
-                        <strong>{clientEnv.isSeb ? "Safe Exam Browser (SEB)" : "CartaExambro"}</strong>.
-                    </span>
+                <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-2.5 text-xs sm:text-sm text-emerald-700 dark:text-emerald-300">
+                    <div className="flex items-center gap-2">
+                        <ShieldCheck className="h-4 w-4 shrink-0 text-emerald-600 dark:text-emerald-400" />
+                        <span>
+                            Anda terhubung melalui aplikasi resmi{" "}
+                            <strong>{clientEnv.isSeb ? "Safe Exam Browser (SEB)" : "CartaExambro"}</strong>.
+                        </span>
+                    </div>
+                    {clientEnv.isSeb && (
+                        <SebQuitButton
+                            variant="outline"
+                            size="sm"
+                            className="border-emerald-500/40 bg-background/80 text-emerald-800 hover:bg-destructive hover:text-destructive-foreground dark:text-emerald-200"
+                        />
+                    )}
                 </div>
             )}
 

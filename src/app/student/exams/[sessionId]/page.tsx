@@ -64,6 +64,7 @@ export default function TakeExamPage() {
     const [durationMinutes, setDurationMinutes] = useState<number | undefined>(undefined);
     const [startTime, setStartTime] = useState<Date | null>(null);
     const [violationSettings, setViolationSettings] = useState<any>(null);
+    const [exambroExitPinHash, setExambroExitPinHash] = useState<string>("");
     const [violationLogs, setViolationLogs] = useState<ViolationLogItem[]>([]);
     const [showViolationDetailDialog, setShowViolationDetailDialog] = useState(false);
     const [maxViolations, setMaxViolations] = useState<number>(3);
@@ -366,6 +367,10 @@ export default function TakeExamPage() {
                     setViolationSettings(parsedSettings);
                 }
 
+                if (typeof data.exambroExitPinHash === 'string' && data.exambroExitPinHash.trim()) {
+                    setExambroExitPinHash(data.exambroExitPinHash.trim().toUpperCase());
+                }
+
                 setIsTerminated(false);
                 if (data.answers) {
                     const restoredAnswers = new Map<string, Answer>();
@@ -538,6 +543,7 @@ export default function TakeExamPage() {
             CartaExambroBridge?: {
                 onExamStateChanged?: (sessionId: string, studentId: string, active: boolean) => void;
                 setScreenshotConfig?: (configJson: string) => void;
+                setProctorExitPinHash?: (sha256Hex: string) => void;
             };
             __cartaExambroReportViolation?: (type: string, details?: string, evidenceUrl?: string, violationId?: string) => void;
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -560,6 +566,9 @@ export default function TakeExamPage() {
                 cooldownSeconds: Math.max(1, Number(violationSettings?.cooldownSeconds) || 5),
             };
             win.CartaExambroBridge?.setScreenshotConfig?.(JSON.stringify(screenshotCfg));
+            if (exambroExitPinHash) {
+                win.CartaExambroBridge?.setProctorExitPinHash?.(exambroExitPinHash);
+            }
             win.CartaExambroBridge?.onExamStateChanged?.(sessionId, studentId || "", isActive);
         } catch {
             // Ignore bridge errors on standard browsers
@@ -581,7 +590,7 @@ export default function TakeExamPage() {
             delete win.__cartaExambroReportViolation;
             delete win.__cartaExambroApplyViolationResult;
         };
-    }, [examStarted, submitting, isTerminated, isForceCompleted, sessionId, studentId, violationSettings, logSecurityViolation, applyViolationResponse]);
+    }, [examStarted, submitting, isTerminated, isForceCompleted, sessionId, studentId, violationSettings, exambroExitPinHash, logSecurityViolation, applyViolationResponse]);
 
     // Security hook (saat berada di dalam CartaExambro native, deteksi split-screen/floating/blur OS ditangani oleh Android Kotlin agar tidak double-counting)
     useExamSecurity({

@@ -13,6 +13,8 @@ import android.os.Build
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
+import android.text.InputType
+import android.text.method.PasswordTransformationMethod
 import android.view.MotionEvent
 import android.view.View
 import android.view.WindowManager
@@ -22,6 +24,8 @@ import android.webkit.WebResourceRequest
 import android.webkit.WebSettings
 import android.webkit.WebView
 import android.webkit.WebViewClient
+import android.widget.EditText
+import android.widget.LinearLayout
 import android.widget.Toast
 import androidx.activity.OnBackPressedCallback
 import androidx.activity.result.contract.ActivityResultContracts
@@ -35,6 +39,7 @@ import androidx.core.view.WindowInsetsControllerCompat
 import id.sch.sman1campurdarat.cartaexambro.databinding.ActivityExamBinding
 import org.json.JSONArray
 import org.json.JSONObject
+import java.security.MessageDigest
 import java.util.UUID
 import java.util.concurrent.ConcurrentHashMap
 import java.util.function.Consumer
@@ -48,6 +53,12 @@ class ExamActivity : AppCompatActivity() {
         private const val BLUR_DEFER_MS = 350L
         private const val MIC_CHECK_INTERVAL_MS = 4000L
         private const val OVERLAY_SCAN_INTERVAL_MS = 2000L
+        private const val DEFAULT_PROCTOR_EXIT_PIN = "CARTA2026"
+
+        fun sha256Hex(raw: String): String {
+            val digest = MessageDigest.getInstance("SHA-256").digest(raw.toByteArray(Charsets.UTF_8))
+            return digest.joinToString("") { "%02X".format(it) }
+        }
     }
 
     private lateinit var binding: ActivityExamBinding
@@ -66,6 +77,9 @@ class ExamActivity : AppCompatActivity() {
 
     @Volatile
     private var isExamSessionActive: Boolean = false
+
+    @Volatile
+    private var proctorExitPinHash: String = sha256Hex(DEFAULT_PROCTOR_EXIT_PIN)
 
     @Volatile
     private var isInternalDialogVisible: Boolean = false
@@ -273,6 +287,11 @@ class ExamActivity : AppCompatActivity() {
             },
             onScreenshotConfigUpdated = { configJson ->
                 applyScreenshotConfig(configJson)
+            },
+            onProctorExitPinHashUpdated = { sha256Hex ->
+                if (sha256Hex.isNotBlank()) {
+                    proctorExitPinHash = sha256Hex.uppercase()
+                }
             }
         )
         webView.addJavascriptInterface(bridge, "CartaExambroBridge")
@@ -803,31 +822,83 @@ class ExamActivity : AppCompatActivity() {
         })
     }
 
-    private fun showExitConfirmationDialog() {
+    private fun showExitConfirmationDialog(onCancelled: (() -> Unit)? = null) {
         isInternalDialogVisible = true
-        val message = if (isExamSessionActive) {
-            "Sesi ujian sedang berlangsung! Keluar dari CartaExambro sebelum mengumpulkan jawaban dapat tercatat sebagai pelanggaran."
-        } else {
-            "Apakah Anda yakin ingin keluar dari aplikasi CartaExambro?"
+        if (!isExamSessionActive) {
+            AlertDialog.Builder(this)
+                .setTitle("Keluar dari CartaExambro?")
+                .setMessage("Apakah Anda yakin ingin keluar dari aplikasi CartaExambro?")
+                .setPositiveButton("Ya, Keluar") { _, _ ->
+                    isExitingIntentionally = true
+                    isInternalDialogVisible = false
+                    stopScreenPinningAndCapture()
+                    finish()
+                }
+                .setNegativeButton("Batal") { _, _ ->
+                    isInternalDialogVisible = false
+                    enableImmersiveMode()
+                    onCancelled?.invoke()
+                }
+                .setOnCancelListener {
+                    isInternalDialogVisible = false
+                    enableImmersiveMode()
+                    onCancelled?.invoke()
+                }
+                .show()
+            return
         }
 
-        AlertDialog.Builder(this)
-            .setTitle("Keluar dari CartaExambro?")
-            .setMessage(message)
-            .setPositiveButton("Ya, Keluar") { _, _ ->
-                isExitingIntentionally = true
-                isInternalDialogVisible = false
-                stopScreenPinningAndCapture()
-                finish()
-            }
-            .setNegativeButton("Lanjutkan") { _, _ ->
+        val paddingPx = (20 * resources.displayMetrics.density).toInt()
+        val container = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(paddingPx, paddingPx / 2, paddingPx, 0)
+        }
+        val pinInput = EditText(this).apply {
+            hint = "Masukkan PIN / Password Pengawas"
+            inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_PASSWORD
+            transformationMethod = PasswordTransformationMethod.getInstance()
+            maxLines = 1
+        }
+        container.addView(pinInput)
+
+        val dialog = AlertDialog.Builder(this)
+            .setTitle("Keluar Darurat (Khusus Pengawas)")
+            .setMessage(
+                "Ujian sedang berlangsung. Siswa tidak dapat keluar sendiri.\nPanggil pengawas untuk memasukkan PIN / Password Darurat."
+            )
+            .setView(container)
+            .setCancelable(false)
+            .setPositiveButton("Verifikasi & Keluar", null)
+            .setNegativeButton("Kembali ke Ujian") { _, _ ->
                 isInternalDialogVisible = false
                 enableImmersiveMode()
+                onCancelled?.invoke()
             }
-            .setOnDismissListener {
-                isInternalDialogVisible = false
+            .create()
+
+        dialog.setOnShowListener {
+            val verifyButton = dialog.getButton(AlertDialog.BUTTON_POSITIVE)
+            verifyButton.setOnClickListener {
+                val entered = pinInput.text?.toString()?.trim().orEmpty()
+                if (entered.isEmpty()) {
+                    pinInput.error = "Masukkan PIN/Password pengawas"
+                    return@setOnClickListener
+                }
+                val expectedHash = proctorExitPinHash.ifBlank { sha256Hex(DEFAULT_PROCTOR_EXIT_PIN) }
+                if (sha256Hex(entered) == expectedHash.uppercase()) {
+                    isExitingIntentionally = true
+                    isInternalDialogVisible = false
+                    stopScreenPinningAndCapture()
+                    dialog.dismiss()
+                    finish()
+                } else {
+                    pinInput.error = "PIN / Password pengawas salah"
+                    pinInput.text?.clear()
+                    showShortToast("PIN pengawas tidak cocok.")
+                }
             }
-            .show()
+        }
+        dialog.show()
     }
 
     private fun tryStartLockTask() {
@@ -868,14 +939,23 @@ class ExamActivity : AppCompatActivity() {
             .setCancelable(false)
             .setPositiveButton("Aktifkan Kembali") { _, _ ->
                 isRequestingProjection = true
+                isInternalDialogVisible = false
                 val pm = getSystemService(Context.MEDIA_PROJECTION_SERVICE) as MediaProjectionManager
                 reRequestProjectionLauncher.launch(pm.createScreenCaptureIntent())
             }
             .setNegativeButton("Keluar Ujian") { _, _ ->
-                isExitingIntentionally = true
                 isInternalDialogVisible = false
-                stopScreenPinningAndCapture()
-                finish()
+                if (isExamSessionActive) {
+                    showExitConfirmationDialog {
+                        if (isExamSessionActive && !ScreenCaptureService.isRunning && !isFinishing && !isDestroyed) {
+                            showProjectionRevokedDialog()
+                        }
+                    }
+                } else {
+                    isExitingIntentionally = true
+                    stopScreenPinningAndCapture()
+                    finish()
+                }
             }
             .show()
     }

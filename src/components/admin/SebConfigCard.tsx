@@ -30,6 +30,8 @@ interface SebAdminState {
     allowQuit: boolean;
     hasQuitPassword: boolean;
     quitURL: string;
+    hasCustomExambroPin?: boolean;
+    defaultExambroPin?: string;
     enableUrlFilter: boolean;
     sendBrowserExamKey: boolean;
     allowScreenCapture: boolean;
@@ -51,6 +53,7 @@ export function SebConfigCard() {
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
     const [quitPassword, setQuitPassword] = useState("");
+    const [exambroExitPin, setExambroExitPin] = useState("");
     const [copiedField, setCopiedField] = useState<string | null>(null);
     const [qrVersion, setQrVersion] = useState<number>(() => Date.now());
     const [state, setState] = useState<SebAdminState>({
@@ -61,7 +64,9 @@ export function SebConfigCard() {
         portoAllowedMode: "full_domain",
         allowQuit: true,
         hasQuitPassword: false,
-        quitURL: "",
+        quitURL: "https://exam.sman1campurdarat.sch.id/seb-quit",
+        hasCustomExambroPin: false,
+        defaultExambroPin: "CARTA2026",
         enableUrlFilter: true,
         sendBrowserExamKey: true,
         allowScreenCapture: false,
@@ -97,7 +102,7 @@ export function SebConfigCard() {
         loadConfig();
     }, [loadConfig]);
 
-    const saveConfig = async (override?: { clearQuitPassword?: boolean }) => {
+    const saveConfig = async (override?: { clearQuitPassword?: boolean; resetExambroExitPin?: boolean }) => {
         setSaving(true);
         try {
             const payload = {
@@ -110,6 +115,8 @@ export function SebConfigCard() {
                 quitPassword: quitPassword.trim() || undefined,
                 clearQuitPassword: override?.clearQuitPassword || false,
                 quitURL: state.quitURL,
+                exambroExitPin: exambroExitPin.trim() || undefined,
+                resetExambroExitPin: override?.resetExambroExitPin || false,
                 enableUrlFilter: state.enableUrlFilter,
                 sendBrowserExamKey: state.sendBrowserExamKey,
                 allowScreenCapture: state.allowScreenCapture,
@@ -129,6 +136,7 @@ export function SebConfigCard() {
             if (res.ok && data.success && data.data) {
                 setState(data.data);
                 setQuitPassword("");
+                setExambroExitPin("");
                 setQrVersion(Date.now());
                 toast({
                     title: "Konfigurasi SEB Disimpan",
@@ -282,6 +290,66 @@ export function SebConfigCard() {
                                             </Button>
                                         )}
                                     </div>
+                                    {!state.hasQuitPassword && (
+                                        <p className="text-[11px] text-amber-600 dark:text-amber-400">
+                                            Disarankan mengisi Quit Password SEB agar siswa tidak bisa keluar paksa (Ctrl+Q) saat ujian berlangsung, sedangkan keluar mandiri dari dashboard tetap berfungsi via Quit URL.
+                                        </p>
+                                    )}
+                                </div>
+                            </div>
+
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                <div className="space-y-1.5">
+                                    <Label htmlFor="seb-quit-url" className="text-xs font-medium">
+                                        Quit URL SEB (Keluar Mandiri Sebelum/Sesudah Ujian)
+                                    </Label>
+                                    <Input
+                                        id="seb-quit-url"
+                                        value={state.quitURL}
+                                        onChange={(e) => setState({ ...state, quitURL: e.target.value })}
+                                        placeholder="https://exam.sman1campurdarat.sch.id/seb-quit"
+                                        className="text-sm font-mono"
+                                    />
+                                    <p className="text-[11px] text-muted-foreground">
+                                        Halaman ini memicu tombol &quot;Keluar dari SEB&quot; di login/dashboard menutup SEB tanpa password.
+                                    </p>
+                                </div>
+
+                                <div className="space-y-1.5">
+                                    <div className="flex items-center justify-between gap-2">
+                                        <Label htmlFor="exambro-exit-pin" className="text-xs font-medium flex items-center gap-1.5">
+                                            <KeyRound className="h-3.5 w-3.5 text-indigo-500" />
+                                            PIN / Password Keluar Darurat CartaExambro
+                                        </Label>
+                                        <span className="text-[11px] font-medium text-emerald-600 dark:text-emerald-400">
+                                            {state.hasCustomExambroPin ? "Kustom Aktif" : `Default (${state.defaultExambroPin || "CARTA2026"})`}
+                                        </span>
+                                    </div>
+                                    <div className="flex gap-2">
+                                        <Input
+                                            id="exambro-exit-pin"
+                                            type="password"
+                                            value={exambroExitPin}
+                                            onChange={(e) => setExambroExitPin(e.target.value)}
+                                            placeholder="Isi PIN/password baru pengawas (min. 4 karakter)"
+                                            className="text-sm"
+                                        />
+                                        {state.hasCustomExambroPin && (
+                                            <Button
+                                                type="button"
+                                                variant="outline"
+                                                size="sm"
+                                                title="Reset ke PIN default CARTA2026"
+                                                onClick={() => saveConfig({ resetExambroExitPin: true })}
+                                                disabled={saving}
+                                            >
+                                                Reset
+                                            </Button>
+                                        )}
+                                    </div>
+                                    <p className="text-[11px] text-muted-foreground">
+                                        Diminta saat tombol Keluar/Back ditekan di CartaExambro ketika ujian sedang aktif.
+                                    </p>
                                 </div>
                             </div>
 

@@ -3,6 +3,8 @@ import fs from "fs/promises";
 import path from "path";
 import { z } from "zod";
 
+export const DEFAULT_EXAMBRO_EXIT_PIN = "CARTA2026";
+
 export const sebConfigSchema = z.object({
     examUrl: z.string().url("URL CartaExam harus valid (misal https://exam.sman1campurdarat.sch.id)"),
     portoCartaUrl: z.string().url("URL PortoCarta harus valid (misal https://porto.sman1campurdarat.sch.id)"),
@@ -19,6 +21,7 @@ export const sebConfigSchema = z.object({
     showTaskBar: z.boolean().default(true),
     showReloadButton: z.boolean().default(true),
     allowPopupsForSso: z.boolean().default(true),
+    exambroExitPinHash: z.string().default(""),
 });
 
 export type SebConfigSettings = z.infer<typeof sebConfigSchema>;
@@ -55,7 +58,7 @@ export function getDefaultSebConfig(originUrl?: string): SebConfigSettings {
         portoAllowedMode: "full_domain",
         allowQuit: true,
         hashedQuitPassword: "",
-        quitURL: "",
+        quitURL: `${defaultExamUrl}/seb-quit`,
         enableUrlFilter: true,
         sendBrowserExamKey: true,
         allowScreenCapture: false,
@@ -63,6 +66,7 @@ export function getDefaultSebConfig(originUrl?: string): SebConfigSettings {
         showTaskBar: true,
         showReloadButton: true,
         allowPopupsForSso: true,
+        exambroExitPinHash: hashSebQuitPassword(DEFAULT_EXAMBRO_EXIT_PIN),
     };
 }
 
@@ -88,6 +92,7 @@ export async function loadSebConfig(fallbackOrigin?: string): Promise<SebConfigS
                 startPath: validated.data.startPath.startsWith("/")
                     ? validated.data.startPath
                     : `/${validated.data.startPath}`,
+                exambroExitPinHash: validated.data.exambroExitPinHash || defaults.exambroExitPinHash,
             };
         }
     } catch {
@@ -97,7 +102,12 @@ export async function loadSebConfig(fallbackOrigin?: string): Promise<SebConfigS
 }
 
 export async function saveSebConfig(
-    input: Partial<SebConfigSettings> & { quitPassword?: string; clearQuitPassword?: boolean },
+    input: Partial<SebConfigSettings> & {
+        quitPassword?: string;
+        clearQuitPassword?: boolean;
+        exambroExitPin?: string;
+        resetExambroExitPin?: boolean;
+    },
     fallbackOrigin?: string
 ): Promise<SebConfigSettings> {
     const current = await loadSebConfig(fallbackOrigin);
@@ -111,10 +121,21 @@ export async function saveSebConfig(
         nextHashedQuitPassword = input.hashedQuitPassword;
     }
 
+    let nextExambroExitPinHash =
+        current.exambroExitPinHash || hashSebQuitPassword(DEFAULT_EXAMBRO_EXIT_PIN);
+    if (input.resetExambroExitPin) {
+        nextExambroExitPinHash = hashSebQuitPassword(DEFAULT_EXAMBRO_EXIT_PIN);
+    } else if (typeof input.exambroExitPin === "string" && input.exambroExitPin.trim().length > 0) {
+        nextExambroExitPinHash = hashSebQuitPassword(input.exambroExitPin.trim());
+    } else if (typeof input.exambroExitPinHash === "string" && input.exambroExitPinHash.trim().length > 0) {
+        nextExambroExitPinHash = input.exambroExitPinHash.trim();
+    }
+
     const merged = sebConfigSchema.parse({
         ...current,
         ...input,
         hashedQuitPassword: nextHashedQuitPassword,
+        exambroExitPinHash: nextExambroExitPinHash,
         examUrl: normalizeBaseUrl(input.examUrl ?? current.examUrl, current.examUrl),
         portoCartaUrl: normalizeBaseUrl(input.portoCartaUrl ?? current.portoCartaUrl, current.portoCartaUrl),
         startPath: (input.startPath ?? current.startPath).startsWith("/")

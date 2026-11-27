@@ -9,6 +9,7 @@ import { login } from "@/actions/auth"
 import { ShieldCheck, Lock, User, Loader2, AlertCircle, Eye, EyeOff, Rocket, ChevronDown, ChevronUp, Sparkles, MonitorSmartphone } from "lucide-react"
 import { getPortoCartaUrl } from "@/lib/porto-url"
 import { detectClientEnvironment } from "@/lib/browser-detection"
+import { SebQuitButton } from "@/components/seb/SebQuitButton"
 import { SebAccessPanel } from "@/components/seb/SebAccessPanel"
 
 export default function LoginPage() {
@@ -210,6 +211,15 @@ export default function LoginPage() {
                 </CardContent>
 
                 <CardFooter className="flex flex-col gap-2 pb-6 pt-0 text-center border-t border-slate-800/60 bg-slate-950/40">
+                    {isSebClient && (
+                        <div className="pt-3 w-full flex justify-center">
+                            <SebQuitButton
+                                variant="outline"
+                                size="sm"
+                                className="border-slate-700 bg-slate-900/70 text-slate-200 hover:bg-slate-800 hover:text-white"
+                            />
+                        </div>
+                    )}
                     <p className="text-[11px] text-slate-500 pt-3">
                         PortoCarta Education Ecosystem &copy; 2026 SMAN 1 Campurdarat
                     </p>

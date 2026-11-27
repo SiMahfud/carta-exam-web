@@ -6,6 +6,7 @@ import { requireAuth } from "@/lib/auth-guard";
 import { seededShuffle } from "@/lib/randomization";
 import { validateBrowserRequirements } from "@/lib/browser-detection";
 import { validateDeviceId } from "@/lib/device";
+import { loadSebConfig } from "@/lib/seb-config";
 
 // GET /api/student/exams/[sessionId]/questions - Get questions for submission
 export async function GET(
@@ -346,6 +347,8 @@ export async function GET(
             violationLog = [];
         }
 
+        const sebConfig = await loadSebConfig();
+
         return NextResponse.json({
             questions: orderedQuestions,
             endTime: effectiveEndTime,
@@ -359,6 +362,7 @@ export async function GET(
             maxViolations: template.maxViolations || 3,
             violationSettings: violationSettings,
             enableLockdown: template.enableLockdown,
+            exambroExitPinHash: sebConfig.exambroExitPinHash,
         });
     } catch (error: any) {
         const status = error.status || 500;
