@@ -1,3 +1,10 @@
+---
+layout: default
+title: Panduan Pengawas & Siswa
+nav_order: 4
+description: "Panduan untuk pengawas ruang, tata usaha, dan siswa peserta ujian."
+---
+
 # 🛡️ Panduan Pengawas Ruang, Tata Usaha & Siswa — CartaExam
 
 Panduan praktis operasional harian selama pelaksanaan ujian untuk **Pengawas Ruang**, **Petugas Tata Usaha (Administrasi)**, dan **Siswa Peserta Ujian**.

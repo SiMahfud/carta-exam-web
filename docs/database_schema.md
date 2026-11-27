@@ -1,3 +1,10 @@
+---
+layout: default
+title: Skema Database
+nav_order: 6
+description: "Diagram ERD dan spesifikasi 20 tabel database CartaExam."
+---
+
 # 🗄️ Dokumentasi Skema Database CartaExam
 
 Dokumentasi lengkap arsitektur basis data **CartaExam**. Basis data dirancang secara agnostik menggunakan **Drizzle ORM** yang mendukung 3 provider database utama:

@@ -1,0 +1,38 @@
+title: CartaExam Docs
+description: Platform Ujian Digital (CBT) open-source, aman, dan tahan gangguan jaringan untuk sekolah di seluruh dunia.
+remote_theme: just-the-docs/just-the-docs@v0.10.1
+
+url: https://simahfud.github.io
+baseurl: /carta-exam-web
+
+color_scheme: dark
+
+aux_links:
+  "GitHub":
+    - "https://github.com/SiMahfud/carta-exam-web"
+  "Release v1.1.0":
+    - "https://github.com/SiMahfud/carta-exam-web/releases/tag/v1.1.0"
+
+aux_links_new_tab: true
+
+nav_enabled: true
+heading_anchors: true
+
+footer_content: >-
+  CartaExam &copy; 2026 CartaExam Contributors — Dirilis di bawah lisensi
+  <a href="https://github.com/SiMahfud/carta-exam-web/blob/master/LICENSE">AGPL-3.0</a>.
+
+back_to_top: true
+back_to_top_text: "Kembali ke atas"
+
+search_enabled: true
+search:
+  heading_level: 2
+  previews: 3
+
+plugins:
+  - jekyll-seo-tag
+
+exclude:
+  - node_modules/
+  - vendor/

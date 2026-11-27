@@ -1,3 +1,10 @@
+---
+layout: default
+title: Dokumentasi API
+nav_order: 5
+description: "Referensi lengkap seluruh endpoint REST & SSE backend CartaExam."
+---
+
 # 📖 Dokumentasi API CartaExam
 
 Referensi resmi seluruh endpoint backend **CartaExam** (Next.js App Router). Seluruh endpoint berada di bawah `/api` (kecuali callback SSO `/auth/sso` dan file statis dinamis `/uploads/[...path]`), dilindungi autentikasi berbasis cookie sesi **HMAC-SHA256** (`user_session`) dan otorisasi peran (`admin`, `teacher`, `student`).

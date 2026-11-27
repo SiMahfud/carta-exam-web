@@ -1,3 +1,10 @@
+---
+layout: default
+title: Panduan Guru & Operator
+nav_order: 3
+description: "Panduan lengkap untuk guru dan operator ujian menggunakan CartaExam."
+---
+
 # 📚 Panduan Lengkap Guru & Operator — CartaExam
 
 Selamat datang di Panduan Pengguna **CartaExam**. Panduan ini disusun langkah demi langkah untuk membantu Guru, Operator Sekolah, dan Administrator dalam mengelola kelas, membuat soal (manual, Word DOCX, maupun AI), menyelenggarakan ujian aman, hingga menilai dan mengekspor hasil.

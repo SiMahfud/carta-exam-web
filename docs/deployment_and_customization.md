@@ -1,3 +1,10 @@
+---
+layout: default
+title: Panduan Instalasi & Deployment
+nav_order: 2
+description: "Panduan lengkap instalasi, deployment, dan kustomisasi CartaExam dari pemula hingga produksi."
+---
+
 # 🚀 Panduan Instalasi, Deployment & Kustomisasi (Self-Hosting)
 
 Panduan ini dirancang untuk **semua kalangan**: mulai dari operator sekolah/guru yang baru pertama kali menjalankan server (*Mode Cepat*), hingga administrator sistem/DevOps yang ingin men-deploy CartaExam untuk ribuan siswa secara online (*Mode Produksi*).
