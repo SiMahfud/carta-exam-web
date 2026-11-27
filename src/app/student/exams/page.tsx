@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Calendar, Clock, FileText, Play, XCircle, Timer, Eye } from "lucide-react";
+import { Calendar, Clock, FileText, Play, XCircle, Timer, Eye, Download, Smartphone, ShieldCheck, ExternalLink } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 import { id as idLocale } from "date-fns/locale";
@@ -21,6 +21,7 @@ import {
     DialogTitle,
 } from "@/components/ui/dialog";
 import { getDeviceId } from "@/lib/device";
+import { detectClientEnvironment } from "@/lib/browser-detection";
 
 interface Exam {
     id: string;
@@ -69,6 +70,23 @@ export default function StudentExamsPage() {
         message: string;
         supportsSeb: boolean;
     }>({ open: false, message: "", supportsSeb: false });
+
+    const [clientEnv, setClientEnv] = useState({
+        isSeb: false,
+        isExambro: false,
+        isIos: false,
+        isAndroid: false,
+    });
+    const [sebLaunchUrl, setSebLaunchUrl] = useState("sebs://exam.sman1campurdarat.sch.id/api/seb/config");
+
+    useEffect(() => {
+        setClientEnv(detectClientEnvironment());
+        if (typeof window !== "undefined") {
+            const { protocol, host } = window.location;
+            const scheme = protocol === "https:" ? "sebs" : "seb";
+            setSebLaunchUrl(`${scheme}://${host}/api/seb/config`);
+        }
+    }, []);
 
     const fetchStudentProfile = useCallback(async () => {
         setProfileLoading(true);
@@ -313,6 +331,99 @@ export default function StudentExamsPage() {
                 activeExamsCount={activeCount}
             />
 
+            {/* Panduan & Unduhan Aplikasi Ujian (Android CartaExambro / iOS SEB) */}
+            {!clientEnv.isExambro && !clientEnv.isSeb && (
+                <>
+                    {clientEnv.isIos ? (
+                        <Card className="border-indigo-500/30 bg-indigo-500/5 rounded-2xl">
+                            <CardContent className="p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                                <div className="flex items-start gap-3">
+                                    <div className="p-2.5 rounded-xl bg-indigo-500/15 text-indigo-600 dark:text-indigo-400 shrink-0">
+                                        <Smartphone className="h-5 w-5" />
+                                    </div>
+                                    <div className="space-y-1">
+                                        <div className="flex flex-wrap items-center gap-2">
+                                            <h2 className="text-sm sm:text-base font-bold text-foreground">
+                                                Safe Exam Browser (iPhone / iPad)
+                                            </h2>
+                                            <Badge variant="secondary" className="text-[11px] font-medium">
+                                                iOS / iPadOS
+                                            </Badge>
+                                        </div>
+                                        <p className="text-xs sm:text-sm text-muted-foreground">
+                                            Pasang aplikasi <strong>SafeExamBrowser</strong> dari App Store, lalu ketuk <strong>Buka di SEB</strong> atau unduh file konfigurasi <code>cartaexam.seb</code>.
+                                        </p>
+                                    </div>
+                                </div>
+                                <div className="flex flex-wrap sm:flex-nowrap gap-2 shrink-0">
+                                    <Button asChild className="bg-indigo-600 hover:bg-indigo-500 text-white font-semibold shadow-sm">
+                                        <a href={sebLaunchUrl}>
+                                            <ExternalLink className="mr-2 h-4 w-4" />
+                                            Buka di SEB
+                                        </a>
+                                    </Button>
+                                    <Button asChild variant="outline" className="font-semibold">
+                                        <a href="/api/seb/config" download="cartaexam.seb">
+                                            <Download className="mr-2 h-4 w-4" />
+                                            Unduh File .seb
+                                        </a>
+                                    </Button>
+                                </div>
+                            </CardContent>
+                        </Card>
+                    ) : (
+                        <Card className="border-indigo-500/30 bg-indigo-500/5 rounded-2xl">
+                            <CardContent className="p-4 sm:p-5 flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+                                <div className="flex items-start gap-3">
+                                    <div className="p-2.5 rounded-xl bg-indigo-500/15 text-indigo-600 dark:text-indigo-400 shrink-0">
+                                        <Smartphone className="h-5 w-5" />
+                                    </div>
+                                    <div className="space-y-1">
+                                        <div className="flex flex-wrap items-center gap-2">
+                                            <h2 className="text-sm sm:text-base font-bold text-foreground">
+                                                Aplikasi Ujian Resmi (CartaExambro / SEB)
+                                            </h2>
+                                            <Badge variant="secondary" className="text-[11px] font-medium">
+                                                APK v1.0.0 • &lt; 1 MB
+                                            </Badge>
+                                        </div>
+                                        <p className="text-xs sm:text-sm text-muted-foreground">
+                                            Gunakan <strong>CartaExambro</strong> untuk perangkat Android, atau file konfigurasi <code>.seb</code> untuk Safe Exam Browser (iOS/PC/Mac).
+                                        </p>
+                                    </div>
+                                </div>
+                                <div className="flex flex-wrap gap-2 shrink-0">
+                                    <Button asChild className="bg-indigo-600 hover:bg-indigo-500 text-white font-semibold shadow-sm">
+                                        <a href="/api/exambro/download" download="CartaExambro-v1.0.0.apk">
+                                            <Download className="mr-2 h-4 w-4" />
+                                            Download APK Release
+                                        </a>
+                                    </Button>
+                                    {!clientEnv.isAndroid && (
+                                        <Button asChild variant="outline" className="font-semibold">
+                                            <a href="/api/seb/config" download="cartaexam.seb">
+                                                <Download className="mr-2 h-4 w-4" />
+                                                Unduh File .seb (iOS/PC)
+                                            </a>
+                                        </Button>
+                                    )}
+                                </div>
+                            </CardContent>
+                        </Card>
+                    )}
+                </>
+            )}
+
+            {(clientEnv.isExambro || clientEnv.isSeb) && (
+                <div className="flex items-center gap-2 rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-2.5 text-xs sm:text-sm text-emerald-700 dark:text-emerald-300">
+                    <ShieldCheck className="h-4 w-4 shrink-0 text-emerald-600 dark:text-emerald-400" />
+                    <span>
+                        Anda terhubung melalui aplikasi resmi{" "}
+                        <strong>{clientEnv.isSeb ? "Safe Exam Browser (SEB)" : "CartaExambro"}</strong>.
+                    </span>
+                </div>
+            )}
+
             {/* Header & Filter Controls */}
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 pt-2">
                 <div>
@@ -528,8 +639,16 @@ export default function StudentExamsPage() {
                         <div className="space-y-3">
                             <SebAccessPanel variant="dialog" message={browserBlockDialog.message} />
                             {browserBlockDialog.message.includes("Exambro") && (
-                                <div className="rounded-lg border border-indigo-500/30 bg-indigo-500/10 p-3 text-xs text-indigo-900 dark:text-indigo-200">
-                                    <strong>Pengguna Android:</strong> Silakan buka ujian ini menggunakan aplikasi resmi <strong>CartaExambro</strong> di perangkat Android Anda.
+                                <div className="rounded-lg border border-indigo-500/30 bg-indigo-500/10 p-3 text-xs text-indigo-900 dark:text-indigo-200 space-y-2.5">
+                                    <p>
+                                        <strong>Pengguna Android:</strong> Unduh &amp; buka ujian ini menggunakan aplikasi resmi <strong>CartaExambro</strong>.
+                                    </p>
+                                    <Button asChild size="sm" className="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-semibold">
+                                        <a href="/api/exambro/download" download="CartaExambro-v1.0.0.apk">
+                                            <Download className="mr-1.5 h-3.5 w-3.5" />
+                                            Download APK CartaExambro (v1.0.0)
+                                        </a>
+                                    </Button>
                                 </div>
                             )}
                         </div>
@@ -538,11 +657,17 @@ export default function StudentExamsPage() {
                             <div className="rounded-lg border border-amber-500/40 bg-amber-500/10 p-3 text-sm text-amber-800 dark:text-amber-200">
                                 {browserBlockDialog.message}
                             </div>
-                            <div className="rounded-lg border bg-muted/40 p-3 text-xs text-muted-foreground space-y-1">
+                            <div className="rounded-lg border bg-muted/40 p-3 text-xs text-muted-foreground space-y-1.5">
                                 <p className="font-semibold text-foreground">Petunjuk Pengguna Android:</p>
-                                <p>1. Buka aplikasi <strong>CartaExambro</strong> di HP Android Anda.</p>
-                                <p>2. Ketuk <strong>Masuk Ujian CartaExam</strong> lalu login menggunakan akun PortoCarta atau NISN/NIP.</p>
+                                <p>1. Unduh dan instal aplikasi <strong>CartaExambro</strong> di HP Android Anda.</p>
+                                <p>2. Buka CartaExambro, ketuk <strong>Masuk Ujian CartaExam</strong>, lalu login dengan akun PortoCarta atau NISN/NIP.</p>
                             </div>
+                            <Button asChild size="sm" className="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-semibold">
+                                <a href="/api/exambro/download" download="CartaExambro-v1.0.0.apk">
+                                    <Download className="mr-1.5 h-3.5 w-3.5" />
+                                    Download APK CartaExambro (v1.0.0)
+                                </a>
+                            </Button>
                         </div>
                     )}
                 </DialogContent>

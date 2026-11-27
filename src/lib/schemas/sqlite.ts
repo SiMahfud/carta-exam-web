@@ -190,7 +190,7 @@ export const examTemplates = sqliteTable("exam_templates", {
             mode: 'strict',
             deviceBinding: false,
             requireSeb: false,
-            requireExambro: false,
+            requireExambro: true,
             watermarkAntiTamper: true,
         })),
     allowReview: integer("allow_review", { mode: "boolean" }).default(false),

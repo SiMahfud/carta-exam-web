@@ -190,7 +190,7 @@ export const examTemplates = pgTable("exam_templates", {
             mode: 'strict',
             deviceBinding: false,
             requireSeb: false,
-            requireExambro: false,
+            requireExambro: true,
             watermarkAntiTamper: true,
         })),
     allowReview: boolean("allow_review").default(false),

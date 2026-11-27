@@ -69,7 +69,7 @@ export default function ExamTemplateWizard({ initialData, onSubmit, isEditMode =
             mode: 'strict' as const,
             deviceBinding: false,
             requireSeb: false,
-            requireExambro: false,
+            requireExambro: true,
             watermarkAntiTamper: true,
             maxAwaySeconds: 15,
             lateToleranceMinutes: 10,

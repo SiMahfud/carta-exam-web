@@ -64,6 +64,7 @@ export default function EditExamTemplatePage({ params }: { params: { id: string 
                         detectDevTools: true,
                         cooldownSeconds: 5,
                         mode: 'strict' as const,
+                        requireExambro: true,
                     }),
                     // New fields
                     targetType: data.targetType || 'all',
