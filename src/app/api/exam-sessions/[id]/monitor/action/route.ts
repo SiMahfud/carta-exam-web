@@ -6,6 +6,7 @@ import { requireAuth } from "@/lib/auth-guard";
 import { ActivityLogger } from "@/lib/activity-logger";
 import { publishProctorActionEvent, publishStudentSubmitEvent, publishViolationEvent } from "@/lib/proctoring-events";
 import { safeJsonParse } from "@/lib/json-utils";
+import { extractEvidenceUrlsFromLog, deleteEvidenceFiles } from "@/lib/violation-evidence";
 
 export async function POST(
     req: NextRequest,
@@ -99,9 +100,12 @@ export async function POST(
         const sub = studentSubmission[0];
 
         if (action === "reset_violations") {
+            const evidenceUrls = extractEvidenceUrlsFromLog(sub.violationLog);
+            await deleteEvidenceFiles(evidenceUrls);
+
             await (db as any)
                 .update(submissions)
-                .set({ violationCount: 0 })
+                .set({ violationCount: 0, violationLog: [] })
                 .where(eq(submissions.id, sub.id));
 
             await ActivityLogger.examSession.updated(
@@ -111,14 +115,14 @@ export async function POST(
             );
 
             try {
-                publishProctorActionEvent(params.id, user.id, "reset_violations", studentId, "Jumlah pelanggaran direset ke 0");
+                publishProctorActionEvent(params.id, user.id, "reset_violations", studentId, "Jumlah & riwayat pelanggaran direset ke 0");
             } catch (e) {
                 console.error("Error publishing proctor action event:", e);
             }
 
             return NextResponse.json({
                 success: true,
-                message: "Jumlah pelanggaran berhasil direset ke 0.",
+                message: "Jumlah pelanggaran, riwayat, dan bukti screenshot berhasil direset.",
             });
         }
 
@@ -296,6 +300,9 @@ export async function POST(
         }
 
         if (action === "retake") {
+            const evidenceUrls = extractEvidenceUrlsFromLog(sub.violationLog);
+            await deleteEvidenceFiles(evidenceUrls);
+
             await (db as any)
                 .delete(submissions)
                 .where(

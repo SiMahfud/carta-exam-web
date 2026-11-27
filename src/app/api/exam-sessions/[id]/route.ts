@@ -6,6 +6,7 @@ import { fromDateTimeLocalString } from "@/lib/date-utils";
 import { ActivityLogger } from "@/lib/activity-logger";
 import { requireAuth } from "@/lib/auth-guard";
 import { safeJsonParse } from "@/lib/json-utils";
+import { deleteSessionEvidenceFolder } from "@/lib/violation-evidence";
 
 // GET /api/exam-sessions/[id] - Get session details
 export async function GET(
@@ -179,6 +180,9 @@ export async function DELETE(
         // 4. Finally delete the session
         await db.delete(examSessions)
             .where(eq(examSessions.id, params.id));
+
+        // 5. Clean up violation screenshot evidence directory for this session
+        await deleteSessionEvidenceFolder(params.id);
 
         // Log activity
         await ActivityLogger.examSession.deleted(

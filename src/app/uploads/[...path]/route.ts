@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import fs from "fs";
 import path from "path";
+import { requireAuth } from "@/lib/auth-guard";
 
 // Mapping common MIME types
 const MIME_TYPES: Record<string, string> = {
@@ -34,6 +35,16 @@ export async function GET(
         for (const segment of pathSegments) {
             if (segment === ".." || segment === "." || segment.includes("/") || segment.includes("\\")) {
                 return new NextResponse("Forbidden", { status: 403 });
+            }
+        }
+
+        // Restrict violation screenshot evidence strictly to authenticated teachers/admins
+        if (pathSegments[0] === "violations") {
+            try {
+                await requireAuth(["admin", "teacher"]);
+            } catch (authErr: unknown) {
+                const err = authErr as { status?: number; message?: string };
+                return new NextResponse(err.message || "Unauthorized", { status: err.status || 401 });
             }
         }
 

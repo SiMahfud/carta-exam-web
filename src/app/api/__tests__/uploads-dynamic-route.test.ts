@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { GET } from '@/app/uploads/[...path]/route';
 import { NextRequest } from 'next/server';
 import fs from 'fs';
-import path from 'path';
+import * as authGuard from '@/lib/auth-guard';
 
 vi.mock('fs', async () => {
     const actual = await vi.importActual<typeof import('fs')>('fs');
@@ -64,6 +64,17 @@ describe('GET /uploads/[...path]', () => {
         expect(res.status).toBe(200);
         expect(res.headers.get('Content-Type')).toBe('image/png');
         expect(res.headers.get('Cache-Control')).toContain('public');
+    });
+
+    it('should block unauthenticated access to violation screenshots', async () => {
+        vi.spyOn(authGuard, 'requireAuth').mockRejectedValue({
+            message: 'Unauthorized',
+            status: 401,
+        });
+
+        const req = new NextRequest('http://localhost:3333/uploads/violations/sess-1/shot.jpg');
+        const res = await GET(req, { params: Promise.resolve({ path: ['violations', 'sess-1', 'shot.jpg'] }) });
+        expect(res.status).toBe(401);
     });
 });
 

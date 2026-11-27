@@ -3,12 +3,15 @@ import { db } from "@/lib/db";
 import { submissions } from "@/lib/schema";
 import { eq, and, inArray, sql } from "drizzle-orm";
 import { publishSessionUpdateEvent } from "@/lib/proctoring-events";
+import { requireAuth } from "@/lib/auth-guard";
+import { extractEvidenceUrlsFromLog, deleteEvidenceFiles } from "@/lib/violation-evidence";
 
 export async function POST(
     request: Request,
     { params }: { params: { id: string } }
 ) {
     try {
+        await requireAuth(["admin", "teacher"]);
         const { studentIds, action, minutes } = await request.json();
 
         if (!studentIds || !Array.isArray(studentIds) || studentIds.length === 0) {
@@ -19,6 +22,21 @@ export async function POST(
         }
 
         const sessionId = params.id;
+
+        if (["reset_time", "reset_violations", "reset_permission", "retake"].includes(action)) {
+            const targetSubs = await db.select({ violationLog: submissions.violationLog })
+                .from(submissions)
+                .where(
+                    and(
+                        eq(submissions.sessionId, sessionId),
+                        inArray(submissions.userId, studentIds)
+                    )
+                );
+            const allEvidenceUrls = targetSubs.flatMap((s: { violationLog: unknown }) =>
+                extractEvidenceUrlsFromLog(s.violationLog)
+            );
+            await deleteEvidenceFiles(allEvidenceUrls);
+        }
 
         switch (action) {
             case "reset_time":
@@ -151,11 +169,12 @@ export async function POST(
 
         return NextResponse.json({ success: true });
 
-    } catch (error) {
+    } catch (error: unknown) {
+        const err = error as { message?: string; status?: number };
         console.error("Error performing participant action:", error);
         return NextResponse.json(
-            { error: "Failed to perform action" },
-            { status: 500 }
+            { error: err.message || "Failed to perform action" },
+            { status: err.status || 500 }
         );
     }
 }

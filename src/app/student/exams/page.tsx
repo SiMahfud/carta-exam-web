@@ -525,10 +525,24 @@ export default function StudentExamsPage() {
                         </DialogDescription>
                     </DialogHeader>
                     {browserBlockDialog.supportsSeb ? (
-                        <SebAccessPanel variant="dialog" message={browserBlockDialog.message} />
+                        <div className="space-y-3">
+                            <SebAccessPanel variant="dialog" message={browserBlockDialog.message} />
+                            {browserBlockDialog.message.includes("Exambro") && (
+                                <div className="rounded-lg border border-indigo-500/30 bg-indigo-500/10 p-3 text-xs text-indigo-900 dark:text-indigo-200">
+                                    <strong>Pengguna Android:</strong> Silakan buka ujian ini menggunakan aplikasi resmi <strong>CartaExambro</strong> di perangkat Android Anda.
+                                </div>
+                            )}
+                        </div>
                     ) : (
-                        <div className="rounded-lg border border-amber-500/40 bg-amber-500/10 p-3 text-sm text-amber-800 dark:text-amber-200">
-                            {browserBlockDialog.message}
+                        <div className="space-y-3">
+                            <div className="rounded-lg border border-amber-500/40 bg-amber-500/10 p-3 text-sm text-amber-800 dark:text-amber-200">
+                                {browserBlockDialog.message}
+                            </div>
+                            <div className="rounded-lg border bg-muted/40 p-3 text-xs text-muted-foreground space-y-1">
+                                <p className="font-semibold text-foreground">Petunjuk Pengguna Android:</p>
+                                <p>1. Buka aplikasi <strong>CartaExambro</strong> di HP Android Anda.</p>
+                                <p>2. Ketuk <strong>Masuk Ujian CartaExam</strong> lalu login menggunakan akun PortoCarta atau NISN/NIP.</p>
+                            </div>
                         </div>
                     )}
                 </DialogContent>

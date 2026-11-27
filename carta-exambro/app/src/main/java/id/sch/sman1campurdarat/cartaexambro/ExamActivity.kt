@@ -44,6 +44,8 @@ class ExamActivity : AppCompatActivity() {
     companion object {
         const val EXTRA_TARGET_URL = "extra_target_url"
         private const val NATIVE_COOLDOWN_MS = 5000L
+        private const val NATIVE_GLOBAL_BURST_MS = 1500L
+        private const val BLUR_DEFER_MS = 350L
         private const val MIC_CHECK_INTERVAL_MS = 4000L
         private const val OVERLAY_SCAN_INTERVAL_MS = 2000L
     }
@@ -90,6 +92,11 @@ class ExamActivity : AppCompatActivity() {
     private val pendingBurstTasks = ConcurrentHashMap<String, MutableList<Runnable>>()
     private val mainHandler = Handler(Looper.getMainLooper())
     private lateinit var customUserAgent: String
+
+    @Volatile
+    private var lastGlobalViolationAtMs: Long = 0L
+
+    private var pendingBlurRunnable: Runnable? = null
 
     @Volatile
     private var screenshotPolicy = ScreenshotPolicy()
@@ -473,6 +480,7 @@ class ExamActivity : AppCompatActivity() {
     override fun onResume() {
         super.onResume()
         isActivityResumed = true
+        cancelPendingBlur()
         cancelBurstForType("APP_SWITCH")
         cancelBurstForType("WINDOW_BLUR")
         if (isExamSessionActive && !ScreenCaptureService.isRunning && !isRequestingProjection && !isInternalDialogVisible) {
@@ -489,13 +497,23 @@ class ExamActivity : AppCompatActivity() {
         super.onWindowFocusChanged(hasFocus)
         hasCurrentWindowFocus = hasFocus
         if (hasFocus) {
+            cancelPendingBlur()
             cancelBurstForType("WINDOW_BLUR")
             enableImmersiveMode()
         } else if (isExamSessionActive && !isInternalDialogVisible && !isExitingIntentionally && !isFinishing) {
-            triggerViolationWithScreenshot(
-                "WINDOW_BLUR",
-                "Jendela ujian kehilangan fokus (kemungkinan Assistant/Gemini/dialog aplikasi lain dibuka)"
-            )
+            // Tunda 350ms: jika ternyata siswa pindah app (onStop terpanggil), biarkan APP_SWITCH yang mencatat agar tidak double-counting
+            cancelPendingBlur()
+            val blurTask = Runnable {
+                pendingBlurRunnable = null
+                if (isExamSessionActive && !hasCurrentWindowFocus && !isInternalDialogVisible && !isExitingIntentionally && !isFinishing) {
+                    triggerViolationWithScreenshot(
+                        "WINDOW_BLUR",
+                        "Jendela ujian kehilangan fokus (kemungkinan Assistant/Gemini/dialog aplikasi lain dibuka)"
+                    )
+                }
+            }
+            pendingBlurRunnable = blurTask
+            mainHandler.postDelayed(blurTask, BLUR_DEFER_MS)
         }
     }
 
@@ -531,6 +549,7 @@ class ExamActivity : AppCompatActivity() {
     override fun onStop() {
         super.onStop()
         if (isExamSessionActive && !isExitingIntentionally && !isFinishing) {
+            cancelPendingBlur()
             triggerViolationWithScreenshot(
                 "APP_SWITCH",
                 "Siswa meminimalkan atau berpindah keluar dari aplikasi CartaExambro",
@@ -631,6 +650,13 @@ class ExamActivity : AppCompatActivity() {
         }
     }
 
+    private fun cancelPendingBlur() {
+        pendingBlurRunnable?.let {
+            mainHandler.removeCallbacks(it)
+            pendingBlurRunnable = null
+        }
+    }
+
     private fun cancelBurstForType(type: String) {
         val list = pendingBurstTasks.remove(type) ?: return
         list.forEach { mainHandler.removeCallbacks(it) }
@@ -677,7 +703,9 @@ class ExamActivity : AppCompatActivity() {
         val now = System.currentTimeMillis()
         val lastTime = lastViolationTimes[type] ?: 0L
         if (now - lastTime < policy.cooldownMs) return
+        if (now - lastGlobalViolationAtMs < NATIVE_GLOBAL_BURST_MS) return
         lastViolationTimes[type] = now
+        lastGlobalViolationAtMs = now
 
         val violationId = UUID.randomUUID().toString()
         val totalPhotos = when {
@@ -854,6 +882,7 @@ class ExamActivity : AppCompatActivity() {
 
     override fun onDestroy() {
         ScreenCaptureService.setOnProjectionRevokedListener(null)
+        cancelPendingBlur()
         cancelAllBurstTasks()
         mainHandler.removeCallbacks(micMonitorRunnable)
         mainHandler.removeCallbacks(overlayMonitorRunnable)
