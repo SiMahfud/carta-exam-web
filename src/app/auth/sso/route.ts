@@ -74,7 +74,10 @@ export async function GET(request: NextRequest) {
     }
 
     try {
-        const secretKey = process.env.PORTOCARTA_API_KEY || "pc_cartaexam_secret_key_2026_smancarta";
+        const secretKey = process.env.PORTOCARTA_API_KEY?.trim();
+        if (!secretKey) {
+            return NextResponse.redirect(resolveRedirectUrl(request, "/login?error=sso_not_configured"));
+        }
         const ssoData = verifySsoToken(token, secretKey);
         const ssoUser = ssoData.user;
 

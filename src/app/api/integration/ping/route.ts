@@ -11,8 +11,19 @@ export async function GET() {
             );
         }
 
-        const portoCartaUrl = (process.env.PORTOCARTA_URL || "http://localhost:3777").replace(/\/+$/, "");
-        const apiKey = process.env.PORTOCARTA_API_KEY || "pc_cartaexam_secret_key_2026_smancarta";
+        const rawPortoUrl = process.env.PORTOCARTA_URL?.trim();
+        const apiKey = process.env.PORTOCARTA_API_KEY?.trim();
+
+        if (!rawPortoUrl || !apiKey) {
+            return NextResponse.json({
+                success: false,
+                connected: false,
+                message: "Integrasi PortoCarta belum dikonfigurasi (set PORTOCARTA_URL dan PORTOCARTA_API_KEY di .env jika menggunakan Master Hub).",
+                url: rawPortoUrl || null
+            });
+        }
+
+        const portoCartaUrl = rawPortoUrl.replace(/\/+$/, "");
 
         const startTime = Date.now();
         const response = await fetch(`${portoCartaUrl}/api/v1/integration/ping`, {
@@ -55,7 +66,7 @@ export async function GET() {
             success: false,
             connected: false,
             message: `Gagal terhubung ke PortoCarta: ${error.message || "Timeout / Offline"}`,
-            url: process.env.PORTOCARTA_URL || "http://localhost:3777"
+            url: process.env.PORTOCARTA_URL || null
         });
     }
 }

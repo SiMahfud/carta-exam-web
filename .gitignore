@@ -27,7 +27,12 @@ yarn-error.log*
 .localstorage.json
 .seb-config.json
 
-# local env files
+# local databases & secrets
+local.db*
+sqlite.db*
+*.db
+*.db-shm
+*.db-wal
 .env*.local
 .env
 
@@ -38,7 +43,10 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
-# user uploads
+# user uploads & built APKs
 /public/uploads/*
 !/public/uploads/.gitkeep
+/public/downloads/*.apk
+!/public/downloads/exambro-version.json
+
 

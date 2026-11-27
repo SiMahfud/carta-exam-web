@@ -1,94 +1,113 @@
 # 📚 Panduan Lengkap Guru & Operator — CartaExam
 
-Selamat datang di Panduan Pengguna **CartaExam** (SMAN 1 Campurdarat). Panduan ini disusun untuk membantu Bapak/Ibu Guru dan Operator Sekolah dalam mengelola bank soal, menyelenggarakan ujian digital aman, memantau ujian secara live, dan melakukan koreksi nilai dengan bantuan AI.
+Selamat datang di Panduan Pengguna **CartaExam**. Panduan ini disusun langkah demi langkah untuk membantu Guru, Operator Sekolah, dan Administrator dalam mengelola kelas, membuat soal (manual, Word DOCX, maupun AI), menyelenggarakan ujian aman, hingga menilai dan mengekspor hasil.
+
+> Untuk panduan khusus **Pengawas Ruang, Tata Usaha (Administrasi), dan Siswa**, lihat [Panduan Pengawas, Tata Usaha & Siswa](user_guide_proctor_and_student.md).
 
 ---
 
 ## 📑 Daftar Isi
 1. [Dasbor & Analitik Performa](#1-dasbor--analitik-performa)
-2. [Manajemen Mata Pelajaran, Kelas & Siswa](#2-manajemen-mata-pelajaran-kelas--siswa)
-3. [Manajemen Bank Soal & Pembuatan Soal AI](#3-manajemen-bank-soal--pembuatan-soal-ai)
-4. [Template Ujian, Cetak Naskah & LJK Kertas](#4-template-ujian-cetak-naskah--ljk-kertas)
-5. [Pelaksanaan & Pengawasan Ujian Real-Time (Live Proctoring)](#5-pelaksanaan--pengawasan-ujian-real-time-live-proctoring)
-6. [Penilaian Esai Otomatis dengan AI (Google Gemini)](#6-penilaian-esai-otomatis-dengan-ai-google-gemini)
-7. [Cadangan Data (Backup/Restore) & Log Aktivitas](#7-cadangan-data-backuprestore--log-aktivitas)
+2. [Mata Pelajaran, Kelas & Import Pengguna Excel](#2-mata-pelajaran-kelas--import-pengguna-excel)
+3. [Bank Soal, Import DOCX & AI Generator](#3-bank-soal-import-docx--ai-generator)
+4. [Template Ujian, Keamanan & Cetak Naskah/LJK](#4-template-ujian-keamanan--cetak-naskahljk)
+5. [Menjadwalkan Sesi Ujian & Token Akses](#5-menjadwalkan-sesi-ujian--token-akses)
+6. [Penilaian Manual, Koreksi Esai AI & Ekspor Excel](#6-penilaian-manual-koreksi-esai-ai--ekspor-excel)
+7. [Pengaturan Sekolah, SEB/Exambro & Backup/Restore](#7-pengaturan-sekolah-sebexambro--backuprestore)
 
 ---
 
 ## 1. Dasbor & Analitik Performa
-Setelah login ke panel Guru/Admin (`/admin`), Anda akan disajikan dasbor interaktif:
-- **Metrik Cepat**: Total siswa aktif, bank soal terdaftar, dan sesi ujian yang sedang berlangsung.
-- **Visualisasi Analitik**:
-  - *Distribusi Kelulusan*: Menampilkan persentase siswa tuntas vs belum tuntas.
-  - *Rata-rata Nilai per Mapel*: Grafik perbandingan capaian antar mata pelajaran.
-  - *Komposisi Bank Soal*: Diagram proporsi tingkat kesulitan soal (Mudah, Sedang, Sulit).
-- **Lonceng Notifikasi (Header)**: Memberitahukan sesi ujian yang sedang aktif dan lembar jawaban siswa yang siap diperiksa/dikoreksi.
+
+Setelah login di `/login` sebagai **Admin** atau **Guru**, Anda masuk ke panel `/admin`:
+- **Statistik Ringkas**: Jumlah siswa, bank soal, dan sesi ujian aktif.
+- **Jadwal Ujian Hari Ini**: Daftar sesi ujian yang berlangsung atau terjadwal hari ini.
+- **Visualisasi Analitik**: Grafik distribusi nilai kelulusan, rata-rata nilai per mata pelajaran, dan komposisi tingkat kesulitan soal.
+- **Pencarian Global (`Ctrl+K`) & Lonceng Notifikasi**: Cari cepat soal/siswa/sesi dari mana saja dan pantau antrean koreksi esai.
 
 ---
 
-## 2. Manajemen Mata Pelajaran, Kelas & Siswa
-- **Mata Pelajaran (`/admin/subjects`)**: Tambah atau edit mapel beserta kode resminya (contoh: `MAT-10`).
-- **Kelas & Rombel (`/admin/classes`)**: Kelola kelas per tingkat (10, 11, 12) dan tahun ajaran aktif.
-- **Bulk Import Data Siswa & Guru (`/admin/users`)**:
-  1. Klik tombol **"Import / Export Excel"**.
-  2. Klik **"Unduh Template"** untuk mendapatkan format Excel resmi `.xlsx`.
-  3. Isi data siswa dan upload kembali file tersebut. Sistem akan otomatis memvalidasi duplikasi sebelum disimpan.
+## 2. Mata Pelajaran, Kelas & Import Pengguna Excel
+
+1. **Mata Pelajaran (`/admin/subjects`)**: Buat daftar mapel beserta kode uniknya (mis. `MAT-10`, `BIO-11`).
+2. **Kelas & Rombel (`/admin/classes`)**: Buat kelas per tingkat (10, 11, 12) dan tahun ajaran, lalu daftarkan siswa atau wali kelas.
+3. **Import Massal Siswa & Guru (`/admin/users` — Khusus Admin)**:
+   - Klik **Import / Export Excel** → **Unduh Template** (`template_import_users.xlsx`).
+   - Kolom yang tersedia: `action` (`add`/`update`/`delete`), `id`, `nama`, `username`, `password`, `role` (`student`/`teacher`/`admin`), `kelas`, `grade`, `tahun_ajaran`.
+   - Jika kolom `kelas`, `grade`, dan `tahun_ajaran` diisi untuk siswa, **kelas otomatis dibuat dan siswa langsung dimasukkan ke kelas tersebut** saat import!
 
 ---
 
-## 3. Manajemen Bank Soal & Pembuatan Soal AI
-CartaExam mendukung 6 tipe butir soal standar kurikulum merdeka:
-1. **Pilihan Ganda (PG)**: 5 opsi (A-E) dengan formula matematika KaTeX/LaTeX.
-2. **Pilihan Ganda Kompleks**: Lebih dari satu jawaban benar.
-3. **Menjodohkan (Matching)**: Pasangan pernyataan kiri dan kanan.
-4. **Isian Singkat**: Jawaban singkat dengan pencocokan otomatis (*case-insensitive*).
-5. **Esai / Uraian**: Jawaban panjang dengan panduan rubrik penilaian.
-6. **Benar / Salah**: Pernyataan benar atau salah.
+## 3. Bank Soal, Import DOCX & AI Generator
 
-### 🤖 Generator Soal AI (Google Gemini)
-- Klik tombol **"AI Generator"** (ikon ✨) pada bank soal.
-- Masukkan materi pembelajaran atau rangkuman teks.
-- Pilih tipe dan jumlah soal yang diinginkan, lalu klik **"Generate Soal"**. Soal beserta kunci jawaban dan pembahasannya akan otomatis dibuat.
-
----
-
-## 4. Template Ujian, Cetak Naskah & LJK Kertas
-- **Template Ujian (`/admin/exam-templates`)**: Tentukan durasi (menit), batas kelulusan (KKM), opsi pengacakan butir soal, pengacakan opsi jawaban, serta mode keamanan *Lockdown Anti-Curang*.
-- **🖨️ Cetak Naskah & LJK Kertas (`/admin/exam-templates/[id]/print`)**:
-  - Jika terjadi kendala jaringan/listrik di sekolah, klik ikon **Print** pada template ujian.
-  - Anda dapat langsung mencetak:
-    - **Naskah Ujian**: Lengkap dengan kop sekolah resmi dan nomor soal rapi.
-    - **Lembar Jawaban Komputer (LJK) A4**: Grid bubble A-E standar untuk pensil 2B.
-    - **Lembar Kunci Jawaban Guru**: Panduan kunci dan pembobotan nilai untuk koreksi cepat.
+Buka menu **Bank Soal (`/admin/question-banks`)**:
+- **6 Tipe Soal yang Didukung**:
+  1. **Pilihan Ganda (`mc`)**: 4–5 opsi (A–E) dengan editor teks kaya & rumus matematika KaTeX/LaTeX.
+  2. **Pilihan Ganda Kompleks (`complex_mc`)**: Lebih dari 1 jawaban benar (mendukung *partial credit*).
+  3. **Menjodohkan (`matching`)**: Pasangan pernyataan kiri dan kanan.
+  4. **Isian Singkat (`short`)**: Daftar kunci jawaban yang diterima (*case-insensitive*).
+  5. **Benar / Salah (`true_false`)**.
+  6. **Esai / Uraian (`essay`)**: Dilengkapi kunci model jawaban & rubrik penilaian.
+- **Upload Gambar**: Gambar pada soal atau opsi jawaban dapat diunggah langsung (JPG, PNG, WebP, GIF, SVG maks. 5 MB).
+- **Import Soal dari Word (`.docx`)**:
+  - Unduh template Word resmi dari tombol **Import DOCX**.
+  - Mendukung pratinjau langsung lengkap dengan rumus matematika Word (OMML → KaTeX) dan ekstraksi gambar otomatis, serta opsi **Replace All**.
+- **AI Generator Soal (Streaming)**:
+  - Klik tombol **AI Generator** pada bank soal.
+  - Tempelkan materi, topik, atau unggah dokumen/gambar referensi.
+  - Tentukan jumlah & tipe soal serta tingkat kesulitan (`easy`/`medium`/`hard`). Soal, kunci jawaban, dan pembahasan dihasilkan secara *live streaming*.
 
 ---
 
-## 5. Pelaksanaan & Pengawasan Ujian Real-Time (Live Proctoring)
-Saat sesi ujian berlangsung, buka halaman detail sesi ujian (`/admin/exam-sessions/[id]`):
-- **Live Feed (5 Detik)**: Aktifkan toggle **"Live (5s)"** di header monitoring. Data progress siswa dan status pengerjaan akan otomatis diperbarui secara berkala.
-- **Kontrol Pengawas Terhadap Pelanggaran Siswa**:
-  - *Reset Pelanggaran*: Mengembalikan hitungan pelanggaran menjadi 0 jika siswa mengalami kendala perangkat tidak sengaja.
-  - *Buka Kunci Ujian*: Membuka kembali sesi siswa yang terblokir (*locked out*) akibat berpindah tab.
-  - *Paksa Selesai*: Mengumpulkan lembar jawaban siswa dari meja pengawas jika waktu habis.
+## 4. Template Ujian, Keamanan & Cetak Naskah/LJK
+
+Buka **Template Ujian (`/admin/exam-templates`)** untuk membuat cetak biru ujian yang dapat dipakai berulang:
+- **Komposisi Soal & Pool**: Pilih satu atau beberapa bank soal, filter tag topik, dan tentukan jumlah soal per tipe (atau aktifkan *Question Pool* agar setiap siswa mendapat subset soal acak).
+- **4 Mode Pengacakan Soal**:
+  - `all`: Acak semua soal.
+  - `by_type`: Acak hanya tipe soal tertentu.
+  - `exclude_type`: Acak semua kecuali tipe tertentu.
+  - `specific_numbers`: Acak hanya nomor urut tertentu.
+  - Tersedia opsi **Acak Opsi Jawaban** dan **Esai Selalu di Akhir**.
+- **Pengaturan Keamanan & Lockdown**:
+  - Deteksi perpindahan tab/jendela, blokir copy-paste & klik kanan, deteksi screenshot & DevTools.
+  - **Mode Pelanggaran**: `strict` (otomatis hentikan ujian jika mencapai `maxViolations`), `lenient` (catat tanpa menghentikan, kecuali melebihi `maxAwaySeconds`), atau `disabled`.
+  - **Wajib Safe Exam Browser (`requireSeb`)** dan/atau **Wajib CartaExambro (`requireExambro`)**: Mengunci akses hanya melalui aplikasi ujian resmi.
+  - **Device Binding**: Mengunci pengerjaan siswa pada 1 perangkat saja.
+  - **Toleransi Keterlambatan (`lateToleranceMinutes`)**: Siswa yang masuk melewati batas toleransi otomatis dikunci (`LATE_ENTRY`) dan harus meminta izin pengawas.
+- **🖨️ Cetak Naskah Soal, LJK & Kunci (`/admin/exam-templates/[id]/print`)**:
+  - Gunakan ikon **Print** pada template untuk mencetak versi kertas (Naskah Soal A4 dengan kop sekolah Anda, LJK bubble A–E, dan Kunci Jawaban Guru).
 
 ---
 
-## 6. Penilaian Esai Otomatis dengan AI (Google Gemini)
-Untuk memeriksa lembar jawaban esai siswa pada menu **Penilaian (`/admin/grading`)**:
-1. Buka pengumpulan ujian siswa.
-2. Klik tombol **"Evaluasi dengan AI"** (ikon ✨) pada butir soal esai.
-3. Google Gemini AI akan membandingkan jawaban siswa terhadap kunci & rubrik guru, lalu memberikan:
-   - **Rekomendasi Skor Otomatis** (misal: 8.5 / 10).
-   - **Analisis Kekuatan & Kelemahan Jawaban**.
-   - **Umpan Balik / Catatan Konstruktif** untuk siswa.
-4. Guru dapat menyetujui rekomendasi nilai AI atau menyesuaikannya secara manual sebelum dipublikasikan.
+## 5. Menjadwalkan Sesi Ujian & Token Akses
+
+Buka **Sesi Ujian (`/admin/exam-sessions`)**:
+1. Klik **Buat Sesi Baru**, pilih Template Ujian, isi Nama Sesi, Waktu Mulai & Waktu Selesai.
+2. Pilih target peserta: **Per Kelas** atau **Siswa Tertentu** (dilengkapi fitur cari dan filter kelas).
+3. Jika template mengaktifkan **Wajib Token**, buka halaman detail sesi (`/admin/exam-sessions/[id]`) untuk membangkitkan **Token Akses** dan bagikan kepada peserta di ruang ujian.
+4. *(Opsional)* Klik **Generate Paket Soal** sebelumnya untuk mengunci alokasi `question_pools` peserta sebelum sesi dimulai.
 
 ---
 
-## 7. Cadangan Data (Backup/Restore) & Log Aktivitas
-- **Backup & Restore Database (`/admin/settings`)**:
-  - Klik **"Unduh Cadangan Database"** untuk menyimpan seluruh snapshot data sekolah (bank soal, pengguna, kelas, mapel) ke file aman `.carta-backup.json`.
-  - Gunakan tombol **"Pulihkan dari File"** jika ingin mengembalikan data ke server baru.
-- **Log Aktivitas Sistem (`/admin/activity-logs`)**:
-  - Telusuri audit keamanan: siapa yang mengubah nilai, kapan ujian dimulai, dan aktivitas penting lainnya.
-  - Dapat difilter berdasarkan sesi ujian, bank soal, kelas, maupun nama pengguna.
+## 6. Penilaian Manual, Koreksi Esai AI & Ekspor Excel
+
+Buka **Penilaian (`/admin/grading`)**:
+- **Soal Objektif** (`mc`, `complex_mc`, `matching`, `short`, `true_false`) dinilai otomatis oleh sistem saat siswa menjawab/mengumpulkan. Jika terjadi revisi kunci di bank soal setelah ujian, gunakan fitur **Resync Skor** pada halaman hasil sesi.
+- **Koreksi Esai dengan AI**:
+  1. Buka lembar jawaban siswa (`/admin/grading/[id]`).
+  2. Pada soal esai, klik **Evaluasi dengan AI**.
+  3. AI membandingkan jawaban siswa dengan model jawaban/rubrik dan memberi **Rekomendasi Skor**, **Kekuatan**, **Hal yang Perlu Ditingkatkan**, serta **Feedback** siap pakai.
+  4. Guru dapat menerima atau mengubah skor sebelum klik **Publikasikan Nilai** (atau gunakan **Batch Publish** untuk banyak siswa sekaligus).
+- **Ekspor Hasil Excel**: Dari halaman hasil sesi (`/admin/exam-sessions/[id]/results`), unduh file `.xlsx` berisi **3 sheet**: *Rekap Nilai*, *Jawaban Essay*, dan *Statistik*.
+
+---
+
+## 7. Pengaturan Sekolah, SEB/Exambro & Backup/Restore
+
+Di menu **Pengaturan Sekolah (`/admin/settings`)** (Khusus Admin):
+- **Identitas & White-Label**: Ubah nama sekolah, logo, favicon, alamat, pengumuman landing page, yang otomatis tampil di portal siswa, login, dan kop cetak.
+- **Konfigurasi AI**: Pilih & uji koneksi Gemini, OpenRouter, atau OpenAI-Compatible.
+- **Konfigurasi SEB & PIN Darurat Exambro**: Atur URL server, Quit Password SEB, URL filter, PIN keluar darurat CartaExambro, serta unduh file `.seb` / QR Code.
+- **Cadangan Database**: Ekspor seluruh data sekolah ke file `.json` dan pulihkan kapan saja lewat menu **Backup & Restore**.
+- **Log Aktivitas (`/admin/activity-logs`)**: Audit seluruh perubahan penting di sistem.

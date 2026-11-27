@@ -29,6 +29,7 @@
             android:textStyle="bold" />
 
         <TextView
+            android:id="@+id/tvSchoolName"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginTop="4dp"
@@ -56,18 +57,20 @@
             android:padding="18dp">
 
             <TextView
+                android:id="@+id/tvServerTitle"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="SERVER UTAMA &amp; SSO PORTOCARTA"
+                android:text="SERVER UJIAN SEKOLAH"
                 android:textColor="#818CF8"
                 android:textSize="11sp"
                 android:textStyle="bold" />
 
             <TextView
+                android:id="@+id/tvServerDesc"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="4dp"
-                android:text="Langsung terhubung ke exam.sman1campurdarat.sch.id dengan dukungan login SSO porto.sman1campurdarat.sch.id."
+                android:text="Pindai QR Code dari pengawas/dashboard CartaExam atau masukkan alamat server ujian sekolah Anda di bawah."
                 android:textColor="@color/text_secondary"
                 android:textSize="12sp" />
 

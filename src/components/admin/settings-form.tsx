@@ -96,7 +96,7 @@ export function SettingsForm({ initialSettings }: SettingsFormProps) {
     const form = useForm<SettingsFormValues>({
         resolver: zodResolver(settingsSchema) as any,
         defaultValues: {
-            schoolName: initialSettings?.schoolName || "SMAN 1 Campurdarat",
+            schoolName: initialSettings?.schoolName || "CartaExam School",
             schoolDescription: initialSettings?.schoolDescription || "",
             logoUrl: initialSettings?.logoUrl || "",
             htmlTitle: initialSettings?.htmlTitle || "CartaExam",
@@ -237,7 +237,7 @@ export function SettingsForm({ initialSettings }: SettingsFormProps) {
                                     <FormItem>
                                         <FormLabel>Nama Sekolah</FormLabel>
                                         <FormControl>
-                                            <Input placeholder="SMAN 1 Campurdarat" {...field} />
+                                            <Input placeholder="Contoh: SMA Negeri 1 Nusantara" {...field} />
                                         </FormControl>
                                         <FormMessage />
                                     </FormItem>

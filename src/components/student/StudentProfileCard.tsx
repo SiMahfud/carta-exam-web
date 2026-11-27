@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { User, ShieldCheck, School, GraduationCap, Calendar, CheckCircle2, Sparkles, Lock, FileCheck } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -36,6 +36,19 @@ interface StudentProfileCardProps {
 }
 
 export function StudentProfileCard({ profile, loading, activeExamsCount = 0 }: StudentProfileCardProps) {
+    const [schoolName, setSchoolName] = useState("CartaExam School");
+
+    useEffect(() => {
+        fetch("/api/school-info")
+            .then((res) => res.json())
+            .then((json) => {
+                if (json?.success && json.data?.schoolName) {
+                    setSchoolName(json.data.schoolName);
+                }
+            })
+            .catch(() => {});
+    }, []);
+
     if (loading) {
         return (
             <Card className="border shadow-xs overflow-hidden bg-card/60 backdrop-blur-sm animate-pulse mb-6">
@@ -151,7 +164,7 @@ export function StudentProfileCard({ profile, loading, activeExamsCount = 0 }: S
                             <School className="w-4 h-4 text-primary" />
                             <div>
                                 <div className="text-[10px] text-muted-foreground uppercase font-medium">Asal Sekolah</div>
-                                <div className="font-semibold text-foreground">SMAN 1 Campurdarat</div>
+                                <div className="font-semibold text-foreground">{schoolName}</div>
                             </div>
                         </div>
 

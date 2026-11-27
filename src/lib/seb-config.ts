@@ -6,10 +6,14 @@ import { z } from "zod";
 export const DEFAULT_EXAMBRO_EXIT_PIN = "CARTA2026";
 
 export const sebConfigSchema = z.object({
-    examUrl: z.string().url("URL CartaExam harus valid (misal https://exam.sman1campurdarat.sch.id)"),
-    portoCartaUrl: z.string().url("URL PortoCarta harus valid (misal https://porto.sman1campurdarat.sch.id)"),
+    examUrl: z.string().url("URL CartaExam harus valid (misal https://exam.sekolahanda.sch.id)"),
+    portoCartaUrl: z
+        .string()
+        .url("URL PortoCarta harus valid (misal https://porto.sekolahanda.sch.id)")
+        .or(z.literal(""))
+        .default(""),
     startPath: z.string().min(1).default("/login"),
-    allowSsoPortoCarta: z.boolean().default(true),
+    allowSsoPortoCarta: z.boolean().default(false),
     portoAllowedMode: z.enum(["full_domain", "sso_only"]).default("full_domain"),
     allowQuit: z.boolean().default(true),
     hashedQuitPassword: z.string().default(""),
@@ -43,18 +47,18 @@ function normalizeBaseUrl(url: string, fallback: string): string {
 export function getDefaultSebConfig(originUrl?: string): SebConfigSettings {
     const defaultExamUrl = normalizeBaseUrl(
         originUrl || process.env.APP_URL || process.env.NEXT_PUBLIC_APP_URL || "",
-        "https://exam.sman1campurdarat.sch.id"
+        "http://localhost:3333"
     );
     const defaultPortoUrl = normalizeBaseUrl(
         process.env.PORTOCARTA_URL || process.env.NEXT_PUBLIC_PORTOCARTA_URL || "",
-        "https://porto.sman1campurdarat.sch.id"
+        ""
     );
 
     return {
         examUrl: defaultExamUrl,
         portoCartaUrl: defaultPortoUrl,
         startPath: "/login",
-        allowSsoPortoCarta: true,
+        allowSsoPortoCarta: Boolean(defaultPortoUrl),
         portoAllowedMode: "full_domain",
         allowQuit: true,
         hashedQuitPassword: "",
@@ -173,7 +177,7 @@ export function buildUrlFilterRules(settings: SebConfigSettings): SebUrlFilterRu
         },
     ];
 
-    if (settings.allowSsoPortoCarta) {
+    if (settings.allowSsoPortoCarta && settings.portoCartaUrl.trim()) {
         const portoHost = extractHostPattern(settings.portoCartaUrl);
         if (settings.portoAllowedMode === "sso_only") {
             const ssoPatterns = [
@@ -357,7 +361,7 @@ export function buildSebLaunchUrls(examBaseUrl: string): {
     sebUrl: string;
     qrUrl: string;
 } {
-    const cleanBase = normalizeBaseUrl(examBaseUrl, "https://exam.sman1campurdarat.sch.id");
+    const cleanBase = normalizeBaseUrl(examBaseUrl, "http://localhost:3333");
     const downloadUrl = `${cleanBase}/api/seb/config`;
     const isHttps = cleanBase.startsWith("https://");
     const strippedHost = cleanBase.replace(/^https?:\/\//, "");

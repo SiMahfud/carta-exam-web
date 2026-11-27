@@ -50,9 +50,18 @@ export async function verifyUserCredentials(username: string, password: string):
         }
     }
 
-    // 2. Fallback: Verifikasi ke PortoCarta Master Hub jika dikonfigurasi
-    const portoCartaUrl = (process.env.PORTOCARTA_URL || "http://localhost:3777").replace(/\/+$/, "");
-    const apiKey = process.env.PORTOCARTA_API_KEY || "pc_cartaexam_secret_key_2026_smancarta";
+    // 2. Fallback: Verifikasi ke PortoCarta Master Hub jika dikonfigurasi secara eksplisit
+    const rawPortoUrl = process.env.PORTOCARTA_URL?.trim();
+    const apiKey = process.env.PORTOCARTA_API_KEY?.trim();
+
+    if (!rawPortoUrl || !apiKey) {
+        return {
+            success: false,
+            error: "Username atau password salah",
+        };
+    }
+
+    const portoCartaUrl = rawPortoUrl.replace(/\/+$/, "");
 
     try {
         const verifyRes = await fetch(`${portoCartaUrl}/api/v1/integration/verify-user`, {

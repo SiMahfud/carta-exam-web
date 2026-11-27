@@ -13,7 +13,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { AlertCircle, Lock, KeyRound, Loader2, CheckCircle2, ExternalLink, Sparkles } from "lucide-react";
-import { getPortoCartaUrl } from "@/lib/porto-url";
+import { buildPortoCartaUrl, getPortoCartaUrl } from "@/lib/porto-url";
 
 interface SessionExpiredDialogProps {
     open: boolean;
@@ -33,6 +33,18 @@ export function SessionExpiredDialog({
     const [loading, setLoading] = useState(false);
     const [ssoLoading, setSsoLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [portoPopupUrl, setPortoPopupUrl] = useState<string>(() => getPortoCartaUrl("/apps/launch/carta-exam?mode=popup"));
+
+    useEffect(() => {
+        fetch("/api/school-info")
+            .then((res) => res.json())
+            .then((json) => {
+                if (json?.success && json.data?.portoCartaEnabled && json.data?.portoCartaUrl) {
+                    setPortoPopupUrl(buildPortoCartaUrl(json.data.portoCartaUrl, "/apps/launch/carta-exam?mode=popup"));
+                }
+            })
+            .catch(() => {});
+    }, []);
     const [success, setSuccess] = useState(false);
 
     // Keep username in sync if prop changes
@@ -108,7 +120,12 @@ export function SessionExpiredDialog({
         const left = window.screenX + (window.outerWidth - width) / 2;
         const top = window.screenY + (window.outerHeight - height) / 2;
 
-        const popupUrl = getPortoCartaUrl("/apps/launch/carta-exam?mode=popup");
+        const popupUrl = portoPopupUrl;
+        if (!popupUrl) {
+            setSsoLoading(false);
+            setError("SSO PortoCarta tidak aktif. Gunakan username & password di bawah.");
+            return;
+        }
         const popup = window.open(
             popupUrl,
             "PortoCartaSSO",
@@ -157,49 +174,53 @@ export function SessionExpiredDialog({
                     </div>
                 )}
 
-                {/* Option 1: PortoCarta SSO One-Click Re-Auth */}
-                <div className="p-3.5 rounded-xl bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950/40 dark:to-indigo-950/40 border border-blue-200/80 dark:border-blue-800/60 space-y-2">
-                    <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                            <Sparkles className="h-4 w-4 text-blue-600 dark:text-blue-400" />
-                            <span className="text-xs font-semibold text-blue-950 dark:text-blue-200">
-                                Pengguna SSO PortoCarta
+                {/* Option 1: PortoCarta SSO One-Click Re-Auth (only when configured) */}
+                {portoPopupUrl && (
+                    <>
+                        <div className="p-3.5 rounded-xl bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950/40 dark:to-indigo-950/40 border border-blue-200/80 dark:border-blue-800/60 space-y-2">
+                            <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-2">
+                                    <Sparkles className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                                    <span className="text-xs font-semibold text-blue-950 dark:text-blue-200">
+                                        Pengguna SSO PortoCarta
+                                    </span>
+                                </div>
+                            </div>
+                            <p className="text-[11.5px] text-blue-800/80 dark:text-blue-300/80 leading-snug">
+                                Jika Anda login dari PortoCarta, klik tombol di bawah untuk menyinkronkan kembali sesi otomatis.
+                            </p>
+                            <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                onClick={handleOpenSsoPopup}
+                                disabled={ssoLoading || loading || success}
+                                className="w-full bg-white dark:bg-slate-900 border-blue-300 dark:border-blue-700 text-blue-700 dark:text-blue-300 hover:bg-blue-50 dark:hover:bg-blue-950 font-medium text-xs shadow-sm h-8"
+                            >
+                                {ssoLoading ? (
+                                    <>
+                                        <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" />
+                                        Menunggu Verifikasi SSO...
+                                    </>
+                                ) : (
+                                    <>
+                                        <ExternalLink className="mr-1.5 h-3.5 w-3.5" />
+                                        Perbarui via SSO PortoCarta
+                                    </>
+                                )}
+                            </Button>
+                        </div>
+
+                        <div className="relative my-1 text-center">
+                            <div className="absolute inset-0 flex items-center">
+                                <span className="w-full border-t border-muted" />
+                            </div>
+                            <span className="relative bg-background px-2 text-[11px] text-muted-foreground uppercase font-medium">
+                                atau masukkan password
                             </span>
                         </div>
-                    </div>
-                    <p className="text-[11.5px] text-blue-800/80 dark:text-blue-300/80 leading-snug">
-                        Jika Anda login dari PortoCarta, klik tombol di bawah untuk menyinkronkan kembali sesi otomatis.
-                    </p>
-                    <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        onClick={handleOpenSsoPopup}
-                        disabled={ssoLoading || loading || success}
-                        className="w-full bg-white dark:bg-slate-900 border-blue-300 dark:border-blue-700 text-blue-700 dark:text-blue-300 hover:bg-blue-50 dark:hover:bg-blue-950 font-medium text-xs shadow-sm h-8"
-                    >
-                        {ssoLoading ? (
-                            <>
-                                <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" />
-                                Menunggu Verifikasi SSO...
-                            </>
-                        ) : (
-                            <>
-                                <ExternalLink className="mr-1.5 h-3.5 w-3.5" />
-                                Perbarui via SSO PortoCarta
-                            </>
-                        )}
-                    </Button>
-                </div>
-
-                <div className="relative my-1 text-center">
-                    <div className="absolute inset-0 flex items-center">
-                        <span className="w-full border-t border-muted" />
-                    </div>
-                    <span className="relative bg-background px-2 text-[11px] text-muted-foreground uppercase font-medium">
-                        atau masukkan password
-                    </span>
-                </div>
+                    </>
+                )}
 
                 {/* Option 2: Direct Password Authentication */}
                 <form onSubmit={handleReauth} className="space-y-3.5">

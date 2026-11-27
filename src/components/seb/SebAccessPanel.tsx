@@ -11,7 +11,7 @@ interface SebAccessPanelProps {
 }
 
 export function SebAccessPanel({ variant = "login", message }: SebAccessPanelProps) {
-    const [sebUrl, setSebUrl] = useState("sebs://exam.sman1campurdarat.sch.id/api/seb/config");
+    const [sebUrl, setSebUrl] = useState("#");
     const [downloadUrl, setDownloadUrl] = useState("/api/seb/config");
     const [showQr, setShowQr] = useState(variant === "dialog");
     const [env, setEnv] = useState({ isSeb: false, isExambro: false, isIos: false, isAndroid: false });
@@ -65,7 +65,7 @@ export function SebAccessPanel({ variant = "login", message }: SebAccessPanelPro
                         Ketuk <strong>Buka di Safe Exam Browser</strong> di bawah ini (atau scan QR Code dengan Kamera iPhone/iPad).
                     </li>
                     <li>
-                        Setelah SEB terbuka, klik <strong>Masuk dengan Akun PortoCarta</strong> untuk login di dalam SEB.
+                        Setelah SEB terbuka, silakan login menggunakan akun sekolah Anda di dalam SEB.
                     </li>
                 </ol>
             </div>

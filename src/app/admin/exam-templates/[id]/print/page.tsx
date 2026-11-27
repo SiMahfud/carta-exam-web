@@ -255,6 +255,33 @@ export default function PrintableExamPage() {
     const [questions, setQuestions] = useState<QuestionItem[]>([]);
     const [loading, setLoading] = useState(true);
     const [mode, setMode] = useState<"exam" | "ljk" | "key">("exam");
+    const [schoolInfo, setSchoolInfo] = useState<{
+        schoolName: string;
+        address: string | null;
+        contactPhone: string | null;
+        contactEmail: string | null;
+    }>({
+        schoolName: "CartaExam School",
+        address: null,
+        contactPhone: null,
+        contactEmail: null,
+    });
+
+    useEffect(() => {
+        fetch("/api/school-info")
+            .then((res) => res.json())
+            .then((json) => {
+                if (json?.success && json.data) {
+                    setSchoolInfo({
+                        schoolName: json.data.schoolName || "CartaExam School",
+                        address: json.data.address || null,
+                        contactPhone: json.data.contactPhone || null,
+                        contactEmail: json.data.contactEmail || null,
+                    });
+                }
+            })
+            .catch(() => {});
+    }, []);
 
     useEffect(() => {
         const fetchPreview = async () => {
@@ -464,13 +491,21 @@ export default function PrintableExamPage() {
             <div className="print-doc max-w-4xl mx-auto bg-white text-black p-8 sm:p-12 rounded-lg shadow-xl print:shadow-none print:p-0 print:max-w-full font-serif overflow-visible">
                 {/* School Header Kop */}
                 <div className="border-b-4 border-double border-black pb-3 mb-4 text-center space-y-0.5">
-                    <h2 className="text-xs font-bold tracking-widest uppercase">Pemerintah Provinsi Jawa Timur</h2>
+                    <h2 className="text-xs font-bold tracking-widest uppercase">Evaluasi Pembelajaran &amp; Asesmen Digital</h2>
                     <h1 className="text-base sm:text-lg font-extrabold uppercase tracking-wide">
-                        SMA Negeri 1 Campurdarat
+                        {schoolInfo.schoolName}
                     </h1>
-                    <p className="text-[10px] font-sans text-slate-600">
-                        Jl. Raya Campurdarat, Telp. (0355) 531xxx, Tulungagung - Jawa Timur
-                    </p>
+                    {(schoolInfo.address || schoolInfo.contactPhone || schoolInfo.contactEmail) && (
+                        <p className="text-[10px] font-sans text-slate-600">
+                            {[
+                                schoolInfo.address,
+                                schoolInfo.contactPhone ? `Telp. ${schoolInfo.contactPhone}` : null,
+                                schoolInfo.contactEmail,
+                            ]
+                                .filter(Boolean)
+                                .join(" • ")}
+                        </p>
+                    )}
                     <div className="pt-1.5 text-xs font-bold uppercase tracking-wider underline">
                         {mode === "exam" && `NASKAH SOAL: ${template.name}`}
                         {mode === "ljk" && `LEMBAR JAWABAN (LJK): ${template.name}`}

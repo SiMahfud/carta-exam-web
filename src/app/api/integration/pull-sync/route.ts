@@ -20,8 +20,17 @@ export async function POST() {
             );
         }
 
-        const portoCartaUrl = (process.env.PORTOCARTA_URL || "http://localhost:3777").replace(/\/+$/, "");
-        const apiKey = process.env.PORTOCARTA_API_KEY || "pc_cartaexam_secret_key_2026_smancarta";
+        const rawPortoUrl = process.env.PORTOCARTA_URL?.trim();
+        const apiKey = process.env.PORTOCARTA_API_KEY?.trim();
+
+        if (!rawPortoUrl || !apiKey) {
+            return NextResponse.json(
+                { success: false, message: "Integrasi PortoCarta belum dikonfigurasi (PORTOCARTA_URL / PORTOCARTA_API_KEY kosong)." },
+                { status: 503 }
+            );
+        }
+
+        const portoCartaUrl = rawPortoUrl.replace(/\/+$/, "");
 
         // 1. Ambil bundle data master dari PortoCarta API
         const fetchRes = await fetch(`${portoCartaUrl}/api/v1/integration/sync-bundle`, {

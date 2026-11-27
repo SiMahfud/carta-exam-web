@@ -78,7 +78,7 @@ export default function StudentExamsPage() {
         isIos: false,
         isAndroid: false,
     });
-    const [sebLaunchUrl, setSebLaunchUrl] = useState("sebs://exam.sman1campurdarat.sch.id/api/seb/config");
+    const [sebLaunchUrl, setSebLaunchUrl] = useState("#");
 
     useEffect(() => {
         setClientEnv(detectClientEnvironment());
@@ -670,7 +670,7 @@ export default function StudentExamsPage() {
                             <div className="rounded-lg border bg-muted/40 p-3 text-xs text-muted-foreground space-y-1.5">
                                 <p className="font-semibold text-foreground">Petunjuk Pengguna Android:</p>
                                 <p>1. Unduh dan instal aplikasi <strong>CartaExambro</strong> di HP Android Anda.</p>
-                                <p>2. Buka CartaExambro, ketuk <strong>Masuk Ujian CartaExam</strong>, lalu login dengan akun PortoCarta atau NISN/NIP.</p>
+                                <p>2. Buka CartaExambro, ketuk <strong>Masuk Ujian CartaExam</strong> atau pindai QR server sekolah, lalu login menggunakan akun Anda.</p>
                             </div>
                             <Button asChild size="sm" className="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-semibold">
                                 <a href="/api/exambro/download" download="CartaExambro-v1.1.0.apk">

@@ -53,7 +53,7 @@ class ExamActivity : AppCompatActivity() {
         private const val BLUR_DEFER_MS = 350L
         private const val MIC_CHECK_INTERVAL_MS = 4000L
         private const val OVERLAY_SCAN_INTERVAL_MS = 2000L
-        private const val DEFAULT_PROCTOR_EXIT_PIN = "CARTA2026"
+        private val DEFAULT_PROCTOR_EXIT_PIN = BuildConfig.DEFAULT_PROCTOR_EXIT_PIN
 
         fun sha256Hex(raw: String): String {
             val digest = MessageDigest.getInstance("SHA-256").digest(raw.toByteArray(Charsets.UTF_8))
@@ -64,10 +64,10 @@ class ExamActivity : AppCompatActivity() {
     private lateinit var binding: ActivityExamBinding
 
     private var initialOrigin: String = BuildConfig.DEFAULT_EXAM_URL
-    private val allowedHosts = mutableSetOf(
-        BuildConfig.EXAM_DOMAIN,
-        BuildConfig.SSO_DOMAIN
-    )
+    private val allowedHosts = mutableSetOf<String>().apply {
+        if (BuildConfig.EXAM_DOMAIN.isNotBlank()) add(BuildConfig.EXAM_DOMAIN.lowercase())
+        if (BuildConfig.SSO_DOMAIN.isNotBlank()) add(BuildConfig.SSO_DOMAIN.lowercase())
+    }
 
     @Volatile
     private var activeSessionId: String? = null
@@ -205,10 +205,16 @@ class ExamActivity : AppCompatActivity() {
         setContentView(binding.root)
         enableImmersiveMode()
 
-        val targetUrl = intent.getStringExtra(EXTRA_TARGET_URL) ?: BuildConfig.DEFAULT_EXAM_URL
+        val targetUrl = intent.getStringExtra(EXTRA_TARGET_URL)
+            ?.takeIf { it.isNotBlank() }
+            ?: BuildConfig.DEFAULT_EXAM_URL
         val parsedUri = Uri.parse(targetUrl)
-        parsedUri.host?.let { allowedHosts.add(it.lowercase()) }
-        initialOrigin = "${parsedUri.scheme ?: "https"}://${parsedUri.authority ?: BuildConfig.EXAM_DOMAIN}"
+        val parsedHost = parsedUri.host?.lowercase()
+        if (!parsedHost.isNullOrBlank()) {
+            allowedHosts.add(parsedHost)
+        }
+        val fallbackHost = parsedHost ?: BuildConfig.EXAM_DOMAIN.ifBlank { "localhost" }
+        initialOrigin = "${parsedUri.scheme ?: "https"}://${parsedUri.authority ?: fallbackHost}"
 
         setupTopBar()
         setupWebView(targetUrl)

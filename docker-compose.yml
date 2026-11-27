@@ -1,0 +1,30 @@
+services:
+  cartaexam:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: cartaexam-web
+    restart: unless-stopped
+    ports:
+      - "3333:3333"
+    environment:
+      NODE_ENV: production
+      DB_TYPE: ${DB_TYPE:-sqlite}
+      DB_NAME: ${DB_NAME:-/app/data/cartaexam.db}
+      DATABASE_URL: ${DATABASE_URL:-}
+      SESSION_SECRET: ${SESSION_SECRET:-please-change-this-to-a-32-character-random-secret}
+      APP_URL: ${APP_URL:-http://localhost:3333}
+      COOKIE_SECURE: ${COOKIE_SECURE:-false}
+      GOOGLE_GENERATIVE_AI_API_KEY: ${GOOGLE_GENERATIVE_AI_API_KEY:-}
+      PORTOCARTA_URL: ${PORTOCARTA_URL:-}
+      NEXT_PUBLIC_PORTOCARTA_URL: ${NEXT_PUBLIC_PORTOCARTA_URL:-}
+      PORTOCARTA_API_KEY: ${PORTOCARTA_API_KEY:-}
+    volumes:
+      - cartaexam_data:/app/data
+      - cartaexam_uploads:/app/public/uploads
+      - cartaexam_downloads:/app/public/downloads
+
+volumes:
+  cartaexam_data:
+  cartaexam_uploads:
+  cartaexam_downloads:

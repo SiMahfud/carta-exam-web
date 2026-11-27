@@ -386,7 +386,7 @@ export const examTokens = sqliteTable("exam_tokens", {
 
 export const schoolSettings = sqliteTable("school_settings", {
     id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
-    schoolName: text("school_name").notNull().default("SMAN 1 Campurdarat"),
+    schoolName: text("school_name").notNull().default("CartaExam School"),
     schoolDescription: text("school_description"),
     logoUrl: text("logo_url"), // URL relative to public or external
 

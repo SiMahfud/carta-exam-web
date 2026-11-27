@@ -12,7 +12,7 @@ export default async function Home() {
 
   const schoolName = settings?.schoolName || "CartaExam";
   const heroTitle = settings?.heroTitle || "Ujian Modern untuk Generasi Digital";
-  const heroDescription = settings?.heroDescription || "Platform ujian yang aman, cerdas, dan mudah digunakan untuk SMAN 1 Campurdarat. Tingkatkan integritas dan efisiensi evaluasi pembelajaran.";
+  const heroDescription = settings?.heroDescription || "Platform ujian digital yang aman, cerdas, dan mudah digunakan. Tingkatkan integritas dan efisiensi evaluasi pembelajaran.";
   const showStats = settings?.heroShowStats ?? true;
   const featuresTitle = settings?.featuresTitle || "Fitur Unggulan";
   const featuresSubtitle = settings?.featuresSubtitle || "Dirancang khusus untuk kebutuhan evaluasi akademik modern dengan standar keamanan tinggi.";

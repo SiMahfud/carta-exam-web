@@ -17,7 +17,7 @@ import {
     DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { getPortoCartaUrl } from "@/lib/porto-url";
+import { buildPortoCartaUrl, getPortoCartaUrl } from "@/lib/porto-url";
 
 interface StudentProfile {
     id: string;
@@ -39,6 +39,7 @@ export default function StudentLayout({
 }) {
     const pathname = usePathname();
     const [profile, setProfile] = useState<StudentProfile | null>(null);
+    const [portoStudentUrl, setPortoStudentUrl] = useState<string>(() => getPortoCartaUrl("/siswa/dashboard"));
 
     useEffect(() => {
         const fetchProfile = async () => {
@@ -56,6 +57,15 @@ export default function StudentLayout({
         };
 
         fetchProfile();
+
+        fetch("/api/school-info")
+            .then((res) => res.json())
+            .then((json) => {
+                if (json?.success && json.data?.portoCartaEnabled && json.data?.portoCartaUrl) {
+                    setPortoStudentUrl(buildPortoCartaUrl(json.data.portoCartaUrl, "/siswa/dashboard"));
+                }
+            })
+            .catch(() => {});
     }, []);
 
     // Ensure any legacy service workers on students' devices are unregistered
@@ -116,16 +126,18 @@ export default function StudentLayout({
                     </div>
 
                     <div className="flex items-center gap-2 sm:gap-3">
-                        <a
-                            href={getPortoCartaUrl("/siswa/dashboard")}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="inline-flex items-center gap-1.5 text-xs text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 bg-indigo-50 dark:bg-indigo-950/40 border border-indigo-200 dark:border-indigo-800/60 px-3 py-1.5 rounded-full transition-colors font-medium shadow-xs"
-                            title="Buka Portal Siswa PortoCarta"
-                        >
-                            <Globe className="h-3.5 w-3.5" />
-                            <span className="hidden md:inline">Portal Siswa</span>
-                        </a>
+                        {portoStudentUrl && (
+                            <a
+                                href={portoStudentUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="inline-flex items-center gap-1.5 text-xs text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 bg-indigo-50 dark:bg-indigo-950/40 border border-indigo-200 dark:border-indigo-800/60 px-3 py-1.5 rounded-full transition-colors font-medium shadow-xs"
+                                title="Buka Portal Siswa PortoCarta"
+                            >
+                                <Globe className="h-3.5 w-3.5" />
+                                <span className="hidden md:inline">Portal Siswa</span>
+                            </a>
+                        )}
 
                         {/* Student Profile Dropdown */}
                         <DropdownMenu>

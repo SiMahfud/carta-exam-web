@@ -2,7 +2,7 @@ import { MetadataRoute } from "next";
 
 export default function manifest(): MetadataRoute.Manifest {
     return {
-        name: "CartaExam - Platform Ujian Digital SMAN 1 Campurdarat",
+        name: "CartaExam - Platform Ujian Digital",
         short_name: "CartaExam",
         description: "Aplikasi Ujian Online Digital Mandiri dan Aman untuk Siswa dan Guru",
         start_url: "/student",

@@ -7,7 +7,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Label } from "@/components/ui/label"
 import { login } from "@/actions/auth"
 import { ShieldCheck, Lock, User, Loader2, AlertCircle, Eye, EyeOff, Rocket, ChevronDown, ChevronUp, Sparkles, MonitorSmartphone } from "lucide-react"
-import { getPortoCartaUrl } from "@/lib/porto-url"
+import { buildPortoCartaUrl, getPortoCartaUrl } from "@/lib/porto-url"
 import { detectClientEnvironment } from "@/lib/browser-detection"
 import { SebQuitButton } from "@/components/seb/SebQuitButton"
 import { SebAccessPanel } from "@/components/seb/SebAccessPanel"
@@ -17,17 +17,43 @@ export default function LoginPage() {
     const [error, setError] = useState<string | null>(null)
     const [fieldErrors, setFieldErrors] = useState<{ username?: string[]; password?: string[] }>({})
     const [showPassword, setShowPassword] = useState(false)
-    const [showManualLogin, setShowManualLogin] = useState(false)
+    const [showManualLogin, setShowManualLogin] = useState(true)
     const [showSebGuide, setShowSebGuide] = useState(false)
     const [isSebClient, setIsSebClient] = useState(false)
     const [isExambroClient, setIsExambroClient] = useState(false)
-    const [portoLaunchUrl, setPortoLaunchUrl] = useState("https://porto.sman1campurdarat.sch.id/apps/launch/carta-exam")
+    const [schoolName, setSchoolName] = useState("Platform Ujian Digital")
+    const [portoEnabled, setPortoEnabled] = useState(false)
+    const [portoLaunchUrl, setPortoLaunchUrl] = useState("")
 
     useEffect(() => {
-        setPortoLaunchUrl(getPortoCartaUrl("/apps/launch/carta-exam"))
         const env = detectClientEnvironment()
         setIsSebClient(env.isSeb)
         setIsExambroClient(env.isExambro)
+
+        const envPorto = getPortoCartaUrl("/apps/launch/carta-exam")
+        if (envPorto) {
+            setPortoEnabled(true)
+            setPortoLaunchUrl(envPorto)
+            setShowManualLogin(false)
+        }
+
+        fetch("/api/school-info")
+            .then((res) => res.json())
+            .then((json) => {
+                if (json?.success && json.data) {
+                    if (json.data.schoolName) {
+                        setSchoolName(json.data.schoolName)
+                    }
+                    if (json.data.portoCartaEnabled && json.data.portoCartaUrl) {
+                        setPortoEnabled(true)
+                        setPortoLaunchUrl(buildPortoCartaUrl(json.data.portoCartaUrl, "/apps/launch/carta-exam"))
+                        setShowManualLogin(false)
+                    }
+                }
+            })
+            .catch(() => {
+                // Keep standalone fallback defaults
+            })
     }, [])
 
     async function handleSubmit(formData: FormData) {
@@ -65,37 +91,45 @@ export default function LoginPage() {
                         Carta<span className="text-indigo-400">Exam</span>
                     </CardTitle>
                     <CardDescription className="text-slate-400 text-xs sm:text-sm">
-                        Sistem Ujian & Asesmen Digital <br />
-                        <span className="font-semibold text-indigo-300">SMAN 1 Campurdarat</span>
+                        Sistem Ujian &amp; Asesmen Digital <br />
+                        <span className="font-semibold text-indigo-300">{schoolName}</span>
                     </CardDescription>
                 </CardHeader>
                 
                 <CardContent className="space-y-5 px-6 pb-6">
-                    {/* SSO Hero Card Button (Metode Utama) */}
-                    <div className="p-4 rounded-2xl bg-gradient-to-br from-indigo-900/50 via-slate-900 to-purple-950/40 border border-indigo-500/30 text-center space-y-3 shadow-lg">
-                        <div className="flex items-center justify-center gap-1.5 text-xs font-semibold text-indigo-300 uppercase tracking-wider">
-                            <Sparkles className="h-3.5 w-3.5 text-amber-400 animate-pulse" />
-                            Rekomendasi Masuk
-                        </div>
-                        <p className="text-xs text-slate-300 leading-relaxed">
-                            Masuk instan menggunakan akun <strong>PortoCarta</strong> tanpa perlu menghafal password ujian.
-                        </p>
-                        <a
-                            href={portoLaunchUrl}
-                            className="w-full flex items-center justify-center gap-2.5 px-4 py-3 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-sm transition-all shadow-md hover:shadow-indigo-500/25 active:scale-[0.98] group"
-                        >
-                            <Rocket className="h-4 w-4 transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5" />
-                            Masuk dengan Akun PortoCarta
-                        </a>
-                        <p className="text-[11px] text-slate-400">
-                            Berlaku otomatis untuk <strong>Siswa, Guru, dan Admin</strong>.
-                        </p>
-                        {isSebClient && (
-                            <div className="pt-1">
-                                <SebAccessPanel variant="login" />
+                    {/* SSO Hero Card Button (Tampil hanya jika PortoCarta dikonfigurasi) */}
+                    {portoEnabled && portoLaunchUrl && (
+                        <div className="p-4 rounded-2xl bg-gradient-to-br from-indigo-900/50 via-slate-900 to-purple-950/40 border border-indigo-500/30 text-center space-y-3 shadow-lg">
+                            <div className="flex items-center justify-center gap-1.5 text-xs font-semibold text-indigo-300 uppercase tracking-wider">
+                                <Sparkles className="h-3.5 w-3.5 text-amber-400 animate-pulse" />
+                                Rekomendasi Masuk
                             </div>
-                        )}
-                    </div>
+                            <p className="text-xs text-slate-300 leading-relaxed">
+                                Masuk instan menggunakan akun <strong>PortoCarta</strong> tanpa perlu menghafal password ujian.
+                            </p>
+                            <a
+                                href={portoLaunchUrl}
+                                className="w-full flex items-center justify-center gap-2.5 px-4 py-3 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-sm transition-all shadow-md hover:shadow-indigo-500/25 active:scale-[0.98] group"
+                            >
+                                <Rocket className="h-4 w-4 transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5" />
+                                Masuk dengan Akun PortoCarta
+                            </a>
+                            <p className="text-[11px] text-slate-400">
+                                Berlaku otomatis untuk <strong>Siswa, Guru, dan Admin</strong>.
+                            </p>
+                            {isSebClient && (
+                                <div className="pt-1">
+                                    <SebAccessPanel variant="login" />
+                                </div>
+                            )}
+                        </div>
+                    )}
+
+                    {!portoEnabled && isSebClient && (
+                        <div className="pt-1">
+                            <SebAccessPanel variant="login" />
+                        </div>
+                    )}
 
                     {!isSebClient && !isExambroClient && (
                         <div>
@@ -116,17 +150,19 @@ export default function LoginPage() {
                         </div>
                     )}
 
-                    {/* Divider Toggle Manual Login */}
-                    <div className="pt-2">
-                        <button
-                            type="button"
-                            onClick={() => setShowManualLogin(!showManualLogin)}
-                            className="w-full flex items-center justify-center gap-2 text-xs text-slate-400 hover:text-slate-200 transition-colors py-1.5"
-                        >
-                            <span>Opsi Login Mandiri (Cadangan)</span>
-                            {showManualLogin ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
-                        </button>
-                    </div>
+                    {/* Divider Toggle Manual Login (hanya perlu toggle jika SSO aktif) */}
+                    {portoEnabled && (
+                        <div className="pt-2">
+                            <button
+                                type="button"
+                                onClick={() => setShowManualLogin(!showManualLogin)}
+                                className="w-full flex items-center justify-center gap-2 text-xs text-slate-400 hover:text-slate-200 transition-colors py-1.5"
+                            >
+                                <span>Opsi Login Mandiri (Username &amp; Password)</span>
+                                {showManualLogin ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
+                            </button>
+                        </div>
+                    )}
 
                     {/* Manual Form (Collapsible) */}
                     {showManualLogin && (
@@ -203,7 +239,7 @@ export default function LoginPage() {
                                         Memproses...
                                     </>
                                 ) : (
-                                    'Masuk Manual'
+                                    'Masuk'
                                 )}
                             </Button>
                         </form>
@@ -221,7 +257,7 @@ export default function LoginPage() {
                         </div>
                     )}
                     <p className="text-[11px] text-slate-500 pt-3">
-                        PortoCarta Education Ecosystem &copy; 2026 SMAN 1 Campurdarat
+                        CartaExam CBT Platform &copy; {new Date().getFullYear()} {schoolName}
                     </p>
                 </CardFooter>
             </Card>

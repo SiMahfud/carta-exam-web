@@ -57,14 +57,14 @@ export function SebConfigCard() {
     const [copiedField, setCopiedField] = useState<string | null>(null);
     const [qrVersion, setQrVersion] = useState<number>(() => Date.now());
     const [state, setState] = useState<SebAdminState>({
-        examUrl: "https://exam.sman1campurdarat.sch.id",
-        portoCartaUrl: "https://porto.sman1campurdarat.sch.id",
+        examUrl: "",
+        portoCartaUrl: "",
         startPath: "/login",
-        allowSsoPortoCarta: true,
+        allowSsoPortoCarta: false,
         portoAllowedMode: "full_domain",
         allowQuit: true,
         hasQuitPassword: false,
-        quitURL: "https://exam.sman1campurdarat.sch.id/seb-quit",
+        quitURL: "",
         hasCustomExambroPin: false,
         defaultExambroPin: "CARTA2026",
         enableUrlFilter: true,
@@ -76,9 +76,9 @@ export function SebConfigCard() {
         allowPopupsForSso: true,
         configKey: "",
         launchUrls: {
-            downloadUrl: "https://exam.sman1campurdarat.sch.id/api/seb/config",
-            sebUrl: "sebs://exam.sman1campurdarat.sch.id/api/seb/config",
-            qrUrl: "https://exam.sman1campurdarat.sch.id/api/seb/qr",
+            downloadUrl: "/api/seb/config",
+            sebUrl: "",
+            qrUrl: "/api/seb/qr",
         },
         urlFilterPreview: [],
     });
@@ -229,17 +229,17 @@ export function SebConfigCard() {
                                         id="seb-exam-url"
                                         value={state.examUrl}
                                         onChange={(e) => setState({ ...state, examUrl: e.target.value })}
-                                        placeholder="https://exam.sman1campurdarat.sch.id"
+                                        placeholder="https://exam.sekolahanda.sch.id"
                                         className="text-sm"
                                     />
                                 </div>
                                 <div className="space-y-1.5">
-                                    <Label htmlFor="seb-porto-url" className="text-xs font-medium">URL PortoCarta (SSO Hub)</Label>
+                                    <Label htmlFor="seb-porto-url" className="text-xs font-medium">URL PortoCarta (SSO Hub, Opsional)</Label>
                                     <Input
                                         id="seb-porto-url"
                                         value={state.portoCartaUrl}
                                         onChange={(e) => setState({ ...state, portoCartaUrl: e.target.value })}
-                                        placeholder="https://porto.sman1campurdarat.sch.id"
+                                        placeholder="https://porto.sekolahanda.sch.id (kosongkan jika standalone)"
                                         className="text-sm"
                                     />
                                 </div>
@@ -307,7 +307,7 @@ export function SebConfigCard() {
                                         id="seb-quit-url"
                                         value={state.quitURL}
                                         onChange={(e) => setState({ ...state, quitURL: e.target.value })}
-                                        placeholder="https://exam.sman1campurdarat.sch.id/seb-quit"
+                                        placeholder="https://exam.sekolahanda.sch.id/seb-quit"
                                         className="text-sm font-mono"
                                     />
                                     <p className="text-[11px] text-muted-foreground">

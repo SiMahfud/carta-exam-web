@@ -390,7 +390,7 @@ export const examTokens = mysqlTable("exam_tokens", {
 
 export const schoolSettings = mysqlTable("school_settings", {
     id: varchar("id", { length: 36 }).primaryKey().$defaultFn(() => crypto.randomUUID()),
-    schoolName: varchar("school_name", { length: 255 }).notNull().default("SMAN 1 Campurdarat"),
+    schoolName: varchar("school_name", { length: 255 }).notNull().default("CartaExam School"),
     schoolDescription: text("school_description"),
     logoUrl: varchar("logo_url", { length: 500 }),
 

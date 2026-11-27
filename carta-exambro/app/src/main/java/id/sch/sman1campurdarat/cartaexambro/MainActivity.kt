@@ -132,14 +132,32 @@ class MainActivity : AppCompatActivity() {
         setContentView(binding.root)
 
         binding.tvVersion.text = "CartaExambro v${BuildConfig.VERSION_NAME} • Android Native"
+        binding.tvSchoolName.text = BuildConfig.SCHOOL_NAME.ifBlank { getString(R.string.school_name) }
 
         val savedManualUrl = getPrefs().getString(KEY_LAST_MANUAL_URL, null)
         if (!savedManualUrl.isNullOrBlank()) {
             binding.etManualUrl.setText(savedManualUrl)
         }
 
-        binding.btnOpenDefault.setOnClickListener {
-            startExamFlow(BuildConfig.DEFAULT_EXAM_URL)
+        val quickLaunchUrl = resolveQuickLaunchUrl()
+        if (quickLaunchUrl != null) {
+            binding.btnOpenDefault.visibility = android.view.View.VISIBLE
+            binding.tvServerTitle.text = if (BuildConfig.SSO_DOMAIN.isNotBlank()) {
+                "SERVER UTAMA & SSO"
+            } else {
+                "SERVER UJIAN SEKOLAH"
+            }
+            binding.tvServerDesc.text = if (BuildConfig.SSO_DOMAIN.isNotBlank()) {
+                "Terhubung ke $quickLaunchUrl dengan dukungan SSO ${BuildConfig.SSO_DOMAIN}."
+            } else {
+                "Langsung terhubung ke $quickLaunchUrl."
+            }
+            binding.btnOpenDefault.setOnClickListener {
+                startExamFlow(quickLaunchUrl)
+            }
+        } else {
+            binding.btnOpenDefault.visibility = android.view.View.GONE
+            binding.btnScanQr.setBackgroundResource(R.drawable.bg_button_primary)
         }
 
         binding.btnScanQr.setOnClickListener {
@@ -152,7 +170,15 @@ class MainActivity : AppCompatActivity() {
 
         binding.btnCheckUpdate.setOnClickListener {
             val targetOrigin = resolvePreferredUpdateOrigin()
-            checkUpdateManually(targetOrigin)
+            if (targetOrigin.isNullOrBlank()) {
+                Toast.makeText(
+                    this,
+                    "Masukkan URL server CartaExam atau pindai QR Code terlebih dahulu.",
+                    Toast.LENGTH_LONG
+                ).show()
+            } else {
+                checkUpdateManually(targetOrigin)
+            }
         }
 
         binding.etManualUrl.setOnEditorActionListener { _, actionId, _ ->
@@ -181,7 +207,15 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private fun resolvePreferredUpdateOrigin(): String {
+    private fun resolveQuickLaunchUrl(): String? {
+        if (BuildConfig.DEFAULT_EXAM_URL.isNotBlank()) {
+            return BuildConfig.DEFAULT_EXAM_URL
+        }
+        val lastOrigin = getPrefs().getString(KEY_LAST_EXAM_ORIGIN, null)
+        return lastOrigin?.takeIf { it.isNotBlank() }
+    }
+
+    private fun resolvePreferredUpdateOrigin(): String? {
         val manualText = binding.etManualUrl.text?.toString()?.trim().orEmpty()
         if (manualText.isNotEmpty()) {
             val normalized = normalizeUrl(manualText)
@@ -194,10 +228,11 @@ class MainActivity : AppCompatActivity() {
         if (!lastOrigin.isNullOrBlank()) {
             return lastOrigin
         }
-        return BuildConfig.DEFAULT_EXAM_URL
+        return BuildConfig.DEFAULT_EXAM_URL.takeIf { it.isNotBlank() }
     }
 
-    private fun runSilentStartupUpdateCheck(origin: String) {
+    private fun runSilentStartupUpdateCheck(origin: String?) {
+        if (origin.isNullOrBlank()) return
         AppUpdater.checkForUpdate(origin, timeoutMs = 4500) { result ->
             if (isFinishing || isDestroyed) return@checkForUpdate
             result.onSuccess { info ->
@@ -246,7 +281,15 @@ class MainActivity : AppCompatActivity() {
 
     private fun openManualUrl() {
         val raw = binding.etManualUrl.text?.toString()?.trim().orEmpty()
-        val candidate = if (raw.isEmpty()) BuildConfig.DEFAULT_EXAM_URL else raw
+        val candidate = if (raw.isEmpty()) resolveQuickLaunchUrl().orEmpty() else raw
+        if (candidate.isEmpty()) {
+            Toast.makeText(
+                this,
+                "Masukkan URL server CartaExam sekolah Anda (misal https://exam.sekolahanda.sch.id).",
+                Toast.LENGTH_LONG
+            ).show()
+            return
+        }
         val normalized = normalizeUrl(candidate)
         if (normalized == null) {
             Toast.makeText(

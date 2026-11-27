@@ -10,8 +10,31 @@ import {
 } from "../seb-config";
 
 describe("seb-config", () => {
-    it("should generate default config with CartaExam and PortoCarta URLs", () => {
-        const config = getDefaultSebConfig("https://exam.sman1campurdarat.sch.id");
+    it("should default to standalone config when PORTOCARTA_URL is unset", () => {
+        const prevPorto = process.env.PORTOCARTA_URL;
+        const prevNextPorto = process.env.NEXT_PUBLIC_PORTOCARTA_URL;
+        delete process.env.PORTOCARTA_URL;
+        delete process.env.NEXT_PUBLIC_PORTOCARTA_URL;
+
+        try {
+            const config = getDefaultSebConfig("https://exam.example.edu");
+            expect(config.examUrl).toBe("https://exam.example.edu");
+            expect(config.portoCartaUrl).toBe("");
+            expect(config.startPath).toBe("/login");
+            expect(config.allowSsoPortoCarta).toBe(false);
+            expect(config.enableUrlFilter).toBe(true);
+        } finally {
+            if (prevPorto !== undefined) process.env.PORTOCARTA_URL = prevPorto;
+            if (prevNextPorto !== undefined) process.env.NEXT_PUBLIC_PORTOCARTA_URL = prevNextPorto;
+        }
+    });
+
+    it("should generate default config with CartaExam and PortoCarta URLs when configured", () => {
+        const config = {
+            ...getDefaultSebConfig("https://exam.sman1campurdarat.sch.id"),
+            portoCartaUrl: "https://porto.sman1campurdarat.sch.id",
+            allowSsoPortoCarta: true,
+        };
         expect(config.examUrl).toBe("https://exam.sman1campurdarat.sch.id");
         expect(config.portoCartaUrl).toBe("https://porto.sman1campurdarat.sch.id");
         expect(config.startPath).toBe("/login");
@@ -20,7 +43,11 @@ describe("seb-config", () => {
     });
 
     it("should include both exam and porto domains in URLFilterRules when Option A SSO is enabled", () => {
-        const config = getDefaultSebConfig("https://exam.sman1campurdarat.sch.id");
+        const config = {
+            ...getDefaultSebConfig("https://exam.sman1campurdarat.sch.id"),
+            portoCartaUrl: "https://porto.sman1campurdarat.sch.id",
+            allowSsoPortoCarta: true,
+        };
         const rules = buildUrlFilterRules(config);
         const expressions = rules.map((r) => r.expression);
 
@@ -31,6 +58,8 @@ describe("seb-config", () => {
     it("should restrict PortoCarta rules to SSO paths when portoAllowedMode is sso_only", () => {
         const config = {
             ...getDefaultSebConfig("https://exam.sman1campurdarat.sch.id"),
+            portoCartaUrl: "https://porto.sman1campurdarat.sch.id",
+            allowSsoPortoCarta: true,
             portoAllowedMode: "sso_only" as const,
         };
         const rules = buildUrlFilterRules(config);

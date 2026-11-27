@@ -11,7 +11,14 @@ export async function POST(request: NextRequest) {
             apiKey = authHeader.substring(7).trim();
         }
 
-        const validKey = process.env.PORTOCARTA_API_KEY || "pc_cartaexam_secret_key_2026_smancarta";
+        const validKey = process.env.PORTOCARTA_API_KEY?.trim();
+
+        if (!validKey) {
+            return NextResponse.json(
+                { success: false, message: "Integrasi PortoCarta belum diaktifkan di server ini (PORTOCARTA_API_KEY belum diset)." },
+                { status: 503 }
+            );
+        }
 
         if (!apiKey || apiKey !== validKey) {
             return NextResponse.json(

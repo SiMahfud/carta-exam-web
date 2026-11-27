@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import {
     Dialog,
     DialogContent,
@@ -31,6 +32,20 @@ export function PrintDispensasiModal({
     onOpenChange,
     tokenData,
 }: PrintDispensasiModalProps) {
+    const [schoolName, setSchoolName] = useState("CartaExam School");
+
+    useEffect(() => {
+        if (!open) return;
+        fetch("/api/school-info")
+            .then((res) => res.json())
+            .then((json) => {
+                if (json?.success && json.data?.schoolName) {
+                    setSchoolName(json.data.schoolName);
+                }
+            })
+            .catch(() => {});
+    }, [open]);
+
     if (!tokenData) return null;
 
     const handlePrint = () => {
@@ -49,16 +64,13 @@ export function PrintDispensasiModal({
 
                 {/* Printable Slip Container */}
                 <div id="printable-dispensasi-slip" className="p-5 border-2 border-dashed border-slate-400 bg-white text-slate-900 rounded-xl space-y-4 font-sans">
-                    {/* Header SMAN 1 Campurdarat */}
+                    {/* Header Sekolah */}
                     <div className="text-center border-b pb-3 border-slate-300">
                         <h3 className="font-bold text-sm tracking-wider uppercase text-slate-900">
-                            SMAN 1 CAMPURDARAT
+                            {schoolName}
                         </h3>
                         <p className="text-[11px] text-slate-600">
-                            SURAT DISPENSASI & TOKEN AKSES UJIAN
-                        </p>
-                        <p className="text-[10px] text-slate-500">
-                            Tahun Ajaran 2025/2026
+                            SURAT DISPENSASI &amp; TOKEN AKSES UJIAN
                         </p>
                     </div>
 

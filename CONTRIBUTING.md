@@ -89,7 +89,7 @@ Before contributing, ensure you have:
 ```bash
 # Fork the repository on GitHub, then clone your fork
 git clone https://github.com/YOUR_USERNAME/CartaExam.git
-cd CartaExam/carta-exam-web
+cd CartaExam
 
 # Add upstream remote
 git remote add upstream https://github.com/ORIGINAL_OWNER/CartaExam.git
@@ -99,12 +99,13 @@ git remote add upstream https://github.com/ORIGINAL_OWNER/CartaExam.git
 
 ```bash
 npm install
+cp .env.example .env
 ```
 
 ### 3. Setup Database
 
 ```bash
-# Push schema to database
+# Push schema to database (SQLite / MySQL / PostgreSQL)
 npm run db:push
 
 # Or use Drizzle Kit directly
@@ -117,7 +118,7 @@ npx drizzle-kit push
 npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) in your browser.
+Open [http://localhost:3333](http://localhost:3333) in your browser.
 
 ### 5. Create a Branch
 
@@ -567,7 +568,7 @@ If you have questions about contributing:
 
 ## 🙏 Thank You!
 
-Your contributions make CartaExam better for students and teachers at SMAN 1 Campurdarat and beyond. Every contribution, no matter how small, is valued and appreciated!
+Your contributions make CartaExam better for students and teachers around the world. Every contribution, no matter how small, is valued and appreciated!
 
 **Happy Contributing! 🚀**
 

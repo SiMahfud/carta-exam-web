@@ -1,9 +1,8 @@
 import { db } from "./db";
 import { users } from "./schema";
 import { migrate as migrateSqlite } from "drizzle-orm/better-sqlite3/migrator";
-import { migrate as migrateMysql } from "drizzle-orm/mysql2/migrator";
-import { migrate as migratePg } from "drizzle-orm/postgres-js/migrator";
 import { sql } from "drizzle-orm";
+import bcrypt from "bcryptjs";
 import path from "path";
 
 export async function initializeDatabase() {
@@ -38,16 +37,25 @@ export async function initializeDatabase() {
             }
         }
 
-        // 1. Run Migrations
-        console.log("[Init] Running migrations...");
-        if (provider === "mysql") {
-            await migrateMysql(db, { migrationsFolder });
-        } else if (provider === "postgres") {
-            await migratePg(db, { migrationsFolder });
-        } else {
-            await migrateSqlite(db, { migrationsFolder });
+        // 1. Check if schema already pushed (e.g. via `npm run db:push`)
+        let schemaReady = false;
+        try {
+            await db.select({ count: sql<number>`count(*)` }).from(users);
+            schemaReady = true;
+        } catch {
+            schemaReady = false;
         }
-        console.log("[Init] Migrations completed successfully.");
+
+        if (!schemaReady) {
+            if (provider === "sqlite") {
+                console.log("[Init] Running SQLite migrations...");
+                await migrateSqlite(db, { migrationsFolder });
+                console.log("[Init] SQLite migrations completed.");
+            } else {
+                console.warn(`[Init] Database tables not found for ${provider}. Please run "npm run db:push" first.`);
+                return;
+            }
+        }
 
         // 2. Check if seeding is needed
         const userCount = await db.select({ count: sql<number>`count(*)` }).from(users);
@@ -56,20 +64,23 @@ export async function initializeDatabase() {
         if (count === 0) {
             console.log("[Init] Database appears empty. Seeding initial data...");
 
+            const adminPasswordHash = await bcrypt.hash("password123", 10);
+            const studentPasswordHash = await bcrypt.hash("password123", 10);
+
             // Create default admin user
             await db.insert(users).values({
                 name: "Administrator",
                 username: "admin",
-                password: "password123",
+                password: adminPasswordHash,
                 role: "admin",
             });
-            console.log("[Init] Admin user created: admin / password123");
+            console.log("[Init] Admin user created: admin / password123 (Please change password immediately!)");
 
             // Create default student user
             await db.insert(users).values({
                 name: "Student Demo",
                 username: "siswa",
-                password: "password123",
+                password: studentPasswordHash,
                 role: "student",
             });
             console.log("[Init] Student user created: siswa / password123");

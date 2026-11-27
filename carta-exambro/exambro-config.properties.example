@@ -1,0 +1,24 @@
+# Konfigurasi Opsional White-Label CartaExambro
+# Salin file ini menjadi "exambro-config.properties" di folder carta-exambro/
+# lalu sesuaikan untuk sekolah Anda sebelum build APK.
+#
+# Jika file exambro-config.properties tidak dibuat, APK otomatis dibangun dalam
+# Mode Publik Generik (siswa memindai QR Code atau mengetik URL server sekolah).
+
+# Package ID unik di perangkat Android (wajib unik jika rilis ke Play Store)
+applicationId=org.cartaexam.exambro
+
+# Nama sekolah atau institusi yang tampil di layar utama aplikasi
+schoolName=SMA Negeri 1 Nusantara
+
+# URL default server CartaExam sekolah Anda (opsional; kosongkan untuk mode generik)
+defaultExamUrl=https://exam.sekolahanda.sch.id
+
+# Host/domain server ujian yang diizinkan (opsional; kosongkan jika mengikuti defaultExamUrl)
+examDomain=exam.sekolahanda.sch.id
+
+# Host/domain SSO eksternal (opsional; kosongkan jika memakai login mandiri CartaExam)
+ssoDomain=
+
+# PIN darurat pengawas bawaan (tetap bisa diubah sewaktu-waktu dari Admin -> Pengaturan SEB/Exambro)
+defaultProctorExitPin=CARTA2026

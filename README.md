@@ -1,93 +1,142 @@
-# CartaExam
+# 🎓 CartaExam & CartaExambro
 
-**Platform Ujian Digital & Computer Based Test (CBT) Modern untuk SMAN 1 Campurdarat**
+**Platform Ujian Digital (Computer Based Test / CBT) Modern, Aman, Open-Source, dan Tahan Gangguan Jaringan untuk Sekolah di Seluruh Dunia.**
 
-CartaExam adalah sistem ujian berbasis web berkinerja tinggi yang dirancang khusus untuk menyelenggarakan asesmen dan evaluasi pembelajaran yang aman, tahan gangguan jaringan (*offline resilient*), efisien, dan dilengkapi asisten AI.
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+[![Next.js 14](https://img.shields.io/badge/Next.js-14-black)](https://nextjs.org/)
+[![Android Native](https://img.shields.io/badge/Android-CartaExambro%20v1.1.0-green)](carta-exambro/README.md)
+
+**CartaExam** adalah ekosistem asesmen digital lengkap yang terdiri dari:
+1. **CartaExam Web** — Aplikasi web CBT berbasis **Next.js 14**, **Drizzle ORM** (SQLite / MySQL / PostgreSQL), **Tailwind CSS**, dan **shadcn/ui** untuk Admin, Guru, Pengawas, Tata Usaha, dan Siswa.
+2. **CartaExambro (`carta-exambro/`)** — Aplikasi browser ujian native **Android** (Kotlin + WebView) dengan proteksi layar OS (`FLAG_SECURE`), anti-overlay, pemindai QR offline, auto-updater, dan tangkapan bukti pelanggaran.
+3. **Integrasi Safe Exam Browser (SEB)** — Generator file konfigurasi `.seb` & QR Code langsung dari panel Admin untuk perangkat **Windows, macOS, iPhone, dan iPad**.
 
 ---
 
 ## 🌟 Fitur Utama
 
-### 🛡️ 1. Keamanan Ujian & Anti-Kecurangan (Lockdown Mode)
-- **Deteksi Pelanggaran Real-time**: Mendeteksi otomatis aksi berpindah tab (*tab switch*), keluar mode layar penuh (*fullscreen exit*), dan upaya pintasan keyboard/screenshot.
-- **Signed Session & Auth Guard**: Mengamankan identitas siswa dan hak akses API menggunakan HMAC-SHA256 token verification.
-- **Seeded Deterministic Randomization**: Pengacakan butir soal dan opsi pilihan ganda unik per siswa yang konsisten dan anti-bocor.
-- **Live Proctoring Feed**: Dashboard pengawas dengan auto-refresh 5 detik untuk memantau pengerjaan dan tombol aksi (*Reset Pelanggaran*, *Buka Kunci Ujian*, *Paksa Selesai*).
+### 📚 1. Bank Soal Kaya Fitur & AI Generator
+- **6 Tipe Soal Standar**: Pilihan Ganda (`mc`), PG Kompleks (`complex_mc`), Menjodohkan (`matching`), Isian Singkat (`short`), Benar/Salah (`true_false`), dan Esai (`essay`).
+- **Rich Text & Matematika**: Editor TipTap dengan dukungan rumus **KaTeX / LaTeX** serta upload gambar soal.
+- **Import Word (`.docx`)**: Impor soal dari dokumen Word lengkap dengan konversi rumus OMML ke LaTeX dan pratinjau instan.
+- **AI Generator Soal (Streaming)**: Buat soal otomatis dari materi teks/dokumen menggunakan **Google Gemini**, **OpenRouter**, atau **OpenAI-Compatible** (OpenAI, Groq, Ollama lokal, dll.).
 
-### 📶 2. PWA & Offline Resilience (Ketahanan Jaringan Sekolah)
-- **Offline Queue**: Jawaban siswa otomatis tersimpan di memori perangkat lokal saat Wi-Fi sekolah terputus mendadak.
-- **Background Auto-Sync**: Jawaban otomatis disinkronkan ke server secara hening saat koneksi kembali terhubung tanpa refresh halaman.
-- **Web App Manifest**: Mendukung instalasi PWA di laptop, tablet, dan smartphone siswa.
+### 🛡️ 2. Keamanan Ujian Berlapis & Live Proctoring
+- **Lockdown Mode**: Deteksi perpindahan tab/jendela, blokir copy-paste & klik kanan, deteksi screenshot/DevTools, serta watermark nama siswa anti-tamper.
+- **Dukungan SEB & CartaExambro**: Wajibkan peserta membuka ujian lewat Safe Exam Browser atau CartaExambro Android.
+- **Device Binding & Late Tolerance**: Penguncian 1 perangkat per siswa dan penguncian otomatis peserta terlambat (`LATE_ENTRY`).
+- **Live Proctoring Real-Time (SSE)**: Pantau progres siswa secara instan via Server-Sent Events beserta aksi pengawas (*Reset Pelanggaran*, *Buka Kunci*, *Kunci Sementara*, *Reset Perangkat*, *Tambah Waktu*, *Paksa Selesai*, *Ulang Ujian*).
+- **Bukti Screenshot Pelanggaran**: CartaExambro otomatis merekam tangkapan layar saat terjadi pelanggaran/overlay/split-screen dan mengirimkannya ke dashboard pengawas.
 
-### 🤖 3. AI-Assisted Essay Grading (Google Gemini)
-- **Koreksi Esai Otomatis**: Analisis cerdas jawaban uraian siswa terhadap kunci dan rubrik penilaian guru menggunakan Google Gemini AI.
-- **Feedback Konstruktif**: Rekomendasi skor instan beserta catatan kekuatan dan hal yang perlu ditingkatkan oleh siswa.
+### 💳 3. Administrasi Siswa & Token Dispensasi (TU)
+- Kunci/buka kelayakan peserta berdasarkan verifikasi administrasi (`cleared`, `locked`, `dispensation`), import/export Excel, serta cetak slip **Token Dispensasi** sekali pakai (`session`, `daily`, `weekly`, `permanent`).
 
-### 📊 4. Dashboard Analytics & Review Hasil Siswa
-- **Visual Analytics**: Grafik distribusi nilai kelulusan, perbandingan rata-rata capaian antar mata pelajaran, dan komposisi bank soal.
-- **Review Mode Siswa**: Siswa dapat meninjau skor, kunci jawaban, dan pembahasan setelah ujian dipublikasikan.
+### 📶 4. Ketahanan Jaringan Sekolah (Offline Queue & Server Timer)
+- **Offline Answer Queue**: Jika Wi-Fi sekolah terputus mendadak saat ujian, jawaban siswa otomatis disimpan di perangkat lokal dan disinkronkan diam-diam saat koneksi pulih.
+- **Server-Authoritative Heartbeat**: Sisa waktu ujian dikontrol server untuk mencegah manipulasi jam perangkat.
 
-### 🖨️ 5. Alat Operasional & Cetak Naskah
-- **Cetak Naskah Soal & LJK Kertas**: Generator cetak standar ujian nasional A4, Lembar Jawaban Komputer (LJK), dan kunci jawaban guru untuk antisipasi mati listrik.
-- **Backup & Restore**: Ekspor dan pemulihan snapshot database lengkap sekolah dalam 1 klik.
-- **Bulk User Import**: Template Excel `.xlsx` resmi untuk import ratusan siswa dan guru sekaligus.
-- **Audit Activity Logs**: Rekam jejak audit keamanan seluruh aktivitas di sistem.
-
----
-
-## 🛠️ Teknologi & Arsitektur
-
-- **Frontend**: Next.js 14 (App Router), React 18, TypeScript, Tailwind CSS, shadcn/ui
-- **Backend**: Next.js API Routes (Serverless & Stateful)
-- **Database Support**: Multi-Provider (SQLite / MySQL / PostgreSQL) via Drizzle ORM
-- **Math Formula**: KaTeX & LaTeX Rendering
-- **Artificial Intelligence**: Google GenAI SDK (Gemini 2.5 Flash)
-- **Testing**: Vitest, React Testing Library, Playwright
+### ✍️ 5. Koreksi Otomatis, AI Essay Grading & Cetak Kertas
+- **Auto-Grading & Partial Credit**: Penilaian instan untuk soal objektif termasuk bobot parsial PG Kompleks & Menjodohkan.
+- **AI-Assisted Essay Grading**: Evaluasi jawaban esai siswa terhadap rubrik/model jawaban guru dengan rekomendasi skor dan umpan balik konstruktif.
+- **Ekspor Excel 3 Sheet**: Rekap Nilai, Jawaban Esai, dan Statistik Sesi.
+- **Cetak Naskah A4, LJK & Kunci**: Antisipasi mati listrik atau ujian luring langsung dari template ujian.
 
 ---
 
-## 🚀 Memulai (Getting Started)
+## 🛠️ Ringkasan Arsitektur Teknis
 
-### 1. Instalasi Dependensi
-```bash
-npm install
-```
+| Komponen | Teknologi |
+|---|---|
+| **Web Framework** | Next.js 14 (App Router), React 18, TypeScript |
+| **UI & Styling** | Tailwind CSS, shadcn/ui (Radix UI), Lucide Icons, TipTap, KaTeX |
+| **Database** | Multi-Provider via Drizzle ORM (**SQLite**, **MySQL/MariaDB**, **PostgreSQL**) — 20 Tabel |
+| **Autentikasi** | Cookie sesi bertanda tangan HMAC-SHA256 + `bcryptjs` (+ Opsional SSO eksternal) |
+| **AI Provider** | Google GenAI SDK (`gemini-2.5-flash`), OpenRouter, OpenAI-Compatible API |
+| **Real-time** | Server-Sent Events (SSE) untuk Proctoring & AI Streaming |
+| **Android Client** | Kotlin, ViewBinding, System WebView, ZXing QR, `MediaProjection`, `FLAG_SECURE` |
+| **Pengujian** | Vitest + React Testing Library (Unit/Component), Playwright (E2E) |
 
-### 2. Konfigurasi Environment
-Salin file `.env.example` ke `.env` dan sesuaikan konfigurasi (default: SQLite `local.db`):
+---
+
+## 🚀 Mulai Cepat (Quick Start — 5 Menit)
+
+### Opsi A: Menggunakan Docker Compose (Paling Praktis)
 ```bash
+git clone https://github.com/YOUR_ORG/CartaExam.git
+cd CartaExam
 cp .env.example .env
+docker compose up -d --build
 ```
+Buka **`http://localhost:3333`**.
 
-### 3. Menjalankan Server Development
+### Opsi B: Menjalankan Secara Lokal dengan Node.js (Default SQLite)
+**Prasyarat:** Node.js 20+ (rekomendasi Node 22 LTS).
+
 ```bash
+# 1. Clone repositori & masuk ke folder proyek
+git clone https://github.com/YOUR_ORG/CartaExam.git
+cd CartaExam
+
+# 2. Instal dependensi
+npm install
+
+# 3. Salin konfigurasi environment (default sudah menggunakan SQLite local.db)
+cp .env.example .env
+
+# 4. Buat skema database (20 tabel)
+npm run db:push
+
+# 5. Jalankan server development
 npm run dev
 ```
-Akses aplikasi di browser pada alamat [http://localhost:3333](http://localhost:3333).
+
+Akses aplikasi di **`http://localhost:3333`**.
+
+> **Akun Bawaan (Fresh Install):**
+> - **Admin:** username `admin` | password `password123`
+> - **Siswa Demo:** username `siswa` | password `password123`
+>
+> ⚠️ **Penting:** Segera ubah password `admin` setelah login pertama, dan isi identitas sekolah Anda di **Pengaturan Sekolah (`/admin/settings`)** serta atur `SESSION_SECRET` acak di `.env` sebelum masuk produksi.
 
 ---
 
 ## 🧪 Pengujian (Testing & QA)
 
-CartaExam dilengkapi dengan rangkaian test komprehensif:
-
 ```bash
-# Menjalankan seluruh Unit & Component Test Suite (32 files, 178 tests)
+# Menjalankan seluruh Unit & Component Test Suite (59 files, 307 tests)
 npm run test:run
 
-# Menjalankan ESLint verification (0 errors, 0 warnings)
+# Menjalankan laporan cakupan tes (Coverage)
+npm run test:coverage
+
+# Menjalankan pemeriksaan ESLint
 npm run lint
 
-# Menjalankan E2E testing dengan Playwright
+# Menjalankan build produksi Next.js
+npm run build
+
+# Menjalankan End-to-End (E2E) tests dengan Playwright
 npm run test:e2e
 ```
 
 ---
 
-## 📚 Dokumentasi Terkait
+## 📚 Indeks Dokumentasi Lengkap
 
-- [Dokumentasi API](docs/api_documentation.md) - Rincian lengkap seluruh endpoint backend
-- [Skema Database](docs/database_schema.md) - Diagram ERD dan struktur tabel multi-provider
-- [Panduan Pengguna untuk Guru](docs/user_guide_teachers.md) - Panduan praktis operasional guru & operator
-- [Roadmap Pengembangan](ROADMAP.md) - Rencana dan riwayat implementasi fitur
-- [Fitur Lengkap](FEATURES.md) - Matriks kapabilitas aplikasi CartaExam
+### Untuk Sekolah, Guru, Pengawas & Pengguna Umum
+- 🚀 **[Panduan Instalasi, Deployment & White-Label](docs/deployment_and_customization.md)** — Mulai dari setup lokal pemula hingga server produksi MySQL/PostgreSQL + Nginx + Docker.
+- 👩‍🏫 **[Panduan Guru & Operator](docs/user_guide_teachers.md)** — Mengelola bank soal, AI generator, template ujian, cetak LJK, dan penilaian.
+- 🛡️ **[Panduan Pengawas, Tata Usaha & Siswa](docs/user_guide_proctor_and_student.md)** — Live proctoring, token administrasi/dispensasi, SEB, dan panduan ujian siswa.
+
+### Untuk Pengembang, Sysadmin & Kontributor
+- 📱 **[Dokumentasi CartaExambro (Android)](carta-exambro/README.md)** — Cara build APK, kustomisasi sekolah (`exambro-config.properties`), auto-updater, dan protokol keamanan OS.
+- 📖 **[Dokumentasi API](docs/api_documentation.md)** — Referensi lengkap seluruh endpoint REST & SSE backend.
+- 🗄️ **[Dokumentasi Skema Database](docs/database_schema.md)** — Diagram ERD dan spesifikasi 20 tabel multi-provider.
+- ✅ **[Matriks Fitur](FEATURES.md)** & 🗺️ **[Roadmap](ROADMAP.md)** — Status kapabilitas lengkap aplikasi.
+- 🤝 **[Panduan Kontribusi](CONTRIBUTING.md)** & 🤖 **[Panduan AI Agent](AGENTS.md)**.
+
+---
+
+## 📜 Lisensi
+
+Proyek ini dirilis dengan lisensi terbuka **[MIT License](LICENSE)** — bebas digunakan, dimodifikasi, dan di-deploy oleh sekolah, universitas, maupun lembaga pendidikan di seluruh dunia.

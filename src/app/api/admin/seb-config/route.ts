@@ -13,9 +13,9 @@ import {
 
 const updateSebSchema = z.object({
     examUrl: z.string().url("URL CartaExam tidak valid"),
-    portoCartaUrl: z.string().url("URL PortoCarta tidak valid"),
+    portoCartaUrl: z.string().url("URL PortoCarta tidak valid").or(z.literal("")).default(""),
     startPath: z.string().min(1).default("/login"),
-    allowSsoPortoCarta: z.boolean().default(true),
+    allowSsoPortoCarta: z.boolean().default(false),
     portoAllowedMode: z.enum(["full_domain", "sso_only"]).default("full_domain"),
     allowQuit: z.boolean().default(true),
     quitPassword: z.string().max(128).optional(),

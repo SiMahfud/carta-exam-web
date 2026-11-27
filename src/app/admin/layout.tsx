@@ -29,7 +29,7 @@ import {
 import { useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
 import { GlobalSearch } from "@/components/global-search/GlobalSearch";
-import { getPortoCartaUrl } from "@/lib/porto-url";
+import { buildPortoCartaUrl, getPortoCartaUrl } from "@/lib/porto-url";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
     DropdownMenu,
@@ -70,6 +70,7 @@ export default function AdminLayout({
     const [isSearchOpen, setIsSearchOpen] = useState(false);
     const [isShortcutsHelpOpen, setIsShortcutsHelpOpen] = useState(false);
     const [user, setUser] = useState<UserSession | null>(null);
+    const [portoDashboardUrl, setPortoDashboardUrl] = useState<string>(() => getPortoCartaUrl("/dashboard"));
 
     useEffect(() => {
         fetch("/api/auth/session")
@@ -80,6 +81,15 @@ export default function AdminLayout({
                 }
             })
             .catch(err => console.error("Error fetching session:", err));
+
+        fetch("/api/school-info")
+            .then(res => res.json())
+            .then(json => {
+                if (json?.success && json.data?.portoCartaEnabled && json.data?.portoCartaUrl) {
+                    setPortoDashboardUrl(buildPortoCartaUrl(json.data.portoCartaUrl, "/dashboard"));
+                }
+            })
+            .catch(() => {});
     }, []);
 
     // Initialize keyboard shortcuts
@@ -175,18 +185,20 @@ export default function AdminLayout({
                             );
                         })}
 
-                        {/* Tautan Pintas ke PortoCarta */}
-                        <div className="pt-4 mt-4 border-t border-slate-800/80 px-2">
-                            <a
-                                href="https://porto.sman1campurdarat.sch.id/dashboard"
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-medium text-indigo-300 hover:text-white bg-indigo-950/40 hover:bg-indigo-900/60 border border-indigo-800/50 transition-all"
-                            >
-                                <Globe className="h-4 w-4 text-indigo-400" />
-                                <span>Portal PortoCarta</span>
-                            </a>
-                        </div>
+                        {/* Tautan Pintas ke PortoCarta (jika dikonfigurasi) */}
+                        {portoDashboardUrl && (
+                            <div className="pt-4 mt-4 border-t border-slate-800/80 px-2">
+                                <a
+                                    href={portoDashboardUrl}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-medium text-indigo-300 hover:text-white bg-indigo-950/40 hover:bg-indigo-900/60 border border-indigo-800/50 transition-all"
+                                >
+                                    <Globe className="h-4 w-4 text-indigo-400" />
+                                    <span>Portal PortoCarta</span>
+                                </a>
+                            </div>
+                        )}
                     </div>
 
                     {/* Profil Pengguna Dinamis */}
@@ -246,17 +258,19 @@ export default function AdminLayout({
                     </div>
 
                     <div className="flex items-center gap-2">
-                        {/* Tombol Pintas ke PortoCarta */}
-                        <a
-                            href={getPortoCartaUrl("/dashboard")}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-indigo-200 dark:border-indigo-800/80 bg-indigo-50/50 dark:bg-indigo-950/30 text-indigo-700 dark:text-indigo-300 hover:bg-indigo-100 dark:hover:bg-indigo-900/50 text-xs font-medium transition-all mr-1 shadow-xs"
-                            title="Buka Portal Induk PortoCarta"
-                        >
-                            <Globe className="h-3.5 w-3.5" />
-                            <span>Portal Sekolah</span>
-                        </a>
+                        {/* Tombol Pintas ke PortoCarta (jika dikonfigurasi) */}
+                        {portoDashboardUrl && (
+                            <a
+                                href={portoDashboardUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-indigo-200 dark:border-indigo-800/80 bg-indigo-50/50 dark:bg-indigo-950/30 text-indigo-700 dark:text-indigo-300 hover:bg-indigo-100 dark:hover:bg-indigo-900/50 text-xs font-medium transition-all mr-1 shadow-xs"
+                                title="Buka Portal Induk PortoCarta"
+                            >
+                                <Globe className="h-3.5 w-3.5" />
+                                <span>Portal Sekolah</span>
+                            </a>
+                        )}
 
                         {/* Search Button */}
                         <Button
@@ -307,18 +321,22 @@ export default function AdminLayout({
                                         <p className="text-xs leading-none text-muted-foreground">
                                             {isAdmin ? "Hak Akses: Administrator" : "Hak Akses: Guru / Pendidik"}
                                         </p>
-                                        <p className="text-[11px] leading-none text-emerald-600 dark:text-emerald-400 font-medium pt-1 flex items-center gap-1">
-                                            <CheckCircle2 className="h-3 w-3" /> SSO PortoCarta Aktif
-                                        </p>
+                                        {portoDashboardUrl && (
+                                            <p className="text-[11px] leading-none text-emerald-600 dark:text-emerald-400 font-medium pt-1 flex items-center gap-1">
+                                                <CheckCircle2 className="h-3 w-3" /> SSO PortoCarta Aktif
+                                            </p>
+                                        )}
                                     </div>
                                 </DropdownMenuLabel>
                                 <DropdownMenuSeparator />
-                                <DropdownMenuItem asChild>
-                                    <a href="https://porto.sman1campurdarat.sch.id/dashboard" target="_blank" rel="noopener noreferrer" className="cursor-pointer">
-                                        <Globe className="h-4 w-4 mr-2 text-indigo-500" />
-                                        Buka Portal PortoCarta
-                                    </a>
-                                </DropdownMenuItem>
+                                {portoDashboardUrl && (
+                                    <DropdownMenuItem asChild>
+                                        <a href={portoDashboardUrl} target="_blank" rel="noopener noreferrer" className="cursor-pointer">
+                                            <Globe className="h-4 w-4 mr-2 text-indigo-500" />
+                                            Buka Portal PortoCarta
+                                        </a>
+                                    </DropdownMenuItem>
+                                )}
                                 {isAdmin && (
                                     <DropdownMenuItem asChild>
                                         <Link href="/admin/settings" className="cursor-pointer">

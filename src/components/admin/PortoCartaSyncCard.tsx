@@ -1,12 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { RefreshCw, CheckCircle2, ExternalLink, ShieldCheck, Database, Layers, Activity, AlertCircle, Wifi } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { getPortoCartaUrl } from "@/lib/porto-url";
+import { buildPortoCartaUrl, getPortoCartaUrl } from "@/lib/porto-url";
 
 export function PortoCartaSyncCard() {
     const [isSyncing, setIsSyncing] = useState(false);
@@ -18,9 +18,24 @@ export function PortoCartaSyncCard() {
         message?: string;
     }>({ checked: false, connected: false });
     const [lastSyncResult, setLastSyncResult] = useState<any>(null);
+    const [portoCartaUrl, setPortoCartaUrl] = useState<string>(() => getPortoCartaUrl());
+    const [isConfigured, setIsConfigured] = useState<boolean>(() => Boolean(getPortoCartaUrl()));
     const { toast } = useToast();
 
-    const portoCartaUrl = getPortoCartaUrl();
+    useEffect(() => {
+        fetch("/api/school-info")
+            .then((res) => res.json())
+            .then((json) => {
+                if (json?.success && json.data) {
+                    const enabled = Boolean(json.data.portoCartaEnabled && json.data.portoCartaUrl);
+                    setIsConfigured(enabled);
+                    if (enabled) {
+                        setPortoCartaUrl(buildPortoCartaUrl(json.data.portoCartaUrl));
+                    }
+                }
+            })
+            .catch(() => {});
+    }, []);
 
     async function handlePing() {
         setIsPinging(true);
@@ -115,20 +130,24 @@ export function PortoCartaSyncCard() {
                                         <AlertCircle className="h-3 w-3 mr-1" /> Hub Terputus
                                     </Badge>
                                 )
-                            ) : (
+                            ) : isConfigured ? (
                                 <Badge variant="outline" className="bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400 border-emerald-200">
                                     <CheckCircle2 className="h-3 w-3 mr-1" /> Integrasi Aktif
+                                </Badge>
+                            ) : (
+                                <Badge variant="secondary" className="text-xs">
+                                    Opsional (Mode Standalone)
                                 </Badge>
                             )}
                         </div>
                         <CardDescription className="text-xs">
-                            Pusat data terintegrasi untuk menyelaraskan akun Siswa, Guru/PTK, Kelas, dan Mata Pelajaran secara otomatis dari portal induk PortoCarta.
+                            Pusat data terintegrasi opsional untuk menyelaraskan akun Siswa, Guru/PTK, Kelas, dan Mata Pelajaran dari portal induk PortoCarta. Biarkan kosong jika sekolah Anda menjalankan CartaExam secara mandiri (standalone).
                         </CardDescription>
                     </div>
                     <div className="flex items-center gap-2 shrink-0 flex-wrap">
                         <Button
                             onClick={handlePing}
-                            disabled={isPinging || isSyncing}
+                            disabled={isPinging || isSyncing || !isConfigured}
                             variant="outline"
                             size="sm"
                             className="text-xs h-8"
@@ -136,18 +155,20 @@ export function PortoCartaSyncCard() {
                             <Wifi className={`h-3.5 w-3.5 mr-1.5 ${isPinging ? "animate-pulse text-indigo-500" : "text-muted-foreground"}`} />
                             {isPinging ? "Menguji..." : "Uji Koneksi Hub"}
                         </Button>
-                        <a
-                            href={`${portoCartaUrl}/admin/integrations`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground px-3 py-1.5 rounded-lg border bg-background hover:bg-muted transition-colors h-8"
-                        >
-                            <span>Panel PortoCarta</span>
-                            <ExternalLink className="h-3.5 w-3.5" />
-                        </a>
+                        {portoCartaUrl && (
+                            <a
+                                href={`${portoCartaUrl}/admin/integrations`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground px-3 py-1.5 rounded-lg border bg-background hover:bg-muted transition-colors h-8"
+                            >
+                                <span>Panel PortoCarta</span>
+                                <ExternalLink className="h-3.5 w-3.5" />
+                            </a>
+                        )}
                         <Button
                             onClick={handleSync}
-                            disabled={isSyncing}
+                            disabled={isSyncing || !isConfigured}
                             size="sm"
                             className="bg-indigo-600 hover:bg-indigo-700 text-white font-medium text-xs shadow-sm h-8"
                         >

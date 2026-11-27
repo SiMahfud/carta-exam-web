@@ -13,21 +13,44 @@ val hasReleaseKeystore = keystorePropertiesFile.exists().also { exists ->
     }
 }
 
+val exambroConfigFile = rootProject.file("exambro-config.properties")
+val exambroConfig = Properties()
+if (exambroConfigFile.exists()) {
+    exambroConfigFile.inputStream().use { exambroConfig.load(it) }
+}
+
+fun cfgString(key: String, fallback: String = ""): String {
+    return (exambroConfig.getProperty(key) ?: fallback).trim()
+}
+
+fun escapeBuildConfig(value: String): String {
+    return value.replace("\\", "\\\\").replace("\"", "\\\"")
+}
+
+val configuredAppId = cfgString("applicationId", "org.cartaexam.exambro").ifBlank { "org.cartaexam.exambro" }
+val configuredSchoolName = cfgString("schoolName", "Platform Ujian Digital")
+val configuredDefaultExamUrl = cfgString("defaultExamUrl", "")
+val configuredExamDomain = cfgString("examDomain", "")
+val configuredSsoDomain = cfgString("ssoDomain", "")
+val configuredDefaultExitPin = cfgString("defaultProctorExitPin", "CARTA2026").ifBlank { "CARTA2026" }
+
 android {
     namespace = "id.sch.sman1campurdarat.cartaexambro"
     compileSdk = 35
 
     defaultConfig {
-        applicationId = "id.sch.sman1campurdarat.cartaexambro"
+        applicationId = configuredAppId
         minSdk = 24
         targetSdk = 35
         versionCode = 2
         versionName = "1.1.0"
 
-        // URL default server CartaExam & domain SSO PortoCarta yang diizinkan
-        buildConfigField("String", "DEFAULT_EXAM_URL", "\"https://exam.sman1campurdarat.sch.id\"")
-        buildConfigField("String", "SSO_DOMAIN", "\"porto.sman1campurdarat.sch.id\"")
-        buildConfigField("String", "EXAM_DOMAIN", "\"exam.sman1campurdarat.sch.id\"")
+        // Konfigurasi server & branding (otomatis membaca exambro-config.properties jika ada)
+        buildConfigField("String", "SCHOOL_NAME", "\"${escapeBuildConfig(configuredSchoolName)}\"")
+        buildConfigField("String", "DEFAULT_EXAM_URL", "\"${escapeBuildConfig(configuredDefaultExamUrl)}\"")
+        buildConfigField("String", "SSO_DOMAIN", "\"${escapeBuildConfig(configuredSsoDomain)}\"")
+        buildConfigField("String", "EXAM_DOMAIN", "\"${escapeBuildConfig(configuredExamDomain)}\"")
+        buildConfigField("String", "DEFAULT_PROCTOR_EXIT_PIN", "\"${escapeBuildConfig(configuredDefaultExitPin)}\"")
     }
 
     signingConfigs {

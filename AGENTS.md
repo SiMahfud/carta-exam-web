@@ -8,7 +8,7 @@
 
 ## 📚 Project Overview
 
-**CartaExam** is a modern, web-based exam platform for SMAN 1 Campurdarat, built with **Next.js 14 (App Router)**, **SQLite/Drizzle ORM**, **Tailwind CSS**, and **shadcn/ui**.
+**CartaExam** is an open-source, web-based exam platform (with companion Android native browser `carta-exambro/`), built with **Next.js 14 (App Router)**, **SQLite/MySQL/PostgreSQL via Drizzle ORM**, **Tailwind CSS**, and **shadcn/ui**.
 
 ### Core Purpose
 Enable secure, efficient, and user-friendly digital examinations for teachers and students with features like:
@@ -37,11 +37,12 @@ State:     Zustand (minimal usage), React Context
 
 ### Project Structure
 ```
-carta-exam-web/
+CartaExam/
 ├── src/
 │   ├── app/                   # Next.js App Router pages
 │   │   ├── admin/             # Admin dashboard and management
 │   │   ├── api/               # API routes (backend)
+│   │   ├── auth/sso/          # Optional external SSO handler
 │   │   ├── student/           # Student exam interface
 │   │   └── login/             # Authentication
 │   ├── components/            # React components
@@ -49,16 +50,17 @@ carta-exam-web/
 │   │   ├── exam/              # Exam-specific components
 │   │   ├── question-editor/   # Question type editors
 │   │   └── grading/           # Grading interface components
-│   ├── lib/                   # Utilities and configurations
-│   │   ├── schema.ts          # Database schema (Drizzle)
+│   ├── lib/                   # Utilities, auth, SEB, AI, and DB schemas
+│   │   ├── schema.ts          # Dynamic multi-provider schema export
+│   │   ├── schemas/           # sqlite.ts, mysql.ts, postgresql.ts (20 tables)
 │   │   └── db.ts              # Database connection
 │   ├── hooks/                 # Custom React hooks
-│   └── middleware.ts          # Next.js middleware (auth, etc.)
-├── docs/                      # Documentation
-│   ├── api_documentation.md
-│   ├── database_schema.md
-│   └── user_guide_teachers.md
-├── public/                    # Static assets
+│   └── middleware.ts          # Next.js middleware (auth, headers)
+├── carta-exambro/             # Companion Android Native app (Kotlin + WebView)
+├── docs/                      # Technical & user documentation
+├── public/                    # Static assets & optional APK distribution
+├── Dockerfile                 # Production container image
+├── docker-compose.yml         # Quick self-hosting setup
 ├── ROADMAP.md                 # Development roadmap
 ├── AGENTS.md                  # This file
 └── CONTRIBUTING.md            # Contribution guidelines
